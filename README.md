@@ -28,7 +28,7 @@ Topic Intelligence intentionally does not duplicate:
 - source-health, cache, stale-data, or persistence logic;
 - the existing GPT topic-insight service.
 
-## First two Skills
+## Skills
 
 ### `cross-market-trend-research`
 
@@ -37,6 +37,33 @@ Use live Topic Radar data to find current topics, rising/early opportunities, pl
 ### `evidence-backed-content-brief`
 
 Turn a verified Topic Radar topic into a practical content brief. It can use the existing `/insight` contract for recommended formats, audiences, three content angles, hooks, opening seconds, research questions, verification requirements, and claims to avoid.
+
+## Install locally in Codex
+
+For local Codex validation, install both Skills as safe symlinks into the user Skill directory:
+
+```bash
+python3 scripts/install_codex_skills.py install
+python3 scripts/install_codex_skills.py status
+```
+
+Default destination:
+
+```text
+$HOME/.agents/skills/
+```
+
+The installer is idempotent and refuses to overwrite an unrelated existing Skill path. It keeps this repository as the source of truth, so edits on the checked-out branch are immediately visible through the symlink.
+
+Inside Codex, use `/skills` to confirm discovery. You can explicitly invoke a Skill with `$cross-market-trend-research` or `$evidence-backed-content-brief`. Implicit invocation is also enabled and is evaluated separately in M1.
+
+To remove only symlinks created from this checkout:
+
+```bash
+python3 scripts/install_codex_skills.py uninstall
+```
+
+See [`docs/codex-m1-acceptance.md`](docs/codex-m1-acceptance.md) and [`evals/README.md`](evals/README.md).
 
 ## Existing Topic Radar API
 
@@ -69,7 +96,7 @@ When a feed reports `refreshing=true`, sequential feed/history/sources requests 
 
 A feed item may therefore report `trend.history_points=6` while a history request moments later returns 7 points because another observation was persisted between reads. Compare identity, timestamps, and refresh state instead of treating this normal change as a contract mismatch.
 
-## Optional local helper
+## Optional local API helper
 
 `scripts/topic_radar_client.py` is deliberately small and uses only the Python standard library. It does not contain scoring or business logic; it only calls the existing public API and performs lightweight contract checks.
 
@@ -84,14 +111,12 @@ python3 scripts/topic_radar_client.py insight TOPIC_ID --locale zh
 
 The `insight` command calls the existing Topic Radar GPT analysis capability; ordinary feed/sources/history reads do not require that model call.
 
-The helper is useful in Codex or another local environment. A host with a native HTTP/MCP connection can follow the same Skills without using this script.
-
 ## Environment
 
 This repository should remain isolated from sibling project virtual environments.
 
 - Python: 3.10+
-- Runtime dependencies for the helper: none beyond the standard library
+- Runtime dependencies for the helper/installer: none beyond the standard library
 - Do **not** make this repository depend on `../akaiagents/.venv`
 - Do **not** import private `akaiagents` modules
 
@@ -99,13 +124,15 @@ Sibling repositories are references for contracts and engineering conventions, n
 
 ## Validation
 
-Run offline checks with:
+Run deterministic offline checks with:
 
 ```bash
 python3 -m unittest discover -s tests -v
 ```
 
 The tests do not require live network access. GitHub Actions runs the same suite on Python 3.10 and 3.12.
+
+M1 additionally validates real Skill discovery, explicit invocation, implicit trigger selection, false positives, and the live Radar workflow. The cases live in [`evals/cases.json`](evals/cases.json).
 
 ## Evidence boundary
 
@@ -121,4 +148,4 @@ The existing `/insight` output is model analysis over a server-known topic. It i
 
 ## Status
 
-M0 Skill-first foundation. No crawler, database, scoring engine, OAuth, billing, or hosted MCP is added here.
+M0 is merged and production-contract validated. M1 adds local Skill installation metadata plus trigger/workflow evals before any plugin or hosted-MCP productization.
