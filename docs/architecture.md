@@ -63,10 +63,23 @@ It is intentionally not a provider framework. It has:
 
 - URL/parameter construction;
 - timeout/error normalization;
-- lightweight top-level JSON shape checks;
+- lightweight public-contract shape and topic-identity checks;
 - a CLI.
 
-It has no crawler, database, scoring, clustering, model call, or topic-matching algorithm.
+It has no crawler, database, scoring, clustering, local model implementation, or topic-matching algorithm.
+
+The `insight` command is different from ordinary feed/sources/history reads: it can trigger the **existing upstream Topic Radar GPT insight** endpoint. The helper only transports that request; it does not implement or replace the model-analysis backend.
+
+## Contract consistency
+
+The public Topic Radar API remains the source of truth.
+
+Two details are intentionally handled explicitly:
+
+1. Feed topic cards expose the stable identity as `id`; history/insight accept and return the same value under the name `topic_id`.
+2. When `refreshing=true`, sequential requests are not guaranteed to be one atomic generation. A later history request may contain an additional observation compared with the parent feed.
+
+The helper enforces identity equality for history/insight responses, while Skills use freshness and timestamps to reason about legitimate between-request refresh changes.
 
 ## Runtime dependency policy
 
@@ -83,7 +96,7 @@ Included:
 - `cross-market-trend-research`;
 - `evidence-backed-content-brief`;
 - thin public API helper;
-- offline unit tests;
+- offline unit tests and minimal CI;
 - contract and architecture documentation.
 
 Not included:
