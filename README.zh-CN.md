@@ -28,7 +28,7 @@ Skills -> 证据检查 -> 跨市场解释
 - 来源健康、缓存、stale、持久化；
 - 已有 GPT Topic Insight 后端。
 
-## M0 两个核心 Skill
+## 两个核心 Skill
 
 ### `cross-market-trend-research`
 
@@ -56,6 +56,33 @@ Skills -> 证据检查 -> 跨市场解释
 - `must_verify` 与 `avoid_claims`。
 
 它优先复用现有 `/insight`，不重新实现一套 GPT 选题分析。
+
+## 在 Codex 本地安装
+
+M1 验收时，用仓库自带安装器把两个 Skill 以安全 symlink 方式安装到 Codex 用户 Skill 目录：
+
+```bash
+python3 scripts/install_codex_skills.py install
+python3 scripts/install_codex_skills.py status
+```
+
+默认位置：
+
+```text
+$HOME/.agents/skills/
+```
+
+安装器是幂等的；如果目标位置已经存在其他目录或 symlink，它会拒绝覆盖。仓库仍然是源码唯一来源，因此当前 checkout 中的 Skill 修改会通过 symlink 直接反映到 Codex。
+
+在 Codex 中可执行 `/skills` 确认发现情况；显式调用可以使用 `$cross-market-trend-research` 或 `$evidence-backed-content-brief`。两个 Skill 都允许隐式触发，M1 会专门测试“应该触发”和“不应该触发”的场景。
+
+只移除由当前 checkout 安装的 symlink：
+
+```bash
+python3 scripts/install_codex_skills.py uninstall
+```
+
+完整流程见 [`docs/codex-m1-acceptance.md`](docs/codex-m1-acceptance.md) 和 [`evals/README.md`](evals/README.md)。
 
 ## 已有公开 API
 
@@ -92,7 +119,7 @@ export AIWORKSTATION_TOPIC_RADAR_BASE_URL=http://127.0.0.1:8000
 
 因此可能出现：feed 中 `trend.history_points=6`，几秒后的 history 已经有 7 个点。这通常意味着刷新期间新增了一条观测，应结合时间戳判断，而不是直接当成 contract 错误。
 
-## 本地辅助脚本
+## 本地 API 辅助脚本
 
 `scripts/topic_radar_client.py` 只是一个非常薄的 API client，只使用 Python 标准库。
 
@@ -122,19 +149,23 @@ python3 scripts/topic_radar_client.py insight TOPIC_ID --locale zh
 建议：
 
 - Python 3.10+
-- 当前 helper 无第三方运行时依赖
+- 当前 helper / installer 无第三方运行时依赖
 - 不导入 `akaiagents` 私有模块
 - 两个兄弟项目仅用于参考 contract、版本和工程规范
 
-需要本地测试时，本仓库可以自己建立 `.venv`；M0 当前甚至无需额外安装依赖。
+需要本地测试时，本仓库可以自己建立 `.venv`；当前仍无需额外安装依赖。
 
-## 测试
+## 测试与 M1 Eval
+
+离线确定性测试：
 
 ```bash
 python3 -m unittest discover -s tests -v
 ```
 
-测试全部离线，不依赖实时公网。GitHub Actions 会在 Python 3.10 与 3.12 上运行同一套测试。
+测试不依赖实时公网。GitHub Actions 会在 Python 3.10 与 3.12 上运行同一套测试。
+
+M1 还会验证：真实 Skill 发现、显式调用、隐式触发、误触发，以及真实 Radar 工作流。测试用例在 [`evals/cases.json`](evals/cases.json)。
 
 ## 核心原则
 
@@ -150,6 +181,4 @@ python3 -m unittest discover -s tests -v
 
 ## 当前状态
 
-M0：Skill-first 基础版本。
-
-暂不增加 crawler、数据库、新评分引擎、OAuth、Billing 或 Hosted MCP。
+M0 已合并并完成生产 contract 验证。M1 正在增加本地 Skill 安装元数据和触发/工作流 eval；在这一步完成之前，不急着扩展 Plugin 或 Hosted MCP。
