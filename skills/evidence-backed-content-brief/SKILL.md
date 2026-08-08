@@ -21,9 +21,26 @@ A local/Codex host may use `scripts/topic_radar_client.py`.
 
 The `/insight` endpoint accepts a server-known `topic_id`. Do not send arbitrary user prompts or raw copied articles to it.
 
+## Live topic evidence is mandatory
+
+A brief about a **current** Radar topic must be anchored to a topic resolved from live Topic Radar data during the current task, or to an equivalent current Topic Radar response explicitly supplied by the user/native host connection.
+
+Do not search sibling repositories or local storage for a substitute when the live contract is unavailable. In particular, never use old Topic Radar snapshots, SQLite databases, fixtures, cached JSON exports, test captures, generated reports, logs, or other persisted local artifacts to establish that a topic is current.
+
+`../akaiagents` may contain implementation code and historical/local data. Its data files are not a fallback source for this Skill.
+
+If the live feed cannot be reached and the user has not supplied a current server-known topic plus current evidence:
+
+1. do not produce a current-topic verdict or evidence-backed angle;
+2. do not recover a topic from local files or model memory;
+3. explain that live Topic Radar evidence is unavailable in this execution environment;
+4. offer a clearly labeled blank/research template or explain what fields would be filled once live evidence is available.
+
+A network-restricted sandbox is an unavailable-live-data state, not permission to use stale local evidence.
+
 ## Resolve the topic first
 
-If the user supplies a topic ID, verify that the topic still exists before relying on it.
+If the user supplies a topic ID, verify that the topic still exists in live Radar data before relying on it, unless the user also supplies the current Topic Radar response containing that ID.
 
 If the user supplies only a topic name:
 
@@ -37,7 +54,7 @@ If the user asks “pick the best topic for me,” first use the trend-research 
 
 ## Check freshness and evidence
 
-Before producing the brief, inspect the parent feed context:
+Before producing the brief, inspect the parent live feed context:
 
 - `generated_at`;
 - `partial`;
@@ -149,64 +166,45 @@ A strong final brief should contain:
 
 ### Why now
 
-Separate:
-
-- observed Radar facts;
-- model/Skill interpretation.
+Separate observed Radar facts from model/Skill interpretation.
 
 ### Selected angle
 
-Include:
-
-- angle title;
-- hook;
-- opening 3 seconds;
-- viewer question;
-- core conflict;
-- promise;
-- narrative beats;
-- platform fit.
+Include angle title, hook, opening 3 seconds, viewer question, core conflict, promise, narrative beats, and platform fit.
 
 ### Visual plan
 
-Use `visual_moments` and `short_video_handoff.visual_material_needs`.
-
-Distinguish must-have factual visuals from optional illustrative B-roll.
+Use `visual_moments` and `short_video_handoff.visual_material_needs`. Distinguish must-have factual visuals from optional illustrative B-roll.
 
 ### Research handoff
 
-Preserve:
-
-- `research_questions`;
-- `search_queries`;
-- `preferred_source_types`;
-- `must_verify`;
-- known unknowns.
+Preserve `research_questions`, `search_queries`, `preferred_source_types`, `must_verify`, and known unknowns.
 
 ### Claims boundary
 
-Show `avoid_claims` explicitly.
-
-Do not hide them in a generic disclaimer.
+Show `avoid_claims` explicitly. Do not hide them in a generic disclaimer.
 
 ### Alternatives
 
 Briefly show the other two existing angles when useful instead of inventing ten more.
 
-## Degraded insight handling
+## Degraded or unavailable insight handling
 
 If `generation_quality=degraded`:
 
 1. say so;
-2. rely more heavily on source facts;
+2. rely more heavily on live source facts;
 3. do not fill missing creative fields with confident invented detail;
 4. preserve watchouts and verification requirements.
 
-If `/insight` is unavailable, still provide an evidence-based skeleton from feed/history, clearly labeling the creative plan as your own analysis rather than server insight.
+If `/insight` is unavailable **but live feed/history evidence is available**, you may provide an evidence-based skeleton, clearly labeling the creative plan as your own analysis rather than server insight.
+
+If the live feed itself is unavailable, do not use local snapshots to create a current-topic brief. Provide only a template or blocked-state explanation.
 
 ## Quality rules
 
 - Never call `/insight` with arbitrary raw text.
+- Never use local/sibling-repository snapshots, fixtures, databases, exports, or logs as fallback current evidence.
 - Never use insight output to overwrite contradictory source facts.
 - Never omit `must_verify` or `avoid_claims` when present.
 - Never claim a short video will perform because `can_make_short_video=yes`.
