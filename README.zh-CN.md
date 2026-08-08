@@ -13,7 +13,7 @@ akaiagents / 全球热点选题雷达
 公开数据源 -> 聚合 -> 聚类 -> opportunity_score
 -> trend/history -> source health -> GPT topic insight
                          |
-                         | 公开只读 API
+                         | 公开 API
                          v
 aiworkstation-topic-intelligence
 Skills -> 证据检查 -> 跨市场解释
@@ -76,9 +76,25 @@ https://aiworkstation.cn
 export AIWORKSTATION_TOPIC_RADAR_BASE_URL=http://127.0.0.1:8000
 ```
 
+### Topic ID 命名
+
+生产 contract 中：
+
+- Feed 卡片的稳定 ID 字段名是 `id`；
+- 调用 history / insight 时，把这个 `id` 原样作为 `topic_id`；
+- history / insight 响应再以 `topic_id` 返回同一身份。
+
+不要假设 feed 里还存在一个 `topic_id` 别名。
+
+### 刷新中的一致性
+
+当 feed 返回 `refreshing=true` 时，连续请求 feed、history、sources 并不是一个原子快照事务。
+
+因此可能出现：feed 中 `trend.history_points=6`，几秒后的 history 已经有 7 个点。这通常意味着刷新期间新增了一条观测，应结合时间戳判断，而不是直接当成 contract 错误。
+
 ## 本地辅助脚本
 
-`scripts/topic_radar_client.py` 只是一个非常薄的只读 API client，只使用 Python 标准库。
+`scripts/topic_radar_client.py` 只是一个非常薄的 API client，只使用 Python 标准库。
 
 它不做：
 
@@ -86,16 +102,18 @@ export AIWORKSTATION_TOPIC_RADAR_BASE_URL=http://127.0.0.1:8000
 - 聚类；
 - 数据库；
 - 抓取；
-- AI 推理。
+- AI 业务推理。
 
 示例：
 
 ```bash
-python scripts/topic_radar_client.py feed --category technology --max-age-hours 24 --limit 12
-python scripts/topic_radar_client.py sources
-python scripts/topic_radar_client.py history TOPIC_ID
-python scripts/topic_radar_client.py insight TOPIC_ID --locale zh
+python3 scripts/topic_radar_client.py feed --category technology --max-age-hours 24 --limit 12
+python3 scripts/topic_radar_client.py sources
+python3 scripts/topic_radar_client.py history TOPIC_ID
+python3 scripts/topic_radar_client.py insight TOPIC_ID --locale zh
 ```
+
+`insight` 会调用现有 Topic Radar GPT 分析能力；纯数据查看不需要调用它。
 
 ## 环境与依赖
 
@@ -108,15 +126,15 @@ python scripts/topic_radar_client.py insight TOPIC_ID --locale zh
 - 不导入 `akaiagents` 私有模块
 - 两个兄弟项目仅用于参考 contract、版本和工程规范
 
-需要本地测试时，本仓库可以自己建立 `.venv`；没必要为了 M0 先建环境。
+需要本地测试时，本仓库可以自己建立 `.venv`；M0 当前甚至无需额外安装依赖。
 
 ## 测试
 
 ```bash
-python -m unittest discover -s tests -v
+python3 -m unittest discover -s tests -v
 ```
 
-测试全部离线，不依赖实时公网。
+测试全部离线，不依赖实时公网。GitHub Actions 会在 Python 3.10 与 3.12 上运行同一套测试。
 
 ## 核心原则
 
