@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Thin read-only client for the existing AI Workstation Global Topic Radar API."""
+"""Thin client for the existing AI Workstation Global Topic Radar API."""
 
 from __future__ import annotations
 
@@ -39,6 +39,16 @@ def _require_list(payload: Mapping[str, Any], key: str, *, context: str) -> None
         raise TopicRadarProtocolError(f"{context}: expected list field {key!r}")
 
 
+def _validate_feed_items(items: list[Any]) -> None:
+    for index, item in enumerate(items):
+        if not isinstance(item, dict):
+            raise TopicRadarProtocolError(f"feed: item {index} is not an object")
+        if not isinstance(item.get("id"), str) or not item["id"].strip():
+            raise TopicRadarProtocolError(
+                f"feed: item {index} missing stable string field 'id'"
+            )
+
+
 def _validate_payload(kind: str, payload: Any) -> dict[str, Any]:
     obj = _json_object(payload, context=kind)
 
@@ -48,6 +58,7 @@ def _validate_payload(kind: str, payload: Any) -> dict[str, Any]:
                 raise TopicRadarProtocolError(f"feed: missing field {key!r}")
         _require_list(obj, "items", context="feed")
         _require_list(obj, "source_status", context="feed")
+        _validate_feed_items(obj["items"])
     elif kind == "sources":
         if "generated_at" not in obj:
             raise TopicRadarProtocolError("sources: missing field 'generated_at'")
@@ -60,13 +71,15 @@ def _validate_payload(kind: str, payload: Any) -> dict[str, Any]:
         for key in ("topic_id", "verdict", "angles", "short_video_handoff"):
             if key not in obj:
                 raise TopicRadarProtocolError(f"insight: missing field {key!r}")
+        if not isinstance(obj.get("topic_id"), str):
+            raise TopicRadarProtocolError("insight: expected string field 'topic_id'")
         _require_list(obj, "angles", context="insight")
 
     return obj
 
 
 class TopicRadarClient:
-    """Read-only HTTP client. It intentionally contains no scoring/business logic."""
+    """Thin HTTP client with no local persistence, scoring, or business logic."""
 
     def __init__(
         self,
@@ -202,12 +215,17 @@ class TopicRadarClient:
         topic_id = topic_id.strip()
         if not topic_id:
             raise ValueError("topic_id is required")
-        return self._request(
+        payload = self._request(
             "GET",
             "/history",
             params={"topic_id": topic_id},
             kind="history",
         )
+        if payload["topic_id"] != topic_id:
+            raise TopicRadarProtocolError(
+                "history: response topic_id does not match requested topic_id"
+            )
+        return payload
 
     def insight(self, topic_id: str, *, locale: str = "zh") -> dict[str, Any]:
         topic_id = topic_id.strip()
@@ -215,13 +233,18 @@ class TopicRadarClient:
             raise ValueError("topic_id is required")
         if locale not in _ALLOWED_LOCALES:
             raise ValueError("locale must be 'zh' or 'en'")
-        return self._request(
+        payload = self._request(
             "POST",
             "/insight",
             params={"locale": locale},
             body={"topic_id": topic_id},
             kind="insight",
         )
+        if payload["topic_id"] != topic_id:
+            raise TopicRadarProtocolError(
+                "insight: response topic_id does not match requested topic_id"
+            )
+        return payload
 
 
 def _dump(payload: Mapping[str, Any]) -> None:
