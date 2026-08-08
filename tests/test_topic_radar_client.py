@@ -27,13 +27,13 @@ class FakeResponse:
         return json.dumps(self.payload, ensure_ascii=False).encode("utf-8")
 
 
-def sample_feed():
+def sample_feed(*, items=None):
     return {
         "generated_at": "2026-08-09T00:00:00Z",
         "status": "ok",
         "partial": False,
         "stale": False,
-        "items": [],
+        "items": [] if items is None else items,
         "source_status": [],
     }
 
@@ -68,6 +68,23 @@ class TopicRadarClientTests(unittest.TestCase):
         self.assertIn("limit=12", request.full_url)
         self.assertEqual(timeout, 15.0)
 
+    def test_feed_requires_stable_item_id_not_topic_id_alias(self) -> None:
+        good = sample_feed(items=[{"id": "topic:abc"}])
+        bad = sample_feed(items=[{"topic_id": "topic:abc"}])
+
+        client = TopicRadarClient(
+            base_url="https://example.test",
+            opener=lambda request, timeout: FakeResponse(good),
+        )
+        self.assertEqual(client.feed()["items"][0]["id"], "topic:abc")
+
+        client = TopicRadarClient(
+            base_url="https://example.test",
+            opener=lambda request, timeout: FakeResponse(bad),
+        )
+        with self.assertRaisesRegex(TopicRadarProtocolError, "stable string field 'id'"):
+            client.feed()
+
     def test_insight_posts_only_topic_id_and_locale(self) -> None:
         calls = []
 
@@ -97,6 +114,28 @@ class TopicRadarClientTests(unittest.TestCase):
 
         client = TopicRadarClient(base_url="https://example.test", opener=opener)
         self.assertEqual(client.history("topic-1")["points"], [])
+
+    def test_history_and_insight_reject_topic_identity_mismatch(self) -> None:
+        responses = iter(
+            [
+                {"topic_id": "topic-2", "points": []},
+                {
+                    "topic_id": "topic-2",
+                    "verdict": "x",
+                    "angles": [],
+                    "short_video_handoff": {},
+                },
+            ]
+        )
+
+        client = TopicRadarClient(
+            base_url="https://example.test",
+            opener=lambda request, timeout: FakeResponse(next(responses)),
+        )
+        with self.assertRaisesRegex(TopicRadarProtocolError, "does not match"):
+            client.history("topic-1")
+        with self.assertRaisesRegex(TopicRadarProtocolError, "does not match"):
+            client.insight("topic-1")
 
     def test_feed_rejects_malformed_payload(self) -> None:
         def opener(request, timeout):
