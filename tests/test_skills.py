@@ -17,8 +17,10 @@ class SkillPackageTests(unittest.TestCase):
         self.assertIn("/history", content)
         self.assertIn("partial", content)
         self.assertIn("stale", content)
+        self.assertIn("refreshing", content)
         self.assertIn("opportunity_score", content)
         self.assertIn("cross-market hypothesis", content.lower())
+        self.assertIn("feed `id`", content)
         self.assertIn("Source facts", content)
         self.assertIn("Unknowns", content)
 
@@ -31,6 +33,8 @@ class SkillPackageTests(unittest.TestCase):
         self.assertIn("must_verify", content)
         self.assertIn("avoid_claims", content)
         self.assertIn("Insight is analysis, not evidence", content)
+        self.assertIn("Feed topic cards expose the stable identifier as `id`", content)
+        self.assertIn("refreshing=true", content)
         self.assertNotIn("new scoring engine", content.lower())
 
 
