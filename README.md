@@ -13,7 +13,7 @@ AI Workstation Global Topic Radar (akaiagents)
   public sources -> aggregation -> clustering -> opportunity score
   -> trend/history -> source health -> optional GPT topic insight
                               |
-                              | public read-only API
+                              | public API
                               v
 AI Workstation Topic Intelligence
   Skills -> evidence checks -> cross-market interpretation
@@ -53,18 +53,36 @@ The default public origin is `https://aiworkstation.cn`. Local or staging enviro
 export AIWORKSTATION_TOPIC_RADAR_BASE_URL=http://127.0.0.1:8000
 ```
 
+### Topic identity
+
+The production contract names the stable identifier differently across endpoint shapes:
+
+- a feed topic card exposes `id`;
+- pass that exact value as `topic_id` to history or insight;
+- history and insight responses expose the same identity as `topic_id`.
+
+Do not assume feed items also contain a `topic_id` alias.
+
+### Refresh consistency
+
+When a feed reports `refreshing=true`, sequential feed/history/sources requests are not one atomic snapshot transaction.
+
+A feed item may therefore report `trend.history_points=6` while a history request moments later returns 7 points because another observation was persisted between reads. Compare identity, timestamps, and refresh state instead of treating this normal change as a contract mismatch.
+
 ## Optional local helper
 
-`scripts/topic_radar_client.py` is deliberately small and uses only the Python standard library. It does not contain scoring or business logic; it only calls the existing public API and performs lightweight shape checks.
+`scripts/topic_radar_client.py` is deliberately small and uses only the Python standard library. It does not contain scoring or business logic; it only calls the existing public API and performs lightweight contract checks.
 
 Examples:
 
 ```bash
-python scripts/topic_radar_client.py feed --category technology --max-age-hours 24 --limit 12
-python scripts/topic_radar_client.py sources
-python scripts/topic_radar_client.py history TOPIC_ID
-python scripts/topic_radar_client.py insight TOPIC_ID --locale zh
+python3 scripts/topic_radar_client.py feed --category technology --max-age-hours 24 --limit 12
+python3 scripts/topic_radar_client.py sources
+python3 scripts/topic_radar_client.py history TOPIC_ID
+python3 scripts/topic_radar_client.py insight TOPIC_ID --locale zh
 ```
+
+The `insight` command calls the existing Topic Radar GPT analysis capability; ordinary feed/sources/history reads do not require that model call.
 
 The helper is useful in Codex or another local environment. A host with a native HTTP/MCP connection can follow the same Skills without using this script.
 
@@ -84,10 +102,10 @@ Sibling repositories are references for contracts and engineering conventions, n
 Run offline checks with:
 
 ```bash
-python -m unittest discover -s tests -v
+python3 -m unittest discover -s tests -v
 ```
 
-The tests do not require live network access.
+The tests do not require live network access. GitHub Actions runs the same suite on Python 3.10 and 3.12.
 
 ## Evidence boundary
 
