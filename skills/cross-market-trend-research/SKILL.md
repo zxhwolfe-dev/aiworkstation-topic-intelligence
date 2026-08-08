@@ -42,16 +42,31 @@ The public contract is:
 
 A local/Codex host may use `scripts/topic_radar_client.py`. A host with a native HTTP or MCP connection may call the same contract directly.
 
+### Live evidence is exclusive
+
+For current-state claims, accepted evidence is limited to:
+
+1. a response obtained from the configured live Topic Radar API during the current task; or
+2. equivalent live Topic Radar data supplied by a native host connection during the current task; or
+3. a current API response explicitly supplied by the user, with freshness fields visible.
+
+**Do not search local files for a substitute when live access fails.** In particular, do not use sibling repositories, old Topic Radar snapshots, SQLite databases, fixtures, cached JSON exports, logs, test captures, generated reports, or previously persisted local data as evidence that a topic is current.
+
+`../akaiagents` and this repository may be inspected for code/contracts during development, but their local data artifacts are never a fallback live source for this Skill.
+
 If live data cannot be reached:
 
-1. do not invent a current shortlist;
-2. say that current Topic Radar evidence is unavailable;
-3. offer only a research plan, filter strategy, or evaluation framework;
-4. label user-supplied examples as unverified unless current evidence is supplied.
+1. stop the current-topic workflow;
+2. do not invent or recover a current shortlist from model memory or local artifacts;
+3. say that current Topic Radar evidence is unavailable in this execution environment;
+4. offer only a research plan, filter strategy, evaluation framework, or clearly labeled template;
+5. label user-supplied topic examples as unverified unless the user also supplied current evidence.
+
+A network-restricted sandbox is an unavailable-live-data state, not permission to search nearby files for stale evidence.
 
 ## Read freshness before interpretation
 
-For every feed response, inspect:
+For every live feed response, inspect:
 
 - `generated_at`;
 - `partial`;
@@ -150,14 +165,7 @@ Call `/history` for finalists when the user's decision depends on movement over 
 
 Do not call history for every item in a broad feed unless necessary.
 
-History can help distinguish:
-
-- a new spike;
-- sustained momentum;
-- cooling;
-- a one-source anomaly.
-
-Do not extrapolate beyond the observed series.
+History can help distinguish a new spike, sustained momentum, cooling, or a one-source anomaly. Do not extrapolate beyond the observed series.
 
 When a refresh is in progress, history can gain a point after the parent feed was generated. Compare timestamps and snapshot state rather than requiring `trend.history_points` to equal the later history response length exactly.
 
@@ -167,7 +175,7 @@ Keep five layers explicit:
 
 ### Source facts
 
-Facts returned by Topic Radar, including score, stage, timestamps, evidence entries, and trend metrics.
+Facts returned by the live Topic Radar contract in the current task, including score, stage, timestamps, evidence entries, and trend metrics.
 
 ### Analysis
 
@@ -197,20 +205,11 @@ Adapt the answer to the user, but for a shortlist usually include:
 
 ### Best candidates
 
-For each candidate:
-
-- topic and stable ID when useful;
-- current Radar stage and opportunity score;
-- observed momentum/evidence;
-- why it matters;
-- what is fact versus inference;
-- recommended next verification step.
+For each candidate include current Radar stage and opportunity score, observed momentum/evidence, why it matters, what is fact versus inference, and the next verification step.
 
 ### Cross-market interpretation
 
-State verified differences first.
-
-Put timing-gap or propagation claims in a separate **hypotheses** section unless directly evidenced.
+State verified differences first. Put timing-gap or propagation claims in a separate **hypotheses** section unless directly evidenced.
 
 ### Unknowns and risks
 
@@ -219,6 +218,7 @@ Do not bury them.
 ## Quality rules
 
 - Never fabricate a current topic from memory.
+- Never use local/sibling-repository snapshots, fixtures, databases, exports, or logs as fallback current evidence.
 - Never turn `target_platforms` into proof of actual platform performance.
 - Never treat `opportunity_score` as a guaranteed outcome.
 - Never call a snapshot “live/current” without checking freshness.
