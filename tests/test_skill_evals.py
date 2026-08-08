@@ -50,6 +50,16 @@ class SkillEvalTests(unittest.TestCase):
                 self.assertEqual(expected, set(), case["id"])
                 self.assertEqual(optional, set(), case["id"])
 
+    def test_positive_evals_forbid_local_snapshot_fallback(self) -> None:
+        _, cases = self._cases()
+        positive = [case for case in cases if case["expected_skill"]]
+        for case in positive:
+            combined = " ".join(case["must_not"]).lower()
+            self.assertTrue(
+                any(token in combined for token in ("local", "sibling", "snapshot", "cached")),
+                case["id"],
+            )
+
     def test_each_skill_has_openai_metadata_for_discovery(self) -> None:
         for skill in self.SKILLS:
             path = self.ROOT / "skills" / skill / "agents" / "openai.yaml"
@@ -67,6 +77,15 @@ class SkillEvalTests(unittest.TestCase):
         self.assertIn("/skills", content)
         self.assertIn("$HOME/.agents/skills", content)
         self.assertIn("Do not merge or modify Skill descriptions during acceptance", content)
+
+    def test_acceptance_guide_separates_trigger_and_live_network_gates(self) -> None:
+        content = (self.ROOT / "docs" / "codex-m1-acceptance.md").read_text(encoding="utf-8")
+        self.assertIn("Gate A", content)
+        self.assertIn("Gate B", content)
+        self.assertIn("network-restricted", content)
+        self.assertIn("Do not confuse a sandbox network restriction", content)
+        self.assertIn("Do **not** switch to broad or dangerous filesystem permissions", content)
+        self.assertIn("local/sibling snapshots are never acceptable substitutes", content)
 
 
 if __name__ == "__main__":
