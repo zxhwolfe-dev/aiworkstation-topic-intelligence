@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Iterable, Optional
 
@@ -145,7 +146,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         else:
             rows = inspect(target_root)
     except InstallError as exc:
-        print(f"error: {exc}", file=os.sys.stderr)
+        print(f"error: {exc}", file=sys.stderr)
         return 2
 
     _print(rows)
