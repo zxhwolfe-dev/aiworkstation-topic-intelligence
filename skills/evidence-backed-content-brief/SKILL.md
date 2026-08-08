@@ -31,6 +31,8 @@ If the user supplies only a topic name:
 2. show or choose the closest server-known topic only when identity is reasonably clear;
 3. if multiple materially different clusters match, ask the user only when the choice would change the brief; otherwise explain which one you selected.
 
+Feed topic cards expose the stable identifier as `id`, not `topic_id`. When calling `/history` or `/insight`, pass that exact feed `id` value as the request's `topic_id`. Those endpoint responses then expose the same identity under `topic_id`.
+
 If the user asks “pick the best topic for me,” first use the trend-research workflow to select a current candidate; do not call `/insight` across a large feed.
 
 ## Check freshness and evidence
@@ -41,6 +43,7 @@ Before producing the brief, inspect the parent feed context:
 - `partial`;
 - `stale`;
 - `snapshot_age_seconds`;
+- `refreshing`;
 - topic `evidence`;
 - topic `trend`;
 - `source_status` when relevant.
@@ -48,6 +51,8 @@ Before producing the brief, inspect the parent feed context:
 If the snapshot is stale/partial, carry that caveat into the brief.
 
 Use `/history` when “why now” depends on acceleration, persistence, or cooling.
+
+When `refreshing=true`, a subsequent history request may include a newly persisted point that was not yet represented in the parent feed's `trend.history_points`. Compare timestamps and identity; do not require exact point-count equality across sequential requests during refresh.
 
 ## Reuse existing Topic Insight
 
@@ -206,4 +211,6 @@ If `/insight` is unavailable, still provide an evidence-based skeleton from feed
 - Never omit `must_verify` or `avoid_claims` when present.
 - Never claim a short video will perform because `can_make_short_video=yes`.
 - Never convert `editorial_stage` into a guaranteed viral stage.
+- Never confuse feed `id` with a separate topic identity; it is the value handed to `topic_id` parameters.
+- Never treat normal point-count changes during `refreshing=true` as a contradiction without checking timestamps.
 - Prefer one executable angle and a research handoff over a generic list of ideas.
