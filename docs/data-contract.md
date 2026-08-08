@@ -29,6 +29,7 @@ The Skills rely on feed-level freshness fields such as:
 - `partial`
 - `stale`
 - `snapshot_age_seconds`
+- `refreshing`
 - `source_status`
 - `history_available`
 
@@ -51,6 +52,24 @@ Topic cards can expose fields including:
 - `trend`
 - `score_breakdown`
 
+### Topic identity handoff
+
+The stable identifier on a feed item is `id`.
+
+The `/history` and `/insight` request contracts call that same value `topic_id`, and their responses also expose it as `topic_id`.
+
+Therefore the expected handoff is:
+
+```text
+feed.items[n].id
+        |
+        +--> history?topic_id=<same value>
+        |
+        +--> insight body {"topic_id": "<same value>"}
+```
+
+Do not expect a `topic_id` alias on feed items.
+
 ### Interpretation rule
 
 `opportunity_score` is a deterministic Radar score. It is a source fact about the Radar's current scoring output, but it is not a guarantee of content performance.
@@ -60,6 +79,8 @@ Topic cards can expose fields including:
 `GET /api/v1/ai/topic-radar/sources`
 
 Use source status to qualify broad claims and platform-specific claims when the aggregate is partial, stale, or missing a relevant source.
+
+A source with status `empty` returned no current items for that snapshot. `empty` should not automatically be described as a transport/connector failure; inspect the returned status note and surrounding coverage.
 
 ## History
 
@@ -74,6 +95,14 @@ History points can include:
 - source count.
 
 Use history to describe observed movement. Do not extrapolate an unobserved future path.
+
+### Refresh consistency rule
+
+The feed can report `refreshing=true`. In that state, two sequential public requests are not an atomic snapshot transaction.
+
+For example, a feed item's `trend.history_points` may be 6 and a history request moments later may return 7 points because a new observation was persisted between the two reads. Treat this as expected refresh behavior when timestamps support it, not as a contract mismatch.
+
+The client should enforce stable topic identity, but Skills should compare timestamps/generation state rather than demanding exact count equality across requests made during refresh.
 
 ## Insight
 
