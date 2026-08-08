@@ -57,6 +57,7 @@ For every feed response, inspect:
 - `partial`;
 - `stale`;
 - `snapshot_age_seconds`;
+- `refreshing`;
 - `source_status`;
 - `history_available`.
 
@@ -65,6 +66,10 @@ If `partial=true`, describe material source gaps before making a broad-market cl
 If `stale=true`, do not describe the snapshot as newly observed. State the age/freshness caveat.
 
 A healthy aggregate does not mean every source is healthy; inspect `source_status` when the answer depends on a particular platform or region.
+
+A source status of `empty` means the source returned no current items in that snapshot. Do not automatically describe `empty` as a connector failure; use its status/note and surrounding coverage to explain the limitation.
+
+When `refreshing=true`, sequential feed/history/source reads may legitimately observe different generations. Do not treat a newly added history point or changed count as a contract violation merely because two requests were made during refresh.
 
 ## Route the request
 
@@ -97,7 +102,7 @@ A claim such as “US is leading and Chinese-language coverage may follow” req
 
 Prefer, in order:
 
-1. the same stable `topic_id` observed through comparable region/platform queries;
+1. the same stable feed `id` observed through comparable region/platform queries;
 2. direct evidence timestamps and source spread for one clustered topic;
 3. history that supports sequential expansion.
 
@@ -123,6 +128,8 @@ For each serious candidate, pay attention to:
 - `evidence`;
 - `trend`;
 - `score_breakdown`.
+
+The stable topic identifier is named `id` on feed items. Pass that exact value as the `topic_id` query/body field for `/history` or `/insight`; those endpoint responses identify it as `topic_id`. Do not search for a nonexistent feed `topic_id` alias.
 
 Useful trend fields can include:
 
@@ -151,6 +158,8 @@ History can help distinguish:
 - a one-source anomaly.
 
 Do not extrapolate beyond the observed series.
+
+When a refresh is in progress, history can gain a point after the parent feed was generated. Compare timestamps and snapshot state rather than requiring `trend.history_points` to equal the later history response length exactly.
 
 ## Evidence boundary
 
@@ -183,7 +192,7 @@ Adapt the answer to the user, but for a shortlist usually include:
 ### Radar status
 
 - snapshot time/freshness;
-- partial/stale state;
+- partial/stale/refreshing state when material;
 - important source coverage issues.
 
 ### Best candidates
@@ -214,5 +223,6 @@ Do not bury them.
 - Never treat `opportunity_score` as a guaranteed outcome.
 - Never call a snapshot “live/current” without checking freshness.
 - Never silently ignore `partial` or `stale`.
+- Never treat normal between-request changes during `refreshing=true` as contradictory evidence without checking timestamps.
 - Never merge different topics only because their titles are semantically similar.
 - Prefer a small evidence-backed shortlist over a long generic trend list.
