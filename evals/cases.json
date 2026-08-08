@@ -8,7 +8,7 @@
       "expected_calls": ["feed"],
       "optional_calls": ["sources", "history"],
       "must_show": ["freshness", "source facts", "unknowns"],
-      "must_not": ["invent current topics from model memory"]
+      "must_not": ["invent current topics from model memory", "use local or sibling-repository snapshots as current evidence"]
     },
     {
       "id": "trend-zh-early-multisource",
@@ -17,7 +17,7 @@
       "expected_calls": ["feed"],
       "optional_calls": ["history"],
       "must_show": ["opportunity_score", "trend_stage", "evidence"],
-      "must_not": ["create a second score"]
+      "must_not": ["create a second score", "use stale local data when live access fails"]
     },
     {
       "id": "trend-en-cross-market",
@@ -26,7 +26,7 @@
       "expected_calls": ["feed"],
       "optional_calls": ["sources", "history"],
       "must_show": ["cross-market hypothesis when lead-lag is not verified"],
-      "must_not": ["state an unverified propagation path as fact"]
+      "must_not": ["state an unverified propagation path as fact", "replace live evidence with local snapshots"]
     },
     {
       "id": "trend-platform-compare",
@@ -35,7 +35,7 @@
       "expected_calls": ["feed"],
       "optional_calls": ["sources", "history"],
       "must_show": ["comparable time windows", "source coverage"],
-      "must_not": ["treat target_platforms as observed performance"]
+      "must_not": ["treat target_platforms as observed performance", "use local cached data as current platform evidence"]
     },
     {
       "id": "brief-zh-from-current-topic",
@@ -44,7 +44,7 @@
       "expected_calls": ["feed", "insight"],
       "optional_calls": ["history"],
       "must_show": ["selected angle", "must_verify", "avoid_claims", "research handoff"],
-      "must_not": ["present insight as verified fact"]
+      "must_not": ["present insight as verified fact", "use a local stale snapshot as the current topic"]
     },
     {
       "id": "brief-zh-pick-best",
@@ -53,7 +53,7 @@
       "expected_calls": ["feed", "insight"],
       "optional_calls": ["history"],
       "must_show": ["why now", "opening_3_seconds", "visual plan", "research questions"],
-      "must_not": ["call insight across a large feed"]
+      "must_not": ["call insight across a large feed", "recover a current topic from sibling-repository data"]
     },
     {
       "id": "brief-en-known-topic",
@@ -62,7 +62,7 @@
       "expected_calls": ["feed", "insight"],
       "optional_calls": ["history"],
       "must_show": ["audience payoff", "platform fit", "claims boundary"],
-      "must_not": ["invent missing source facts"]
+      "must_not": ["invent missing source facts", "use ../akaiagents or any local snapshot as current evidence"]
     },
     {
       "id": "negative-evergreen-history",
