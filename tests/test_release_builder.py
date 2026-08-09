@@ -17,7 +17,7 @@ from scripts.build_release import (
 
 
 SKILLS = (
-    "cross-market-trend-research",
+    "creator-topic-opportunity-research",
     "evidence-backed-content-brief",
 )
 
