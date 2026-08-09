@@ -1,0 +1,58 @@
+{
+  "schema": "ati.host-capabilities.v1",
+  "updated_at": "2026-08-09",
+  "dimensions": [
+    "skill_discovery",
+    "standalone_package",
+    "bundled_runtime_execution",
+    "live_topic_radar_access",
+    "multi_skill_composition"
+  ],
+  "hosts": [
+    {
+      "id": "codex",
+      "status": "validated_with_environment_limits",
+      "skill_discovery": "validated",
+      "standalone_package": "validated",
+      "bundled_runtime_execution": "validated",
+      "live_topic_radar_access": "host_environment_dependent",
+      "multi_skill_composition": "validated_with_audit_prompt",
+      "evidence": [
+        "docs/m3.1-final-acceptance-2026-08-09.md"
+      ],
+      "notes": [
+        "Managed read-only sandboxes may block DNS or loopback sockets.",
+        "Network restriction is recorded separately from Skill code behavior."
+      ]
+    },
+    {
+      "id": "standalone-shell",
+      "status": "validated",
+      "skill_discovery": "not_applicable",
+      "standalone_package": "validated",
+      "bundled_runtime_execution": "validated",
+      "live_topic_radar_access": "validated",
+      "multi_skill_composition": "not_applicable",
+      "evidence": [
+        "docs/m3.1-final-acceptance-2026-08-09.md"
+      ],
+      "notes": [
+        "Used to validate the packaged transport independently of an agent host."
+      ]
+    },
+    {
+      "id": "chatgpt",
+      "status": "manual_smoke_required",
+      "skill_discovery": "unverified",
+      "standalone_package": "unverified",
+      "bundled_runtime_execution": "unverified",
+      "live_topic_radar_access": "unverified",
+      "multi_skill_composition": "unverified",
+      "evidence": [],
+      "notes": [
+        "Do not infer ChatGPT behavior from Codex acceptance.",
+        "Test creator-only, brief-only, and both-Skills with the published v0.2.0 artifacts when an eligible workspace is available."
+      ]
+    }
+  ]
+}
