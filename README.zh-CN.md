@@ -1,14 +1,133 @@
 # AI Workstation Topic Intelligence
 
-**基于 AI Workstation「全球热点选题雷达」实时数据的趋势研究与内容策划 Skills。**
+**先找出今天真正值得研究的题，再把一个当前热点变成研究就绪的内容简报。**
 
 [English](README.md)
 
-当前可分发版本：**0.1.0 public preview**
+最新公开版本：**v0.1.0 public preview**
 
-这个仓库**不重新开发热点雷达**。热点采集、聚合、聚类、机会分、趋势历史、来源健康和已有 GPT 选题分析继续由 `akaiagents` 中的全球热点选题雷达负责。
+Topic Intelligence 建在现有 AI Workstation「全球热点选题雷达」之上。它不重新做爬虫、聚类、评分、数据库或 GPT 后端，而是把实时 Radar 证据转成更可靠的创作者/编辑决策。
 
-本仓库只负责把这些已有能力变成 ChatGPT、Codex 等支持 Skill 的 AI Host 可以正确执行的工作流，并严格区分实时事实、分析、建议、未知项和风险。
+## 你可以直接拿它做什么？
+
+### 1. 今天什么 AI 题材值得研究？
+
+```text
+今天有哪些 AI 题材值得我继续研究或做内容？先检查 Radar 是否足够新，再给我最值得看的 3 个。
+```
+
+预期 Skill：
+
+```text
+creator-topic-opportunity-research
+```
+
+目标不是再给几十条新闻，而是给少量候选，并明确：数据新鲜度、来源覆盖、机会分/阶段、观察到的趋势、事实与推断、下一步核验什么。
+
+### 2. 海外有没有值得中文内容提前跟的机会？
+
+```text
+海外现在有哪些科技话题正在升温、可能值得中文内容创作者提前研究？中文区是否已经做烂如果没有直接证据就明确说不知道。
+```
+
+Skill 可以比较平台/地区的当前信号，但如果 Radar 没有直接测量“中文区内容饱和度”，就必须把它标成未知或假设，不能把猜测包装成数据。
+
+### 3. 把当前热点变成研究/制作可直接接手的简报
+
+```text
+从当前 AI 热点里挑一个适合 2–3 分钟解释型内容的题材，给我受众收益、最强角度、前三秒、叙事结构、必须核验的事实、不能乱说的内容和素材建议。
+```
+
+预期工作流：
+
+```text
+creator-topic-opportunity-research
+  -> evidence-backed-content-brief
+```
+
+完整 M3 场景和采用指标见 [`docs/m3-user-scenarios.md`](docs/m3-user-scenarios.md)。
+
+## 选择你的入口
+
+### Codex / 开发者
+
+```bash
+python3 scripts/install_codex_skills.py install
+python3 scripts/install_codex_skills.py doctor
+```
+
+默认安装到：
+
+```text
+$HOME/.agents/skills/
+```
+
+显式调用：
+
+```text
+$creator-topic-opportunity-research
+$evidence-backed-content-brief
+```
+
+安装器幂等、安全，不覆盖无关路径；如果你用过 pre-0.1.0 的旧名 `cross-market-trend-research`，只有在确认旧 symlink 属于当前 checkout 时才会安全迁移。
+
+### ChatGPT
+
+OpenAI 当前 Help Center 说明：Personal Skills 一般面向 ChatGPT Business、Enterprise、Healthcare、Edu 用户，工作区权限还可以进一步限制 Skill 的创建、上传和安装；Personal Skills 当前也需要在 desktop 与 web/mobile 分别添加，不会自动跨界面同步。
+
+符合条件的用户目前可以在 ChatGPT：**Plugins → Skills → Create → Upload from your computer** 上传 Skill。
+
+当前安装说明见 [`docs/chatgpt-install.md`](docs/chatgpt-install.md)。
+
+官方参考：https://help.openai.com/en/articles/20001066
+
+M3 不把 ChatGPT Skill 安装当成唯一入口。普通用户不应该先理解 Agent Skill 才能获得价值，因此我们同时设计 AI Workstation 直接用户入口，首屏/CTA 文案见 [`docs/website-entry-copy.zh-CN.md`](docs/website-entry-copy.zh-CN.md)。
+
+## 两个正式 Skill
+
+### `creator-topic-opportunity-research`
+
+用于为创作者/编辑决策比较和排序实时 Radar 候选，包括：
+
+- 当前升温/早期机会；
+- freshness 与 source coverage；
+- 多来源 evidence；
+- 平台/地区差异；
+- 跨市场传播时差假设。
+
+### `evidence-backed-content-brief`
+
+把一个**已由实时 Radar 确认的当前 Topic**转成可执行内容简报，包括：
+
+- 一个优先角度；
+- 受众收益和平台/形式适配；
+- hook / 前三秒 / narrative beats；
+- research questions / search handoff；
+- `must_verify`；
+- `avoid_claims`；
+- `fact_basis` / unsupported assumptions；
+- visual/material needs。
+
+## 证据硬边界
+
+**实时请求失败时，绝不能去本地文件找“替代实时数据”。**
+
+以下内容不能替代当前 live evidence：
+
+- `../akaiagents` 中的旧快照或本地数据；
+- SQLite；
+- fixtures / test captures；
+- cached/exported JSON；
+- logs / generated reports；
+- 模型记忆冒充当前 Radar 事实。
+
+同时必须区分五层：
+
+1. **Radar 事实**；
+2. **分析**；
+3. **建议**；
+4. **未知**；
+5. **风险**。
 
 ## 产品边界
 
@@ -24,93 +143,7 @@ Skills -> 证据检查 -> 跨市场解释
 -> 选题机会判断 -> 内容简报编排
 ```
 
-本项目明确不重复实现 crawler、Topic 聚类、`opportunity_score`、趋势历史、数据库、来源健康或 GPT Topic Insight 后端。
-
-## 两个核心 Skill
-
-### `creator-topic-opportunity-research`
-
-用于为创作者/编辑决策比较和排序实时 Topic Radar 候选，包括加速题材、早期机会、平台/地区差异、数据新鲜度，以及需要进一步验证的跨市场时间差。
-
-典型请求：
-
-> 过去24小时海外有哪些正在升温、值得中国科技博主提前关注的 AI 选题？
-
-### `evidence-backed-content-brief`
-
-把一个**已经由实时 Topic Radar 确认的当前 Topic**转成可执行内容简报，包括 angle、hook、前三秒、受众、平台适配、研究问题、`must_verify` 和 `avoid_claims`。
-
-典型请求：
-
-> 从当前 AI 热点里挑一个适合 2–3 分钟内容的题材，给我研究就绪的选题简报。
-
-## 证据硬边界
-
-**实时请求失败时，绝不能去本地文件找“替代实时数据”。**
-
-以下内容永远不能替代当前 live evidence：
-
-- `../akaiagents` 中的旧快照或本地数据；
-- SQLite 数据库；
-- fixtures / test captures；
-- cached/exported JSON；
-- 日志、生成报告或其他历史持久化数据。
-
-网络受限的 sandbox 只代表当前无法获取 live data，不代表可以使用模型记忆或本地旧数据补位。
-
-## Codex 快速安装
-
-```bash
-python3 scripts/install_codex_skills.py install
-python3 scripts/install_codex_skills.py doctor
-```
-
-默认安装到：
-
-```text
-$HOME/.agents/skills/
-```
-
-安装器使用 symlink，不复制 Skill；重复安装安全，并拒绝覆盖无关目录。pre-0.1.0 阶段曾使用旧名 `cross-market-trend-research`；升级执行 `install` 时，仅当旧 symlink 确认指向当前 checkout 的旧路径时才会安全删除，并替换为 `creator-topic-opportunity-research`。
-
-常用命令：
-
-```bash
-python3 scripts/install_codex_skills.py version
-python3 scripts/install_codex_skills.py status
-python3 scripts/install_codex_skills.py doctor
-python3 scripts/install_codex_skills.py uninstall
-```
-
-交互式 Codex 可在支持时用 `/skills` 检查发现状态。显式调用使用 `$creator-topic-opportunity-research` 或 `$evidence-backed-content-brief`；隐式触发由 eval 持续验证。
-
-## 构建独立 Skill 发行包
-
-```bash
-python3 scripts/build_release.py --output dist
-```
-
-输出：
-
-```text
-dist/
-  aiworkstation-topic-intelligence-0.1.0-creator-topic-opportunity-research.zip
-  aiworkstation-topic-intelligence-0.1.0-evidence-backed-content-brief.zip
-  release-manifest.json
-  SHA256SUMS
-```
-
-每个 ZIP 只包含一个自包含 Skill，并带有 `SKILL.md`、`agents/openai.yaml` 和 Apache-2.0 `LICENSE`。构建是确定性的；Skill 目录里如果存在 symlink，发行构建会直接拒绝，避免包意外引用外部文件。
-
-完整分发、升级、ChatGPT 上传、GitHub Release、未来 Plugin/Hosted MCP 边界见 [`docs/distribution.md`](docs/distribution.md)。
-
-## ChatGPT 分发
-
-当前 OpenAI 产品文档支持 ChatGPT 中的可复用 Skills，并允许符合条件的账号/工作区从本机上传 Skill。OpenAI Skills 遵循 Agent Skills 开放标准。
-
-GitHub Release 中的 ZIP 是每个 Skill 的便携、可校验发行资产。实际安装时使用当时 ChatGPT 产品支持的 Skill 上传流程；如果界面要求上传解包后的 Skill 文件/目录而不是 ZIP 容器本身，就先解包再上传。具体可用性取决于当前 ChatGPT 套餐、工作区权限和使用界面。
-
-不要假设某一个 ChatGPT 界面安装后的 Skill 会自动覆盖或同步所有其他界面的安装。
+本仓库不重复实现 crawler、Topic 聚类、`opportunity_score`、趋势历史、数据库、来源健康或 GPT Topic Insight 后端。
 
 ## 已有 Topic Radar API
 
@@ -121,19 +154,21 @@ GitHub Release 中的 ZIP 是每个 Skill 的便携、可校验发行资产。�
 
 默认生产地址：`https://aiworkstation.cn`。
 
-### Topic ID
+Feed 卡片稳定身份字段是 `id`；传给 history/insight 时使用同一个值作为 `topic_id`。
 
-- Feed 卡片稳定 ID 字段是 `id`；
-- history / insight 请求把这个值原样作为 `topic_id`；
-- history / insight 响应再以 `topic_id` 返回同一身份。
+当 `refreshing=true` 时，连续请求不是原子快照，应结合时间戳和刷新状态解释两次请求之间的变化。
 
-### 刷新一致性
+## 发行 / 本地 helper
 
-当 `refreshing=true` 时，连续请求不是同一个原子快照；两次请求之间出现 history 点数变化，应结合时间戳和刷新状态判断。
+构建独立 Skill 包：
 
-## 本地 API helper
+```bash
+python3 scripts/build_release.py --output dist
+```
 
-`scripts/topic_radar_client.py` 只使用 Python 标准库，不做评分、聚类、数据库、抓取或新模型逻辑。
+v0.1.0 发行包含两个确定性 Apache-2.0 ZIP，以及 `release-manifest.json` 和 `SHA256SUMS`。
+
+可选只读 API helper：
 
 ```bash
 python3 scripts/topic_radar_client.py feed --category technology --max-age-hours 24 --limit 12
@@ -142,57 +177,34 @@ python3 scripts/topic_radar_client.py history TOPIC_ID
 python3 scripts/topic_radar_client.py insight TOPIC_ID --locale zh
 ```
 
-普通读取使用较短 timeout；模型型 `/insight` 使用独立、更长的 timeout。
+helper 只使用 Python 标准库，不实现新的评分、抓取、持久化或模型逻辑。
 
-## 测试与 Eval
+## 测试与 M3 场景
 
 ```bash
 python3 -m unittest discover -s tests -v
 ```
 
-GitHub Actions 在 Python 3.10 / 3.12 上运行同一套离线测试。
+现有 trigger eval 有 20 条正/负例；M3 另外增加 [`evals/m3-scenarios.json`](evals/m3-scenarios.json)，把用户任务、Skill 链、必须展示/禁止行为和 activation event 独立出来。
 
-当前 eval 已扩展到 **20 条真实边界用例**，包括：
+M3 优先观察：
 
-- 当前热点/加速/早期机会；
-- 平台和跨市场比较；
-- 内容简报和高验证要求简报；
-- stale / partial / source coverage；
-- 普通写作、翻译、已有素材写脚本、代码任务、公司新闻查询、平台风格分析等**不应该触发 Topic Intelligence** 的请求。
+- `scan_to_followup_rate`；
+- `scan_to_brief_rate`；
+- `next_day_return_rate`；
+- `blocked_live_data_rate`；
+- `no_useful_candidate_rate`。
 
-M1 原始 12 条真实 Codex 验收中观察到 false positive = 0、false negative = 0；M2 在首个 public preview tag 前继续扩大边界覆盖。
+这些是产品采用指标，不是新的 Radar 评分。
 
-## Codex 两道验收门
+## 更多文档
 
-### Gate A：发现 / 触发 / 证据行为
-
-可以用安全、网络受限、read-only 的 Codex sandbox 验证 Skill 选择、负例、安全降级以及禁止本地旧快照 fallback。
-
-### Gate B：真实 Topic Radar E2E
-
-真实联网验收必须使用明确允许访问 Topic Radar 的执行路径。不要为了联网把文件系统权限扩大到危险模式。
-
-详细流程见 [`docs/codex-m1-acceptance.md`](docs/codex-m1-acceptance.md)。
-
-## Release
-
-- 版本：[`VERSION`](VERSION)
-- 变更记录：[`CHANGELOG.md`](CHANGELOG.md)
-- 许可证：[`LICENSE`](LICENSE) — Apache-2.0
-- 分发说明：[`docs/distribution.md`](docs/distribution.md)
+- ChatGPT 当前安装/资格说明：[`docs/chatgpt-install.md`](docs/chatgpt-install.md)
+- M3 三个真实用户场景：[`docs/m3-user-scenarios.md`](docs/m3-user-scenarios.md)
+- AI Workstation 首屏/CTA 文案：[`docs/website-entry-copy.zh-CN.md`](docs/website-entry-copy.zh-CN.md)
+- 分发：[`docs/distribution.md`](docs/distribution.md)
 - 发布清单：[`docs/release-checklist.md`](docs/release-checklist.md)
-
-当 `vX.Y.Z` Git tag 与 `VERSION` 一致时，release workflow 会运行测试、构建确定性 ZIP，并把两个 Skill 包、manifest、checksum 发布到 GitHub Release。
-
-普通分支和 PR 不会自动创建 tag，也不会自动发布版本。
-
-## Plugin / Hosted MCP
-
-OpenAI 当前把 Plugin 定位为可以组合 Skills，并可选组合 Apps / app templates 的更高层容器。
-
-M2 **不猜测、不照搬社区格式来造未经官方确认的 Plugin manifest**。等官方 builder/schema/submission 路径公开且可验证后，再增加正式 Plugin 包装。
-
-Hosted MCP 同样暂缓。如果未来因为 Host 网络限制确实需要，它只能做薄的 transport/auth/tool exposure，不得复制 Topic Radar 的采集、聚类、评分、历史、数据库或 GPT insight。
+- 架构：[`docs/architecture.md`](docs/architecture.md)
 
 ## 环境
 
@@ -204,5 +216,6 @@ Hosted MCP 同样暂缓。如果未来因为 Host 网络限制确实需要，它
 ## 当前状态
 
 - **M0 已完成：** Skill-first 基础与生产 API contract。
-- **M1 已完成：** Codex 安装/发现、触发 eval、证据边界、真实 insight E2E。
-- **M2 进行中：** 版本化 public preview、确定性发行包、release 自动化、doctor 和更强真实边界 eval。
+- **M1 已完成：** Codex 安装/发现、trigger eval、证据边界、真实 Insight E2E。
+- **M2 已完成：** v0.1.0 public preview、确定性发行、release 自动化、最终 Skill 命名与边界收敛。
+- **M3 进行中：** 用户入口、安装理解、三个真实产品场景，以及是否值得进入 v0.2.0 工程的采用/回访验证。
