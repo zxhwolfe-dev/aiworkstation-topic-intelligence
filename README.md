@@ -4,11 +4,12 @@
 
 [简体中文](README.zh-CN.md)
 
-Latest public release: **v0.2.0**
+Latest public release: **v0.2.0**  
+Current source line: **v0.2.1 Unreleased**
 
-v0.2.0 ships self-contained standalone Skill runtimes, a formal Opportunity → Brief handoff, single-Skill fallback, and the M3.1 task-quality acceptance completed before release. The previous `v0.1.0` tag/release remains immutable.
+v0.2.0 proved that the standalone Skills can upload/run in ChatGPT, execute their bundled runtime, reach the live AI Workstation Topic Radar, and compose Creator → Brief. The unreleased v0.2.1 line keeps that workflow but adds stricter query/provenance rules and a critical cost boundary: **normal public Skill usage must not consume AI Workstation server-side LLM quota.**
 
-Topic Intelligence sits on top of the existing AI Workstation Global Topic Radar. It does not build another crawler, score, database, or GPT backend. Its job is to help an AI host turn live Radar evidence into a useful creator/editorial decision without pretending stale files or model memory are current facts.
+Topic Intelligence sits on top of the existing AI Workstation Global Topic Radar. It does not build another crawler, score, database, or persistence layer.
 
 ## What can I use it for?
 
@@ -24,7 +25,7 @@ Expected Skill:
 creator-topic-opportunity-research
 ```
 
-You should get a compact shortlist with freshness, evidence, observed momentum, fact-vs-inference boundaries, and next verification steps — not a generic news feed.
+The Skill reads live Radar evidence, checks freshness/source coverage, and uses the **host model** to explain which candidates may be worth researching.
 
 ### 2. Is there a cross-market early opportunity?
 
@@ -32,7 +33,7 @@ You should get a compact shortlist with freshness, evidence, observed momentum, 
 海外现在有哪些科技话题正在升温、可能值得中文内容创作者提前研究？中文区是否已经做烂如果没有直接证据就明确说不知道。
 ```
 
-The Skill can compare live platform/region signals, but audience saturation and propagation timing remain hypotheses unless the current evidence directly supports them.
+Cross-market timing or audience saturation remain hypotheses unless the current Radar evidence directly establishes them.
 
 ### 3. Pick a live topic and turn it into a brief
 
@@ -48,41 +49,105 @@ creator-topic-opportunity-research
   -> evidence-backed-content-brief
 ```
 
-The first Skill selects one current topic and hands the exact live feed `id`, freshness context, observed signals, unknowns, risks, and user constraints to the Brief Skill. A valid current-task handoff avoids rediscovering the same topic from its title.
+The Creator Skill selects one finalist and preserves the exact live `id`. The Brief Skill continues from that handoff without selecting the topic again.
 
-If only `evidence-backed-content-brief` is installed, it remains useful: it can resolve a supplied topic directly or run one bounded live-feed selection pass (normally <=5 candidates), select at most one using the existing Radar score/stage/freshness/evidence, and call insight only for that selected topic. It never invents a second score or forces a weak candidate.
+If only the Brief Skill is installed, it can run one bounded live selection pass (normally no more than 5 candidates), select at most one, optionally inspect its history, and then use the **current ChatGPT/Codex/agent model** to produce the brief.
+
+## Public Skill cost boundary — v0.2.1 source line
+
+The distributable public Skills are designed to spread without silently spending the publisher's model budget.
+
+### Public bundled runtime
+
+The bundled helper exposes only:
+
+```text
+GET /api/v1/ai/topic-radar/feed
+GET /api/v1/ai/topic-radar/sources
+GET /api/v1/ai/topic-radar/history?topic_id=...
+```
+
+Normal public Skill flow:
+
+```text
+live Radar facts
+      ↓
+user's current ChatGPT / Codex / agent host model
+      ↓
+selection / explanation / research-ready brief
+```
+
+Therefore normal public Skill usage produces **zero AI Workstation server-side LLM calls**.
+
+The public ZIP does not:
+
+- expose an anonymous `insight` CLI command;
+- embed an AI Workstation API key;
+- contain a shared bearer token;
+- ask the user to paste a private credential into chat;
+- silently consume the website's free/member model quota.
+
+### Optional future Premium capability
+
+AI Workstation may still provide server-generated Topic Insight as a paid/account-bound enhancement, but only through a **native authenticated AI Workstation connection** that identifies the user and enforces membership/quota/credits.
+
+For example, a future AI Workstation App/Plugin/OAuth connection could expose Premium Insight. The public bundled helper is intentionally **not** that authentication layer.
+
+No authenticated Premium connection is required to use the public Skills. The host model completes the brief itself.
 
 ## The two Skills
 
 ### `creator-topic-opportunity-research`
 
-Compare and prioritize live Topic Radar candidates for creator/editorial publishing decisions, including:
+Compare and prioritize live Radar candidates for creator/editorial decisions, including:
 
 - rising/early opportunities;
-- source freshness and coverage;
-- platform or region differences;
-- multi-source evidence;
-- evidence-aware cross-market timing hypotheses;
-- one structured handoff when a selected candidate continues into the Brief Skill.
+- freshness and source coverage;
+- platform/region differences;
+- evidence breadth;
+- cross-market hypotheses;
+- one structured handoff to Brief.
 
 ### `evidence-backed-content-brief`
 
-Turn a **current Topic Radar topic resolved from live evidence** into a practical content brief with:
+Turn a current Radar topic into a practical, evidence-bounded content plan with:
 
-- selected angle;
-- audience payoff and format fit;
-- hook/opening/narrative beats;
+- recommendation and audience payoff;
+- strongest angle;
+- hook / opening three seconds;
+- narrative beats;
 - research questions and search handoff;
 - `must_verify`;
 - `avoid_claims`;
-- `fact_basis` and unsupported assumptions;
-- visual/material needs.
+- visual/material needs;
+- known unknowns and risks.
 
-It accepts a valid current-task `ati.topic-opportunity-handoff.v1`, a user-supplied current topic resolved from live Radar, or its bounded standalone selection fallback when the Opportunity Skill is unavailable.
+In normal public mode these editorial fields are produced by the **host model**, not by an AI Workstation server model.
 
-## Standalone runtime — v0.2.0
+## Query-quality rules
 
-Each Skill directory is a complete portable unit:
+The unreleased v0.2.1 line also hardens real issues found in ChatGPT smoke testing:
+
+- content format/duration/language/audience are **not** Radar platform/source filters;
+- explicit topic scope must be preserved from the first query (`AI` should not first expand to generic technology);
+- Radar facts and host editorial judgments must remain distinguishable;
+- a valid handoff must not be followed by another broad candidate-selection pass.
+
+Canonical rule set:
+
+```text
+references/topic-intelligence-quality-contract.md
+```
+
+Each Skill carries the same contract at:
+
+```text
+references/quality-contract.md
+```
+
+## Standalone runtime
+
+Each Skill release archive is self-contained:
 
 ```text
 skill-name/
@@ -90,14 +155,13 @@ skill-name/
   agents/openai.yaml
   scripts/topic_radar_client.py
   references/handoff-contract.md
-  LICENSE   # included in release ZIP
+  references/quality-contract.md
+  LICENSE
 ```
 
-That means a standalone Skill ZIP no longer depends on repository-root `scripts/topic_radar_client.py` or a sibling `../akaiagents` checkout.
+Release building fails if portable runtime/reference copies drift from their canonical sources.
 
-The two bundled helper copies are tested byte-for-byte against the root development helper. Release building fails if the helper or handoff contract is missing.
-
-## Choose your entry path
+## Installation
 
 ### Codex / developers
 
@@ -112,133 +176,97 @@ Default destination:
 $HOME/.agents/skills/
 ```
 
-Explicit invocation:
-
-```text
-$creator-topic-opportunity-research
-$evidence-backed-content-brief
-```
-
-`doctor` validates the Skill definition, OpenAI metadata, bundled runtime helper, and handoff contract.
-
 ### Standalone ZIP
-
-Build deterministic archives:
 
 ```bash
 python3 scripts/build_release.py --output dist
 ```
 
-Each ZIP contains one Skill root plus its own runtime/helper/reference files and Apache-2.0 license. See [`docs/distribution.md`](docs/distribution.md).
+See [`docs/distribution.md`](docs/distribution.md).
 
 ### ChatGPT
 
-For eligible ChatGPT workspaces, use the currently supported Skill-upload flow documented by OpenAI. Personal Skill availability and workspace permissions can vary, and installed Skills do not necessarily sync automatically across every surface.
+The published v0.2.0 ZIPs were manually tested in ChatGPT web in Creator-only, Brief-only, and both-Skills shapes. Package upload, Skill discovery, bundled runtime execution, live Radar access, and behavioral composition passed.
 
-See [`docs/chatgpt-install.md`](docs/chatgpt-install.md). ChatGPT UI upload is a separate manual validation surface; Codex validation cannot prove that UI behavior.
+See:
+
+- [`docs/chatgpt-install.md`](docs/chatgpt-install.md)
+- [`docs/chatgpt-v0.2.0-smoke-result-2026-08-09.md`](docs/chatgpt-v0.2.0-smoke-result-2026-08-09.md)
 
 ## Hard evidence boundary
 
-When the live Topic Radar contract is unavailable, the Skills must stop the current-topic workflow instead of searching local files for replacement evidence.
+For current-state claims, valid evidence comes from current live Radar responses (or equivalent current responses explicitly supplied by the user/native host).
 
-The following are **never valid substitutes for current live evidence**:
+Never substitute:
 
-- sibling-repository data such as old `../akaiagents` snapshots;
-- SQLite databases;
-- fixtures or test captures;
+- sibling-repository snapshots;
+- SQLite data;
+- fixtures/test captures;
 - cached/exported JSON;
-- logs, generated reports, or other persisted historical artifacts;
-- an old saved Topic Opportunity handoff;
+- logs/generated reports;
+- old saved handoffs;
 - model memory presented as current Radar evidence.
 
-A network-restricted sandbox is an unavailable-live-data state, not permission to fabricate a current shortlist.
+Keep these layers clear:
 
-Also keep these layers separate:
-
-1. **Source facts** — current Radar fields and evidence;
-2. **Analysis** — interpretation of those fields;
-3. **Recommendations** — what the user may want to research/publish;
-4. **Unknowns** — what the current evidence does not establish;
-5. **Risks** — stale/partial coverage, weak evidence, source gaps, unsupported claims;
-6. **Topic Insight** — model-generated analysis over a known topic, not an independent fact source.
+1. **Radar facts** — current data/evidence/score/stage/history;
+2. **Host editorial analysis** — selection, audience, angle, hook, narrative, recommendations;
+3. **Unknowns / verification** — claims the current evidence does not establish;
+4. **Authenticated Premium Insight** — optional server model analysis, when an authenticated account-bound connection explicitly provides it; still not independent fact evidence.
 
 ## Product boundary
 
 ```text
-AI Workstation Global Topic Radar (akaiagents)
+AI Workstation Global Topic Radar
   public sources -> aggregation -> clustering -> opportunity score
-  -> trend/history -> source health -> optional GPT topic insight
-                              |
-                              | public API
-                              v
-AI Workstation Topic Intelligence
-  Skills -> evidence checks -> cross-market interpretation
-  -> topic opportunity decision -> current-task handoff
-  -> content brief orchestration
+  -> trend/history -> source health
+                         |
+                         | public read API
+                         v
+AI Workstation Topic Intelligence public Skills
+  evidence checks -> creator decision -> handoff
+  -> host-model content brief
+
+Future optional Premium connection
+  authenticated user -> membership/quota enforcement
+  -> server Topic Insight
 ```
 
-Topic Intelligence intentionally does not duplicate crawlers, clustering, `opportunity_score`, persistence, source health, or the existing GPT topic-insight backend.
-
-## Existing Topic Radar API
-
-- `GET /api/v1/ai/topic-radar/feed`
-- `GET /api/v1/ai/topic-radar/sources`
-- `GET /api/v1/ai/topic-radar/history?topic_id=...`
-- `POST /api/v1/ai/topic-radar/insight?locale=zh|en`
-
-Default public origin: `https://aiworkstation.cn`.
-
-Feed cards expose stable topic identity as `id`; pass that exact value as `topic_id` to history/insight.
-
-When `refreshing=true`, sequential feed/history/sources calls are not an atomic snapshot. Interpret between-request changes using timestamps and refresh state.
+The public Skill repository intentionally does not duplicate crawlers, clustering, score, persistence, billing, authentication, or the server model backend.
 
 ## Validation
 
-Offline suite:
-
 ```bash
+python3 scripts/sync_skill_runtime.py --check
 python3 -m unittest discover -s tests -v
 ```
 
-The suite validates:
+The suite covers:
 
-- previous trigger/evidence/release guarantees;
-- Skill-local helper parity;
+- trigger/evidence boundaries;
+- portable helper/reference parity;
 - deterministic standalone archives;
-- extracted ZIP helper execution from outside the repository against a local fake Radar service;
-- handoff contract consistency;
-- bounded Brief fallback rules;
-- a 24-case M3.1 task-quality matrix.
+- extracted ZIP execution outside the repository;
+- handoff identity rules;
+- bounded Brief fallback;
+- ChatGPT-derived v0.2.1 query/provenance/cost cases;
+- proof that the public helper exposes no `insight` command and emits only GET requests.
 
-Quality and release evidence:
+Useful evidence:
 
-- [`evals/m3-skill-quality.json`](evals/m3-skill-quality.json)
-- [`docs/m3-skill-quality-acceptance.md`](docs/m3-skill-quality-acceptance.md)
+- [`evals/v0.2.1-skill-quality.json`](evals/v0.2.1-skill-quality.json)
+- [`evals/host-capabilities.json`](evals/host-capabilities.json)
 - [`docs/m3.1-final-acceptance-2026-08-09.md`](docs/m3.1-final-acceptance-2026-08-09.md)
-- [`docs/release-v0.2.0-decision.md`](docs/release-v0.2.0-decision.md)
-
-The v0.2.0 release passed fresh Codex/live Radar handoff validation. A selected-topic upstream Insight request returned HTTP 503 during acceptance; the Brief correctly degraded to an evidence-based skeleton without inventing model output or using local fallback.
-
-## More docs
-
-- M3.1 Skill quality acceptance: [`docs/m3-skill-quality-acceptance.md`](docs/m3-skill-quality-acceptance.md)
-- Distribution: [`docs/distribution.md`](docs/distribution.md)
-- Release checklist: [`docs/release-checklist.md`](docs/release-checklist.md)
-- Architecture: [`docs/architecture.md`](docs/architecture.md)
-- ChatGPT install/current availability: [`docs/chatgpt-install.md`](docs/chatgpt-install.md)
-- M3 user scenarios: [`docs/m3-user-scenarios.md`](docs/m3-user-scenarios.md)
+- [`docs/chatgpt-v0.2.0-smoke-result-2026-08-09.md`](docs/chatgpt-v0.2.0-smoke-result-2026-08-09.md)
 
 ## Environment
 
 - Python 3.10+
-- no third-party runtime dependency for the helper, installer, or release builder
-- do not depend on `../akaiagents/.venv`
-- do not import private `akaiagents` modules
+- no third-party runtime dependency for the public helper, installer, or release builder
+- no dependency on `../akaiagents/.venv`
+- no private `akaiagents` imports
 
 ## Status
 
-- **M0 complete:** Skill-first foundation and production API contract.
-- **M1 complete:** Codex install/discovery, trigger evals, evidence-boundary hardening, real insight E2E.
-- **M2 complete:** v0.1.0 public preview, deterministic artifacts, release automation, diagnostics, final Skill names, and expanded trigger boundaries.
-- **M3 adoption baseline complete:** user-facing entry docs and three product scenarios.
-- **M3.1 complete:** self-contained standalone Skills, formal Opportunity → Brief handoff, brief-only fallback, package E2E, task-quality/fresh-session acceptance, and public v0.2.0 release.
+- **v0.2.0:** latest immutable public release.
+- **v0.2.1:** Unreleased Skill-quality/cost-boundary line; public mode uses host reasoning and does not spend AI Workstation server-side LLM quota.
