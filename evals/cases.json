@@ -65,6 +65,42 @@
       "must_not": ["invent missing source facts", "use ../akaiagents or any local snapshot as current evidence"]
     },
     {
+      "id": "trend-zh-less-crowded",
+      "prompt": "我今天该跟哪个海外科技话题？最好是正在升温、但中文区可能还没被做烂的。",
+      "expected_skill": "cross-market-trend-research",
+      "expected_calls": ["feed"],
+      "optional_calls": ["sources", "history"],
+      "must_show": ["current evidence", "cross-market hypothesis", "unknown audience saturation"],
+      "must_not": ["claim Chinese-market saturation is measured when it is not", "use local snapshots as current evidence"]
+    },
+    {
+      "id": "trend-en-freshness-first",
+      "prompt": "Which AI topics look promising right now? Tell me first if the source coverage is stale, partial, or missing anything important.",
+      "expected_skill": "cross-market-trend-research",
+      "expected_calls": ["feed"],
+      "optional_calls": ["sources", "history"],
+      "must_show": ["freshness", "partial/stale state", "source coverage"],
+      "must_not": ["hide stale or partial coverage", "replace live evidence with cached local data"]
+    },
+    {
+      "id": "brief-zh-xiaohongshu",
+      "prompt": "从当前科技热点里挑一个更适合小红书图文、而不是短视频的题材，给我研究就绪的内容简报。",
+      "expected_skill": "evidence-backed-content-brief",
+      "expected_calls": ["feed", "insight"],
+      "optional_calls": ["history"],
+      "must_show": ["platform fit", "selected angle", "research questions", "must_verify"],
+      "must_not": ["assume short-video format is mandatory", "use local stale data as the current topic"]
+    },
+    {
+      "id": "brief-en-verification-heavy",
+      "prompt": "Pick one current AI topic for an evidence-heavy explainer and give me the angle with the lowest verification risk plus the research handoff.",
+      "expected_skill": "evidence-backed-content-brief",
+      "expected_calls": ["feed", "insight"],
+      "optional_calls": ["history"],
+      "must_show": ["verification burden", "fact basis", "research handoff", "claims boundary"],
+      "must_not": ["choose the most sensational angle by default", "recover current facts from sibling files"]
+    },
+    {
       "id": "negative-evergreen-history",
       "prompt": "给我写一篇人工智能发展史的科普文章。",
       "expected_skill": null,
@@ -108,6 +144,42 @@
       "optional_calls": [],
       "must_show": [],
       "must_not": ["use Topic Radar for unrelated current factual lookup"]
+    },
+    {
+      "id": "negative-platform-style-comparison",
+      "prompt": "分析一下TikTok和YouTube短视频的内容风格有什么差异。",
+      "expected_skill": null,
+      "expected_calls": [],
+      "optional_calls": [],
+      "must_show": [],
+      "must_not": ["treat a general platform-style question as a live trend request"]
+    },
+    {
+      "id": "negative-provided-material-script",
+      "prompt": "我已经把完整资料和观点都给你了，帮我把它写成一个3分钟口播脚本。",
+      "expected_skill": null,
+      "expected_calls": [],
+      "optional_calls": [],
+      "must_show": [],
+      "must_not": ["replace user-supplied material with current Topic Radar research"]
+    },
+    {
+      "id": "negative-current-company-news",
+      "prompt": "OpenAI今天发布了什么新消息？",
+      "expected_skill": null,
+      "expected_calls": [],
+      "optional_calls": [],
+      "must_show": [],
+      "must_not": ["use Topic Intelligence for a direct company-news factual lookup without creator intent"]
+    },
+    {
+      "id": "negative-translation",
+      "prompt": "把这段AI新闻翻译成英文，保持原意。",
+      "expected_skill": null,
+      "expected_calls": [],
+      "optional_calls": [],
+      "must_show": [],
+      "must_not": ["invoke Topic Intelligence for translation"]
     }
   ]
 }
