@@ -6,6 +6,8 @@ The product should not be evaluated only by trigger accuracy. The core M3 questi
 
 > Does a real user get a useful decision quickly enough that they want to use it again tomorrow?
 
+The 0.2 development line adds M3.1 runtime/workflow quality without changing this product goal. See [`m3-skill-quality-acceptance.md`](m3-skill-quality-acceptance.md).
+
 ## Scenario 1 — Daily AI topic assistant
 
 ### User job
@@ -73,7 +75,7 @@ User chooses one candidate to investigate before publishing.
 
 ### User job
 
-The user already wants to make content from a current topic and needs a structured handoff into research/production.
+The user wants the system to choose one current topic and continue directly into a structured research/production brief without manually rebuilding topic context.
 
 ### Example prompt
 
@@ -81,12 +83,26 @@ The user already wants to make content from a current topic and needs a structur
 从当前 AI 热点里挑一个适合 2–3 分钟解释型内容的题材，给我受众收益、最强角度、前三秒、叙事结构、必须核验的事实、不能乱说的内容和素材建议。
 ```
 
-### Expected workflow
+### Expected workflow when both Skills are available
 
 ```text
 creator-topic-opportunity-research
+  -> ati.topic-opportunity-handoff.v1
   -> evidence-backed-content-brief
 ```
+
+The Opportunity Skill selects exactly one finalist. The handoff preserves the exact live feed `id`, parent freshness, observed topic fields, user constraints, and analysis/unknown/risk context. The Brief Skill consumes that same identity rather than rediscovering the topic by title.
+
+### Brief-only fallback
+
+If only `evidence-backed-content-brief` is installed, the scenario may still complete through the bounded standalone fallback:
+
+```text
+evidence-backed-content-brief:bounded-selection
+  -> evidence-backed-content-brief
+```
+
+The fallback should normally inspect no more than five live feed candidates, select at most one using the existing Radar score/stage/freshness/evidence plus user constraints, and call insight only after selection. It must not recreate a full cross-market opportunity study or invent another score.
 
 ### Minimum useful answer
 
@@ -142,8 +158,19 @@ Suggested early metrics:
 
 These are product signals, not new Radar scores. Do not feed them back into `opportunity_score` without a separate product decision.
 
-## M3 acceptance target
+## M3.1 acceptance target
 
-Before starting v0.2.0 engineering, manually test these three scenarios with real current Radar access and at least a small set of real users.
+The adoption scenario remains the product target; M3.1 is the runtime/task-quality gate that makes the public Skill artifacts capable of delivering it reliably.
 
-M3 is successful enough to justify further product work when users consistently understand the value proposition, reach a candidate/brief without needing the architecture explained, and show repeat usage or candidate-specific follow-up behavior.
+Before a `v0.2.0` release decision, validate:
+
+- standalone ZIP runtime;
+- creator-only install;
+- brief-only install;
+- both-Skills handoff continuity;
+- previous trigger safety;
+- live evidence boundaries;
+- the M3.1 task-quality matrix;
+- real network-capable fresh-session flows.
+
+Do not create the `v0.2.0` tag merely because the offline engineering work is complete.
