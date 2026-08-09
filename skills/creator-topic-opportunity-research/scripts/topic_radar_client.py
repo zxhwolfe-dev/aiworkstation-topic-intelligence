@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Thin client for the existing AI Workstation Global Topic Radar API."""
+"""Thin no-cost client for the public AI Workstation Global Topic Radar API.
+
+The distributable Skills intentionally expose only non-LLM Radar reads. Premium
+server-side Topic Insight is not part of this bundled helper because anonymous
+Skill usage must not consume AI Workstation model quota.
+"""
 
 from __future__ import annotations
 
@@ -16,9 +21,7 @@ from urllib.request import Request, urlopen
 DEFAULT_BASE_URL = "https://aiworkstation.cn"
 API_PATH = "/api/v1/ai/topic-radar"
 DEFAULT_TIMEOUT = 15.0
-DEFAULT_INSIGHT_TIMEOUT = 90.0
 _ALLOWED_SIGNALS = {"", "all", "multi_source", "early_opportunity", "single_source"}
-_ALLOWED_LOCALES = {"zh", "en"}
 
 
 class TopicRadarError(RuntimeError):
@@ -68,26 +71,18 @@ def _validate_payload(kind: str, payload: Any) -> dict[str, Any]:
         if not isinstance(obj.get("topic_id"), str):
             raise TopicRadarProtocolError("history: expected string field 'topic_id'")
         _require_list(obj, "points", context="history")
-    elif kind == "insight":
-        for key in ("topic_id", "verdict", "angles", "short_video_handoff"):
-            if key not in obj:
-                raise TopicRadarProtocolError(f"insight: missing field {key!r}")
-        if not isinstance(obj.get("topic_id"), str):
-            raise TopicRadarProtocolError("insight: expected string field 'topic_id'")
-        _require_list(obj, "angles", context="insight")
 
     return obj
 
 
 class TopicRadarClient:
-    """Thin HTTP client with no local persistence, scoring, or business logic."""
+    """Read-only public Radar client with no local persistence or model calls."""
 
     def __init__(
         self,
         *,
         base_url: Optional[str] = None,
         timeout: float = DEFAULT_TIMEOUT,
-        insight_timeout: float = DEFAULT_INSIGHT_TIMEOUT,
         opener: Optional[Callable[..., Any]] = None,
     ) -> None:
         selected = (
@@ -99,22 +94,16 @@ class TopicRadarClient:
             raise ValueError("base_url must start with http:// or https://")
         if timeout <= 0:
             raise ValueError("timeout must be positive")
-        if insight_timeout <= 0:
-            raise ValueError("insight_timeout must be positive")
         self.base_url = selected
         self.timeout = float(timeout)
-        self.insight_timeout = float(insight_timeout)
         self._opener = opener or urlopen
 
     def _request(
         self,
-        method: str,
         endpoint: str,
         *,
         params: Optional[Mapping[str, Any]] = None,
-        body: Optional[Mapping[str, Any]] = None,
         kind: str,
-        timeout: Optional[float] = None,
     ) -> dict[str, Any]:
         query: dict[str, str] = {}
         for key, value in (params or {}).items():
@@ -129,20 +118,17 @@ class TopicRadarClient:
         if query:
             url = f"{url}?{urlencode(query)}"
 
-        data = None
-        headers = {
-            "Accept": "application/json",
-            "User-Agent": "aiworkstation-topic-intelligence/0.1",
-        }
-        if body is not None:
-            data = json.dumps(body, ensure_ascii=False).encode("utf-8")
-            headers["Content-Type"] = "application/json"
-
-        request = Request(url=url, data=data, headers=headers, method=method)
-        request_timeout = self.timeout if timeout is None else float(timeout)
+        request = Request(
+            url=url,
+            headers={
+                "Accept": "application/json",
+                "User-Agent": "aiworkstation-topic-intelligence-public-skill",
+            },
+            method="GET",
+        )
 
         try:
-            with self._opener(request, timeout=request_timeout) as response:
+            with self._opener(request, timeout=self.timeout) as response:
                 raw = response.read()
         except HTTPError as exc:
             detail = ""
@@ -194,7 +180,6 @@ class TopicRadarClient:
             raise ValueError("max_age_hours must be between 1 and 8760")
 
         return self._request(
-            "GET",
             "/feed",
             params={
                 "q": q,
@@ -216,14 +201,13 @@ class TopicRadarClient:
         )
 
     def sources(self) -> dict[str, Any]:
-        return self._request("GET", "/sources", kind="sources")
+        return self._request("/sources", kind="sources")
 
     def history(self, topic_id: str) -> dict[str, Any]:
         topic_id = topic_id.strip()
         if not topic_id:
             raise ValueError("topic_id is required")
         payload = self._request(
-            "GET",
             "/history",
             params={"topic_id": topic_id},
             kind="history",
@@ -234,26 +218,6 @@ class TopicRadarClient:
             )
         return payload
 
-    def insight(self, topic_id: str, *, locale: str = "zh") -> dict[str, Any]:
-        topic_id = topic_id.strip()
-        if not topic_id:
-            raise ValueError("topic_id is required")
-        if locale not in _ALLOWED_LOCALES:
-            raise ValueError("locale must be 'zh' or 'en'")
-        payload = self._request(
-            "POST",
-            "/insight",
-            params={"locale": locale},
-            body={"topic_id": topic_id},
-            kind="insight",
-            timeout=self.insight_timeout,
-        )
-        if payload["topic_id"] != topic_id:
-            raise TopicRadarProtocolError(
-                "insight: response topic_id does not match requested topic_id"
-            )
-        return payload
-
 
 def _dump(payload: Mapping[str, Any]) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=False))
@@ -261,16 +225,10 @@ def _dump(payload: Mapping[str, Any]) -> None:
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Thin client for AI Workstation Global Topic Radar"
+        description="Read public no-cost AI Workstation Global Topic Radar data"
     )
     parser.add_argument("--base-url", default=None)
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT)
-    parser.add_argument(
-        "--insight-timeout",
-        type=float,
-        default=DEFAULT_INSIGHT_TIMEOUT,
-        help="Timeout for the model-backed insight endpoint (default: 90 seconds)",
-    )
     sub = parser.add_subparsers(dest="command", required=True)
 
     feed = sub.add_parser("feed", help="Read the current topic feed")
@@ -294,20 +252,12 @@ def _build_parser() -> argparse.ArgumentParser:
     history = sub.add_parser("history", help="Read one topic's trend history")
     history.add_argument("topic_id")
 
-    insight = sub.add_parser("insight", help="Request the existing topic insight")
-    insight.add_argument("topic_id")
-    insight.add_argument("--locale", choices=sorted(_ALLOWED_LOCALES), default="zh")
-
     return parser
 
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = _build_parser().parse_args(argv)
-    client = TopicRadarClient(
-        base_url=args.base_url,
-        timeout=args.timeout,
-        insight_timeout=args.insight_timeout,
-    )
+    client = TopicRadarClient(base_url=args.base_url, timeout=args.timeout)
 
     try:
         if args.command == "feed":
@@ -329,10 +279,8 @@ def main(argv: Optional[list[str]] = None) -> int:
             )
         elif args.command == "sources":
             payload = client.sources()
-        elif args.command == "history":
-            payload = client.history(args.topic_id)
         else:
-            payload = client.insight(args.topic_id, locale=args.locale)
+            payload = client.history(args.topic_id)
     except (TopicRadarError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
