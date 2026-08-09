@@ -88,11 +88,20 @@ class SkillEvalTests(unittest.TestCase):
     def test_frontmatter_excludes_direct_news_lookup_and_supplied_material_writing(self) -> None:
         trend = self._skill_frontmatter("cross-market-trend-research")
         brief = self._skill_frontmatter("evidence-backed-content-brief")
+        trend_metadata = (
+            self.ROOT
+            / "skills"
+            / "cross-market-trend-research"
+            / "agents"
+            / "openai.yaml"
+        ).read_text(encoding="utf-8").lower()
 
-        self.assertIn("creator/editorial topic discovery", trend)
-        self.assertIn("do not use for a direct factual lookup", trend)
-        self.assertIn("one named company or person", trend)
-        self.assertIn("writing from supplied material", trend)
+        self.assertIn("content-topic discovery, comparison, ranking", trend)
+        self.assertIn("requires a content/editorial decision", trend)
+        self.assertIn("standalone factual lookup", trend)
+        self.assertNotIn("one named company or person released today", trend)
+        self.assertIn("creator/editorial topic opportunities", trend_metadata)
+        self.assertNotIn("find current and rising topics", trend_metadata)
 
         self.assertIn("evaluate or select a current topic", brief)
         self.assertIn("do not use when the user already supplied the complete material", brief)
