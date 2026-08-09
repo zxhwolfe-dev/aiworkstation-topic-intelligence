@@ -50,14 +50,44 @@ The published package helper has been validated independently of an agent host. 
 
 ### ChatGPT
 
-ChatGPT remains a separate manual product-surface smoke. Do not infer any of the following from Codex:
+The published v0.2.0 standalone Skills were manually exercised in ChatGPT web in all three target shapes:
 
-- that the package will upload successfully;
-- that bundled Python can execute;
-- that the host can reach `https://aiworkstation.cn`;
-- that two uploaded Skills will compose automatically.
+- Creator-only;
+- Brief-only;
+- both Skills installed.
 
-Test the published v0.2.0 artifacts in creator-only, brief-only, and both-Skills shapes when the workspace supports Skill upload.
+Observed ChatGPT capabilities:
+
+- standalone ZIP upload/package acceptance: **validated**;
+- Skill discovery: **validated**;
+- bundled runtime execution: **validated**;
+- live `https://aiworkstation.cn` Topic Radar access: **validated**;
+- selected-topic server `/insight` access from Brief: **validated**;
+- multi-Skill Opportunity → Brief composition: **validated behaviorally**.
+
+In the both-Skills smoke, ChatGPT explicitly said Brief should first use the installed Creator Skill for current-topic selection, selected one finalist, and then continued only with finalist history/Topic Insight. No second broad/bounded candidate-selection pass was visible after selection.
+
+The ChatGPT UI did **not** expose the raw serialized `ati.topic-opportunity-handoff.v1` object or an internal handoff-ID trace. Do not claim hidden serialization was directly observed. The host matrix therefore records composition as:
+
+```text
+validated_behaviorally_handoff_trace_not_exposed
+```
+
+Overall ChatGPT transport decision:
+
+```text
+SKILLS_ONLY_PASS
+```
+
+Do not add Hosted MCP solely to make these Skills reach Topic Radar in ChatGPT; the standalone packaged runtime already reached the live service successfully.
+
+See:
+
+```text
+docs/chatgpt-v0.2.0-smoke-result-2026-08-09.md
+```
+
+The ChatGPT smoke also surfaced Skill-quality improvements now tracked on the 0.2.1 patch line: content-format constraints must not become Radar platform filters, provenance should be clearer, valid handoffs must not trigger duplicate selection, and complete server Insight should be reused rather than independently regenerated.
 
 ## Host Eval tooling
 
@@ -210,11 +240,19 @@ Keep the raw collector report when diagnosing host-version changes. The evidence
 
 ## M4 sequence
 
-1. Run the real ChatGPT upload smoke with v0.2.0 artifacts.
-2. Record ChatGPT capability evidence in `evals/host-capabilities.json`.
-3. Use the collector + evidence grader to make Codex regression runs repeatable.
-4. Decide whether Skills-only is sufficient for ChatGPT.
-5. Only if live access is the demonstrated blocker, design a thin Hosted MCP/App connection that exposes the existing Topic Radar contract without duplicating its business logic.
+Completed:
+
+1. real ChatGPT v0.2.0 upload smoke in Creator-only, Brief-only, and both-Skills shapes;
+2. ChatGPT capability evidence recorded in `evals/host-capabilities.json`;
+3. Codex collector + conservative evidence grader made repeatable and validated;
+4. Skills-only determined sufficient for current ChatGPT transport.
+
+Current next step:
+
+5. improve Skill quality from real host findings on the unreleased 0.2.1 patch line;
+6. re-run a focused ChatGPT smoke with the 0.2.1 release candidate before publishing it.
+
+Hosted MCP/App transport should be reconsidered only if a future host demonstrates a concrete live-connectivity limitation.
 
 ## v0.3 decision boundary
 
