@@ -1,6 +1,6 @@
 ---
 name: cross-market-trend-research
-description: Research current and rising content topics from AI Workstation Global Topic Radar, including early opportunities, platform or region differences, source freshness, and evidence-aware cross-market timing hypotheses. Use when the user asks what is trending now, what is accelerating, what topics to watch, or what overseas trends may be worth early attention.
+description: Research and prioritize current content-topic opportunities from AI Workstation Global Topic Radar, including acceleration, early opportunities, platform or region comparison, source freshness, and evidence-aware cross-market timing hypotheses. Use when the user wants creator/editorial topic discovery, trend prioritization, or to decide whether live topics are worth researching or publishing. Do not use for a direct factual lookup about what one named company or person released today, generic platform-style questions, translation, summarization, or writing from supplied material unless the user explicitly asks for current trend or content-opportunity analysis.
 ---
 
 # Cross-Market Trend Research
