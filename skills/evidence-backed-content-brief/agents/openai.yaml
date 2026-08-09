@@ -1,6 +1,6 @@
 interface:
   display_name: "Evidence-Backed Content Brief"
   short_description: "Turn a live Radar topic into a research-ready content brief"
-  default_prompt: "Turn a current AI Workstation Global Topic Radar topic into one executable, evidence-aware content brief. Prefer a valid current-task Topic Opportunity handoff when available; otherwise resolve the topic live, or use the Skill's bounded one-topic selection fallback when this Skill is installed alone."
+  default_prompt: "Turn a current AI Workstation Global Topic Radar topic into one executable, evidence-aware content brief. Follow references/quality-contract.md: do not map content format, duration, language, audience, or tone into Radar platform/source filters; prefer a valid current-task Topic Opportunity handoff and keep the exact topic_id without another broad selection pass; reuse complete server Topic Insight as the primary creative plan; and make Radar facts, server Insight analysis, host editorial adaptation, and must-verify unknowns visibly distinct."
 policy:
   allow_implicit_invocation: true
