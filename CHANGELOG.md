@@ -4,6 +4,28 @@ All notable public changes to AI Workstation Topic Intelligence are recorded her
 
 The project follows Semantic Versioning for distributable Skill releases.
 
+## [0.2.1] - Unreleased
+
+### Changed
+
+- Added a shared per-Skill `references/quality-contract.md` derived from real ChatGPT v0.2.0 host smoke testing.
+- Content format, duration, language, audience, tone, and production constraints are explicitly kept separate from Radar `platform`/`source` filters unless the user names a real supported Radar dimension.
+- User-facing answers must keep Radar facts, server Topic Insight analysis, and host/editorial analysis visibly distinguishable when the distinction matters.
+- A valid current-task `ati.topic-opportunity-handoff.v1` must not be followed by another broad/bounded candidate-selection pass merely to choose the topic again.
+- Complete server Topic Insight output is the primary creative plan for Brief; hosts may adapt it for the user but should not generate a second incompatible plan solely for variety.
+
+### Validation
+
+- Added four ChatGPT-derived Skill-quality evals covering false platform mapping, editorial provenance, Insight reuse, and duplicate selection after handoff.
+- Recorded real ChatGPT web smoke evidence for Creator-only, Brief-only, and both-Skills v0.2.0 installs.
+- ChatGPT standalone package upload, Skill discovery, bundled runtime execution, live Topic Radar access, selected-topic Insight access, and behavioral multi-Skill composition all passed.
+- The ChatGPT UI did not expose the raw internal handoff payload, so exact internal handoff serialization is not overclaimed as directly observed.
+
+### Distribution
+
+- `v0.2.0` remains the latest public immutable release until the 0.2.1 quality patch is fully tested and explicitly released.
+- No Hosted MCP transport is planned solely for ChatGPT connectivity because the current standalone Skills successfully reached the live Topic Radar service.
+
 ## [0.2.0] - 2026-08-09
 
 ### Added
@@ -46,7 +68,7 @@ The project follows Semantic Versioning for distributable Skill releases.
 - Thin standard-library Topic Radar client for `feed`, `sources`, `history`, and the existing model-backed `insight` endpoint.
 - Separate timeout budgets for ordinary Radar reads and model-backed insight requests.
 - Codex user-Skill installer using safe symlinks under `$HOME/.agents/skills`.
-- Safe migration of the internal pre-0.1.0 `cross-market-trend-research` symlink to the final public `creator-topic-opportunity-research` name when the legacy link points to this checkout.
+- Safe migration of the internal pre-0.1.0 `cross-market-trend-research` symlink to the final public `creator-topic-opportunity-research` name when the legacy link points to this checkout's old Skill path. Unrelated paths are never removed automatically.
 - Skill discovery metadata in `agents/openai.yaml`.
 - Positive/negative trigger evals and explicit live-evidence boundaries.
 - Gate A / Gate B acceptance model separating Skill-trigger testing from live-network E2E validation.
