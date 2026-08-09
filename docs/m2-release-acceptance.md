@@ -36,7 +36,7 @@ For the first public preview:
 python3 -m unittest discover -s tests -v
 ```
 
-Expected M2 suite size on the initial release branch: **34 tests**.
+Expected M2 suite size on the initial release branch: **35 tests**.
 
 Do not install dependencies to make the suite pass; the project intentionally uses the Python standard library for these tools/tests.
 
@@ -80,6 +80,13 @@ Inspect each ZIP with Python's standard-library zip tool or equivalent read-only
 ```text
 SKILL.md
 agents/openai.yaml
+LICENSE
+```
+
+The manifest must report:
+
+```text
+license: Apache-2.0
 ```
 
 ## 6. Expanded implicit-trigger evals
@@ -162,10 +169,10 @@ Return:
 
 1. HEAD SHA;
 2. version result;
-3. 34-test result;
+3. 35-test result;
 4. `doctor` result;
 5. deterministic-build result and artifact names/hashes;
-6. archive content validation;
+6. archive content and license validation;
 7. all 20 eval results or an exact blocker if safe automation cannot observe them;
 8. false-positive count;
 9. false-negative count;
