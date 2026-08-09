@@ -22,6 +22,10 @@ REQUIRED_SKILL_FILES = (
     "scripts/topic_radar_client.py",
     "references/handoff-contract.md",
 )
+CANONICAL_PORTABLE_FILES = {
+    "scripts/topic_radar_client.py": "scripts/topic_radar_client.py",
+    "references/handoff-contract.md": "references/topic-opportunity-handoff.md",
+}
 VERSION_RE = re.compile(
     r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$"
 )
@@ -59,6 +63,21 @@ def _license_file(repo: Path) -> Path:
     if not license_path.is_file():
         raise ReleaseError("repository LICENSE file is missing")
     return license_path
+
+
+def _validate_portable_runtime(repo: Path, skill_dir: Path) -> None:
+    for bundled_relative, canonical_relative in CANONICAL_PORTABLE_FILES.items():
+        canonical = repo / canonical_relative
+        bundled = skill_dir / bundled_relative
+        if not canonical.is_file():
+            raise ReleaseError(f"missing canonical portable source: {canonical_relative}")
+        if not bundled.is_file():
+            raise ReleaseError(f"{skill_dir.name}: missing required file: {bundled_relative}")
+        if canonical.read_bytes() != bundled.read_bytes():
+            raise ReleaseError(
+                f"{skill_dir.name}: portable runtime drift for {bundled_relative}; "
+                f"run scripts/sync_skill_runtime.py"
+            )
 
 
 def _skill_files(skill_dir: Path) -> list[Path]:
@@ -126,6 +145,7 @@ def build_release(output_dir: Path, *, root: Path | None = None) -> dict[str, ob
         skill_dir = repo / "skills" / skill_name
         if not skill_dir.is_dir():
             raise ReleaseError(f"missing skill directory: {skill_name}")
+        _validate_portable_runtime(repo, skill_dir)
         filename = f"aiworkstation-topic-intelligence-{version}-{skill_name}.zip"
         expected_names.add(filename)
         destination = output / filename
