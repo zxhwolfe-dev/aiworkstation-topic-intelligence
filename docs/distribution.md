@@ -2,9 +2,9 @@
 
 AI Workstation Topic Intelligence is distributed as two reusable Skills over the existing AI Workstation Global Topic Radar.
 
-Latest public release: **v0.1.0**.
+Latest public release: **v0.2.0**.
 
-The repository development line may be newer than the latest public release. A `VERSION` change does not publish anything by itself; only a matching pushed `v*` tag can start the release workflow.
+The repository development line may become newer than the latest public release. A `VERSION` change does not publish anything by itself; only a matching pushed `v*` tag can start the release workflow.
 
 ## Release channels
 
@@ -25,7 +25,7 @@ Because installation uses symlinks, updating the checked-out repository updates 
 
 The final public Skill name is `creator-topic-opportunity-research`. Internal pre-0.1.0 checkouts used `cross-market-trend-research`; the installer removes that legacy symlink only when it points to this checkout's old Skill path. Unrelated paths are never removed automatically.
 
-For the 0.2 development line, `doctor` also requires each installed Skill to contain its standalone runtime helper and Topic Opportunity handoff contract.
+In v0.2.0, `doctor` also requires each installed Skill to contain its standalone runtime helper and Topic Opportunity handoff contract.
 
 ### 2. Standalone Skill archives
 
@@ -67,15 +67,24 @@ The archives are deterministic: file order, metadata timestamps, and ZIP format 
 
 The builder rejects symlinks inside a Skill package and refuses to build a Skill missing any required runtime/handoff file.
 
+Published v0.2.0 artifact hashes:
+
+```text
+7d7ca0266abd55df374e4ca37ff5affadf9eabffe694474d18be96c5402dc897  aiworkstation-topic-intelligence-0.2.0-creator-topic-opportunity-research.zip
+9c90adccd61966321201c8c05b0fad963e18ea412bd3112c694a4fe0cea9dab8  aiworkstation-topic-intelligence-0.2.0-evidence-backed-content-brief.zip
+```
+
+Consumers should still verify downloaded assets against the release `SHA256SUMS` or `release-manifest.json` rather than relying only on documentation text.
+
 ### 3. ChatGPT Skill upload
 
 Current OpenAI product documentation supports creating/installing Skills in ChatGPT, including upload from a computer, subject to plan/workspace availability and permissions. OpenAI Skills follow the Agent Skills open standard and can be used across supported OpenAI surfaces.
 
-The GitHub release ZIP is the portable distribution artifact. Use the current ChatGPT product's supported Skill-upload flow; if that flow expects an unpacked Skill file/folder rather than the ZIP itself, unpack the archive and upload the contained Skill directory/files. Do not assume a particular upload container format until the product UI/documentation specifies it.
+The GitHub Release ZIP is the portable distribution artifact. Use the current ChatGPT product's supported Skill-upload flow; if that flow expects an unpacked Skill file/folder rather than the ZIP itself, unpack the archive and upload the contained Skill directory/files. Do not assume a particular upload container format until the product UI/documentation specifies it.
 
 Treat ChatGPT installation as a separate distribution surface from the local Codex symlink installation; do not assume installed personal Skills automatically sync between every surface.
 
-Because each 0.2-line Skill package contains its own helper and references, uploading one Skill does not require uploading the whole repository. Whether the host permits that helper to reach the live public Topic Radar endpoint remains a host/network capability question; live-evidence rules still apply when network access is unavailable.
+Because each v0.2.0 Skill package contains its own helper and references, uploading one Skill does not require uploading the whole repository. Whether the host permits that helper to reach the live public Topic Radar endpoint remains a host/network capability question; live-evidence rules still apply when network access is unavailable.
 
 ### 4. GitHub Release
 
@@ -92,7 +101,7 @@ Pushing a matching tag triggers `.github/workflows/release.yml`, which:
 3. builds deterministic Skill archives;
 4. publishes the ZIPs, `release-manifest.json`, and `SHA256SUMS` to a GitHub Release.
 
-Changing `VERSION` on a normal branch does **not** publish a release. The public v0.1.0 tag must never be moved to newer code.
+Changing `VERSION` on a normal branch does **not** publish a release. Existing public tags such as `v0.1.0` and `v0.2.0` must never be moved to newer code.
 
 ## Standalone acceptance
 
@@ -105,6 +114,8 @@ Before a new public Skill release, acceptance must prove more than archive prese
 5. Codex fresh-session validation covers creator-only, brief-only, and both-Skills installs;
 6. the composed workflow preserves the exact selected topic identity through `ati.topic-opportunity-handoff.v1`;
 7. no release tag is created until live/fresh-session acceptance is complete.
+
+v0.2.0 completed these gates before its immutable tag was pushed. The detailed evidence is recorded in [`m3.1-final-acceptance-2026-08-09.md`](m3.1-final-acceptance-2026-08-09.md) and [`release-v0.2.0-decision.md`](release-v0.2.0-decision.md).
 
 Offline tests use a local fake Topic Radar HTTP server so portable helper execution is tested without relying on production network availability.
 
@@ -139,7 +150,7 @@ Build or download the newer Skill archive and install/upload that version using 
 
 OpenAI currently positions Plugins as a higher-level package that can contain Skills and can optionally include Apps or app templates. Topic Intelligence may eventually use that path if a stable app-backed live Topic Radar connection becomes part of the product.
 
-Do not add Plugin packaging merely to solve a Skill package problem. The 0.2 line first makes the individual Skills genuinely portable and validates their runtime/task quality.
+Do not add Plugin packaging merely to solve a Skill package problem. v0.2.0 first makes the individual Skills genuinely portable and validates their runtime/task quality.
 
 ## Hosted MCP direction
 

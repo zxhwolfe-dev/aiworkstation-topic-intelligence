@@ -4,9 +4,9 @@
 
 [简体中文](README.zh-CN.md)
 
-Latest public release: **v0.1.0 public preview**
+Latest public release: **v0.2.0**
 
-Development line: **v0.2.0 unreleased** — standalone Skill runtime, formal Opportunity → Brief handoff, single-Skill fallback, and task-quality acceptance. No `v0.2.0` tag/release exists until fresh-session validation passes.
+v0.2.0 ships self-contained standalone Skill runtimes, a formal Opportunity → Brief handoff, single-Skill fallback, and the M3.1 task-quality acceptance completed before release. The previous `v0.1.0` tag/release remains immutable.
 
 Topic Intelligence sits on top of the existing AI Workstation Global Topic Radar. It does not build another crawler, score, database, or GPT backend. Its job is to help an AI host turn live Radar evidence into a useful creator/editorial decision without pretending stale files or model memory are current facts.
 
@@ -80,9 +80,9 @@ Turn a **current Topic Radar topic resolved from live evidence** into a practica
 
 It accepts a valid current-task `ati.topic-opportunity-handoff.v1`, a user-supplied current topic resolved from live Radar, or its bounded standalone selection fallback when the Opportunity Skill is unavailable.
 
-## Standalone runtime — v0.2 development line
+## Standalone runtime — v0.2.0
 
-Each Skill directory is now designed to be a complete portable unit:
+Each Skill directory is a complete portable unit:
 
 ```text
 skill-name/
@@ -119,7 +119,7 @@ $creator-topic-opportunity-research
 $evidence-backed-content-brief
 ```
 
-`doctor` now validates the Skill definition, OpenAI metadata, bundled runtime helper, and handoff contract.
+`doctor` validates the Skill definition, OpenAI metadata, bundled runtime helper, and handoff contract.
 
 ### Standalone ZIP
 
@@ -135,7 +135,7 @@ Each ZIP contains one Skill root plus its own runtime/helper/reference files and
 
 For eligible ChatGPT workspaces, use the currently supported Skill-upload flow documented by OpenAI. Personal Skill availability and workspace permissions can vary, and installed Skills do not necessarily sync automatically across every surface.
 
-See [`docs/chatgpt-install.md`](docs/chatgpt-install.md). ChatGPT UI upload is a separate manual acceptance surface; Codex validation cannot prove that UI behavior.
+See [`docs/chatgpt-install.md`](docs/chatgpt-install.md). ChatGPT UI upload is a separate manual validation surface; Codex validation cannot prove that UI behavior.
 
 ## Hard evidence boundary
 
@@ -200,7 +200,7 @@ Offline suite:
 python3 -m unittest discover -s tests -v
 ```
 
-The suite now validates:
+The suite validates:
 
 - previous trigger/evidence/release guarantees;
 - Skill-local helper parity;
@@ -210,12 +210,14 @@ The suite now validates:
 - bounded Brief fallback rules;
 - a 24-case M3.1 task-quality matrix.
 
-Quality scenarios:
+Quality and release evidence:
 
 - [`evals/m3-skill-quality.json`](evals/m3-skill-quality.json)
 - [`docs/m3-skill-quality-acceptance.md`](docs/m3-skill-quality-acceptance.md)
+- [`docs/m3.1-final-acceptance-2026-08-09.md`](docs/m3.1-final-acceptance-2026-08-09.md)
+- [`docs/release-v0.2.0-decision.md`](docs/release-v0.2.0-decision.md)
 
-Fresh Codex/live-network acceptance is still required before a v0.2.0 release decision.
+The v0.2.0 release passed fresh Codex/live Radar handoff validation. A selected-topic upstream Insight request returned HTTP 503 during acceptance; the Brief correctly degraded to an evidence-based skeleton without inventing model output or using local fallback.
 
 ## More docs
 
@@ -239,4 +241,4 @@ Fresh Codex/live-network acceptance is still required before a v0.2.0 release de
 - **M1 complete:** Codex install/discovery, trigger evals, evidence-boundary hardening, real insight E2E.
 - **M2 complete:** v0.1.0 public preview, deterministic artifacts, release automation, diagnostics, final Skill names, and expanded trigger boundaries.
 - **M3 adoption baseline complete:** user-facing entry docs and three product scenarios.
-- **M3.1 in progress:** self-contained standalone Skills, formal Opportunity → Brief handoff, brief-only fallback, package E2E, and task-quality/fresh-session acceptance for the unreleased 0.2 line.
+- **M3.1 complete:** self-contained standalone Skills, formal Opportunity → Brief handoff, brief-only fallback, package E2E, task-quality/fresh-session acceptance, and public v0.2.0 release.

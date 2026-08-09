@@ -7,9 +7,9 @@ Topic Intelligence ships as two Agent Skills:
 - `creator-topic-opportunity-research`
 - `evidence-backed-content-brief`
 
-Latest public release: **v0.1.0**.
+Latest public release: **v0.2.0**.
 
-The repository's 0.2 development line is not a public release yet. It is being validated for self-contained standalone packages and Skill-to-Skill composition before any `v0.2.0` tag is considered.
+v0.2.0 is the current public standalone Skill release. Each published Skill archive is self-contained and includes its own runtime helper plus the formal Topic Opportunity handoff reference.
 
 ## Current ChatGPT availability
 
@@ -37,7 +37,7 @@ Uploaded Skills may be available immediately after scanning, may require review,
 
 ## Standalone package boundary
 
-On the 0.2 development line, each Skill package contains:
+In v0.2.0, each Skill package contains:
 
 ```text
 SKILL.md
@@ -103,9 +103,9 @@ is **not** a Topic Intelligence task by itself. It should use normal current-inf
 
 Likewise, rewriting supplied material, translation, generic title writing, and platform-style comparison should not invoke Topic Intelligence unless a live-topic decision is requested.
 
-## Manual 0.2 release-candidate smoke
+## Manual ChatGPT package smoke (when eligible)
 
-Codex cannot prove ChatGPT UI/package behavior. Before a 0.2 release decision, if an eligible workspace is available, manually test:
+Codex acceptance cannot prove ChatGPT UI/package behavior. If an eligible workspace is available, manually test the published v0.2.0 standalone packages:
 
 1. creator-only standalone package;
 2. brief-only standalone package;
@@ -113,4 +113,4 @@ Codex cannot prove ChatGPT UI/package behavior. Before a 0.2 release decision, i
 4. live Radar reachable or explicit blocked-live-data state;
 5. no repository-root file requirement.
 
-Record the result in the acceptance format from [`m3-skill-quality-acceptance.md`](m3-skill-quality-acceptance.md).
+This is a separate product-surface smoke, not a reason to reinterpret Codex/runtime acceptance or move the immutable v0.2.0 tag. Record any ChatGPT-specific limitation separately from Skill code defects.

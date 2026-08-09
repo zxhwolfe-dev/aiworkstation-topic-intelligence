@@ -65,7 +65,7 @@ The Skills are:
 
 ## Standalone Skill runtime
 
-Starting on the 0.2 development line, each Skill directory is a complete portable runtime unit for the capabilities it claims:
+Starting with v0.2.0, each Skill directory is a complete portable runtime unit for the capabilities it claims:
 
 ```text
 skill-name/
@@ -180,7 +180,7 @@ Do not import private `akaiagents` modules. The public API is the boundary.
 
 ## M3.1 quality validation
 
-The 0.2 development line adds quality acceptance beyond Skill triggering:
+v0.2.0 added quality acceptance beyond Skill triggering:
 
 - standalone ZIP content/runtime checks;
 - extracted ZIP helper E2E against an offline local fake Radar server;
@@ -192,7 +192,7 @@ The 0.2 development line adds quality acceptance beyond Skill triggering:
 - exact handoff identity preservation;
 - Chinese and English task completion.
 
-Machine-readable scenarios live in `evals/m3-skill-quality.json`.
+Machine-readable scenarios live in `evals/m3-skill-quality.json`. The final acceptance record is `docs/m3.1-final-acceptance-2026-08-09.md`.
 
 ## Future decision: Skills-only vs hosted connection
 

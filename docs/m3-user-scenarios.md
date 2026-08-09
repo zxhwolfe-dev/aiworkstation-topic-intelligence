@@ -6,7 +6,7 @@ The product should not be evaluated only by trigger accuracy. The core M3 questi
 
 > Does a real user get a useful decision quickly enough that they want to use it again tomorrow?
 
-The 0.2 development line adds M3.1 runtime/workflow quality without changing this product goal. See [`m3-skill-quality-acceptance.md`](m3-skill-quality-acceptance.md).
+v0.2.0 adds the M3.1 runtime/workflow quality layer without changing this product goal. See [`m3-skill-quality-acceptance.md`](m3-skill-quality-acceptance.md) and the final acceptance record in [`m3.1-final-acceptance-2026-08-09.md`](m3.1-final-acceptance-2026-08-09.md).
 
 ## Scenario 1 — Daily AI topic assistant
 
@@ -158,11 +158,11 @@ Suggested early metrics:
 
 These are product signals, not new Radar scores. Do not feed them back into `opportunity_score` without a separate product decision.
 
-## M3.1 acceptance target
+## M3.1 acceptance result
 
-The adoption scenario remains the product target; M3.1 is the runtime/task-quality gate that makes the public Skill artifacts capable of delivering it reliably.
+The adoption scenario remains the product target; M3.1 was the runtime/task-quality gate that made the public Skill artifacts capable of delivering it reliably.
 
-Before a `v0.2.0` release decision, validate:
+v0.2.0 completed the required validation before release:
 
 - standalone ZIP runtime;
 - creator-only install;
@@ -173,4 +173,4 @@ Before a `v0.2.0` release decision, validate:
 - the M3.1 task-quality matrix;
 - real network-capable fresh-session flows.
 
-Do not create the `v0.2.0` tag merely because the offline engineering work is complete.
+The release decision and final evidence are recorded in [`release-v0.2.0-decision.md`](release-v0.2.0-decision.md) and [`m3.1-final-acceptance-2026-08-09.md`](m3.1-final-acceptance-2026-08-09.md). The immutable `v0.2.0` tag is now the public release reference for this capability set.
