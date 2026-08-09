@@ -37,12 +37,15 @@ dist/
   SHA256SUMS
 ```
 
-Each ZIP contains exactly one top-level Skill directory and includes at least:
+Each ZIP contains exactly one top-level Skill directory and includes:
 
 ```text
 SKILL.md
 agents/openai.yaml
+LICENSE
 ```
+
+The embedded license is Apache-2.0 and matches the repository root `LICENSE`. The release manifest also records `license: Apache-2.0`.
 
 The archives are deterministic: file order, metadata timestamps, and ZIP format are fixed so identical source at the same version produces identical artifact hashes.
 
@@ -81,7 +84,7 @@ The manifest schema is:
 ati.release.v1
 ```
 
-It records the package name, release version, Skill name, file name, SHA256 digest, and byte size for each archive.
+It records the package name, release version, license identifier, Skill name, file name, SHA256 digest, and byte size for each archive.
 
 ## Upgrade behavior
 
