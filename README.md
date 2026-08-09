@@ -98,7 +98,7 @@ dist/
   SHA256SUMS
 ```
 
-Each ZIP contains one self-contained Skill directory. Builds are deterministic and symlinks inside a Skill package are rejected.
+Each ZIP contains one self-contained Skill directory with `SKILL.md`, `agents/openai.yaml`, and the Apache-2.0 `LICENSE`. Builds are deterministic and symlinks inside a Skill package are rejected.
 
 See [`docs/distribution.md`](docs/distribution.md) for Codex, ChatGPT upload, GitHub Release, upgrade, and future Plugin/Hosted-MCP policy.
 
@@ -106,7 +106,7 @@ See [`docs/distribution.md`](docs/distribution.md) for Codex, ChatGPT upload, Gi
 
 Current OpenAI product documentation supports reusable Skills in ChatGPT and allows eligible users/workspaces to create or upload Skills from a computer. OpenAI Skills follow the Agent Skills open standard.
 
-Use the standalone archive for the Skill you want to install. Availability and workspace permissions depend on the current ChatGPT plan/surface configuration.
+The GitHub Release ZIP is the portable, checksummed artifact for each Skill. Use the currently supported ChatGPT Skill-upload flow; if the product UI expects unpacked Skill files/folders rather than the ZIP container itself, unpack the archive first. Availability and workspace permissions depend on the current ChatGPT plan/surface configuration.
 
 Do not assume a Skill installed on one ChatGPT surface automatically replaces or syncs every other installation.
 
@@ -176,6 +176,7 @@ See [`docs/codex-m1-acceptance.md`](docs/codex-m1-acceptance.md).
 
 - Version: [`VERSION`](VERSION)
 - Changes: [`CHANGELOG.md`](CHANGELOG.md)
+- License: [`LICENSE`](LICENSE) — Apache-2.0
 - Distribution: [`docs/distribution.md`](docs/distribution.md)
 - Release gate: [`docs/release-checklist.md`](docs/release-checklist.md)
 
