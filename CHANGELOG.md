@@ -8,11 +8,12 @@ The project follows Semantic Versioning for distributable Skill releases.
 
 ### Added
 
-- `cross-market-trend-research` for evidence-aware current-topic discovery, trend interpretation, platform/region comparison, and cross-market timing hypotheses.
+- `creator-topic-opportunity-research` for evidence-aware creator/editorial topic discovery, opportunity prioritization, platform/region comparison, and cross-market timing hypotheses.
 - `evidence-backed-content-brief` for turning a live Radar topic into a research-ready content brief with verification and claims boundaries.
 - Thin standard-library Topic Radar client for `feed`, `sources`, `history`, and the existing model-backed `insight` endpoint.
 - Separate timeout budgets for ordinary Radar reads and model-backed insight requests.
 - Codex user-Skill installer using safe symlinks under `$HOME/.agents/skills`.
+- Safe migration of the internal pre-0.1.0 `cross-market-trend-research` symlink to the final public `creator-topic-opportunity-research` name when the legacy link points to this checkout.
 - Skill discovery metadata in `agents/openai.yaml`.
 - Positive/negative trigger evals and explicit live-evidence boundaries.
 - Gate A / Gate B acceptance model separating Skill-trigger testing from live-network E2E validation.
@@ -26,5 +27,5 @@ The project follows Semantic Versioning for distributable Skill releases.
 
 ### Validation
 
-- Codex implicit-trigger acceptance: 6 positive cases passed and 6 negative cases did not trigger Topic Intelligence.
+- Codex implicit-trigger acceptance established the initial positive/negative baseline and M2 expands it with harder routing-boundary cases before the first tag.
 - Production `feed`, `sources`, `history`, and one real `/insight` request validated before this public-preview release line.
