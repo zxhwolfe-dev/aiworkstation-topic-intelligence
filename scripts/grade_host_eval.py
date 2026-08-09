@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """Conservatively grade Topic Intelligence host-eval traces.
 
-`run_host_evals.py` is a collector.  This module performs a second-stage evidence
+`run_host_evals.py` is a collector. This module performs a second-stage evidence
 classification that deliberately distinguishes passive Skill discovery from
-stronger runtime/workflow evidence.  Codex `exec --json` does not currently
+stronger runtime/workflow evidence. Codex `exec --json` does not currently
 expose a first-class "Skill X triggered" event, so a Skill name appearing in a
-file path must never be treated as proof of invocation by itself.
+file path or command output must never be treated as proof of invocation by
+itself.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import re
 import sys
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
@@ -60,11 +60,11 @@ def _skills_in_text(text: str) -> set[str]:
 
 
 def _looks_like_definition_read(text: str, skill: str) -> bool:
-    lowered = text.replace("\\", "/")
-    if skill not in lowered:
+    normalized = text.replace("\\", "/")
+    if skill not in normalized:
         return False
     return any(
-        marker in lowered
+        marker in normalized
         for marker in (
             f"/{skill}/SKILL.md",
             f"/{skill}/agents/openai.yaml",
@@ -85,6 +85,16 @@ def _item(event: Mapping[str, Any]) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
 
 
+def _command_text(item: Mapping[str, Any]) -> str:
+    for key in ("command", "cmd"):
+        value = item.get(key)
+        if isinstance(value, str):
+            return value
+        if isinstance(value, list) and all(isinstance(part, str) for part in value):
+            return " ".join(value)
+    return ""
+
+
 def observe_evidence(stdout: str, stderr: str = "") -> dict[str, Any]:
     mentioned: set[str] = set()
     definition_reads: set[str] = set()
@@ -100,16 +110,16 @@ def observe_evidence(stdout: str, stderr: str = "") -> dict[str, Any]:
     for event in _iter_jsonl(stdout):
         item = _item(event)
         item_type = str(item.get("type") or "")
-        strings = list(_collect_strings(item))
-        joined = "\n".join(strings)
+        joined = "\n".join(_collect_strings(item))
         mentioned.update(_skills_in_text(joined))
 
         if item_type == "command_execution":
             command_execution_count += 1
+            command = _command_text(item)
             for skill in TOPIC_INTELLIGENCE_SKILLS:
-                if _looks_like_definition_read(joined, skill):
+                if _looks_like_definition_read(command, skill):
                     definition_reads.add(skill)
-                if _looks_like_runtime_use(joined, skill):
+                if _looks_like_runtime_use(command, skill):
                     runtime_uses.add(skill)
 
         elif item_type == "agent_message":
@@ -117,17 +127,6 @@ def observe_evidence(stdout: str, stderr: str = "") -> dict[str, Any]:
             agent_message_mentions.update(_skills_in_text(joined))
             if HANDOFF_SCHEMA in joined:
                 handoff_agent_message = True
-
-    # Some Codex versions/tool wrappers expose command records outside item.completed.
-    # Inspect each parsed event conservatively as a fallback, but never upgrade a plain
-    # mention into runtime evidence unless the Skill-local helper path is present.
-    for event in _iter_jsonl(stdout):
-        event_text = "\n".join(_collect_strings(event))
-        for skill in TOPIC_INTELLIGENCE_SKILLS:
-            if _looks_like_definition_read(event_text, skill):
-                definition_reads.add(skill)
-            if _looks_like_runtime_use(event_text, skill):
-                runtime_uses.add(skill)
 
     return {
         "mentioned_skills": sorted(mentioned),
@@ -187,9 +186,8 @@ def classify_case(case: Mapping[str, Any], evidence: Mapping[str, Any]) -> str:
                     observed_tokens.add(token)
             else:
                 # Sub-workflow labels such as `:bounded-selection` currently have no
-                # first-class Codex event.  Do not infer them from a bare Skill mention.
-                if token in runtime:
-                    observed_tokens.add(token)
+                # first-class Codex event. Do not infer them from a bare Skill mention.
+                continue
 
         expected = set(workflow)
         if expected <= observed_tokens:
@@ -244,8 +242,8 @@ def grade_report(payload: Mapping[str, Any]) -> dict[str, Any]:
         "cases": graded_cases,
         "grading_note": (
             "passive Skill names/file reads are discovery evidence, not invocation; "
-            "runtime use requires an observed Skill-local helper path, and handoff use "
-            "requires the schema in an agent message"
+            "runtime use requires the Skill-local helper path in a command_execution "
+            "command, and handoff use requires the schema in an agent message"
         ),
     }
 
