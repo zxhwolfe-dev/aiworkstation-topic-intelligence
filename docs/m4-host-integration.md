@@ -67,6 +67,36 @@ python3 scripts/run_host_evals.py --help
 
 The first supported host is Codex.
 
+### Executable launcher
+
+When the launcher is a normal executable on `PATH`, pass it directly:
+
+```bash
+python3 scripts/run_host_evals.py \
+  --suite trigger \
+  --case trend-zh-current-ai \
+  --launcher codex \
+  --timeout 45 \
+  --output /tmp/ati-host-eval-trigger.json
+```
+
+### Bash-function launcher
+
+Local aliases such as `codex_yinhe` may be Bash functions from `.bashrc`, not executables. The runner intentionally does not source shell configuration itself. Use the explicit adapter instead:
+
+```bash
+python3 scripts/run_host_evals.py \
+  --suite trigger \
+  --case trend-zh-current-ai \
+  --launcher "python3 scripts/bash_function_launcher.py codex_yinhe" \
+  --timeout 45 \
+  --output /tmp/ati-host-eval-trigger.json
+```
+
+The adapter starts an interactive Bash so the user's `.bashrc` can define the requested function. The function name must be a normal Bash identifier, and all remaining Codex arguments/prompts are passed positionally rather than interpolated into shell source text.
+
+This mode is explicit because reading interactive shell configuration can have user-specific side effects. Do not silently fall back from a missing executable to a shell function.
+
 ### Trigger suite
 
 Dry-run one case without invoking Codex:
@@ -76,7 +106,7 @@ python3 scripts/run_host_evals.py \
   --dry-run \
   --suite trigger \
   --case trend-zh-current-ai \
-  --launcher codex_yinhe
+  --launcher "python3 scripts/bash_function_launcher.py codex_yinhe"
 ```
 
 Run selected fresh-process cases and write a structured report:
@@ -86,7 +116,7 @@ python3 scripts/run_host_evals.py \
   --suite trigger \
   --case trend-zh-current-ai \
   --case negative-current-company-news \
-  --launcher codex_yinhe \
+  --launcher "python3 scripts/bash_function_launcher.py codex_yinhe" \
   --timeout 45 \
   --output /tmp/ati-host-eval-trigger.json
 ```
@@ -97,7 +127,7 @@ python3 scripts/run_host_evals.py \
 python3 scripts/run_host_evals.py \
   --suite quality \
   --case composed-pick-and-brief-zh \
-  --launcher codex_yinhe \
+  --launcher "python3 scripts/bash_function_launcher.py codex_yinhe" \
   --timeout 60 \
   --output /tmp/ati-host-eval-quality.json
 ```
@@ -114,6 +144,7 @@ It also does not:
 
 - modify Codex auth/config/proxy settings;
 - widen sandbox permissions;
+- silently source shell configuration unless the explicit Bash-function adapter is selected;
 - retry live Topic Insight across multiple candidates;
 - manufacture stale/partial/source-error production states;
 - grade hidden reasoning or guess a Skill selection that is absent from the trace.
