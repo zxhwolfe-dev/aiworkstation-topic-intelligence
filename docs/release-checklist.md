@@ -28,16 +28,19 @@ All tests must pass without installing third-party dependencies or requiring net
 
 ## 3. Codex install health
 
-For a local checkout used for release acceptance:
+For a local checkout used for release acceptance, run the idempotent installer first so any supported legacy-name migration is applied:
 
 ```bash
+python3 scripts/install_codex_skills.py install
 python3 scripts/install_codex_skills.py status
 python3 scripts/install_codex_skills.py doctor
 ```
 
 Requirements:
 
-- both Skills point to the intended checkout;
+- `creator-topic-opportunity-research` and `evidence-backed-content-brief` both point to the intended checkout;
+- the internal pre-0.1.0 `cross-market-trend-research` symlink is absent after migration;
+- `legacy_clean=true`;
 - both `SKILL.md` files exist;
 - both `agents/openai.yaml` files exist;
 - supported Python version is reported;
@@ -79,6 +82,7 @@ Verify that:
 
 - each archive contains one expected Skill directory and no unrelated repository files;
 - each archive contains `SKILL.md`, `agents/openai.yaml`, and `LICENSE`;
+- the two public Skill artifacts are `creator-topic-opportunity-research` and `evidence-backed-content-brief`;
 - the manifest reports `license: Apache-2.0`;
 - artifact hashes in the manifest match `SHA256SUMS`.
 
