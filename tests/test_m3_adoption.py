@@ -46,7 +46,7 @@ class M3AdoptionTests(unittest.TestCase):
         self.assertIn("不会用模型记忆或本地旧数据冒充", content)
         self.assertNotIn("保证抓住热点", content.split("## 首页不应该承诺的内容", 1)[0])
 
-    def test_v0_2_release_metadata_is_finalized_without_rewriting_v0_1_history(self) -> None:
+    def test_v0_2_release_history_is_preserved_on_v0_2_1_development_line(self) -> None:
         version = (self.ROOT / "VERSION").read_text(encoding="utf-8").strip()
         changelog = (self.ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         acceptance = (
@@ -56,7 +56,8 @@ class M3AdoptionTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-        self.assertEqual(version, "0.2.0")
+        self.assertEqual(version, "0.2.1")
+        self.assertIn("## [0.2.1] - Unreleased", changelog)
         self.assertIn("## [0.2.0] - 2026-08-09", changelog)
         self.assertIn("## [0.1.0] - 2026-08-09", changelog)
         self.assertIn("M3_1_SKILL_QUALITY_PASS", acceptance)
