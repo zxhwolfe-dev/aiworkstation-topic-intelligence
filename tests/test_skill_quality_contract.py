@@ -28,6 +28,9 @@ class SkillQualityContractTests(unittest.TestCase):
         self.assertIn("Chinese-language", content)
         self.assertIn("Never map content format", content)
         self.assertIn("Preserve explicit topic/domain scope", content)
+        self.assertIn("Reject literal substring noise", content)
+        self.assertIn("semantic relevance constraint", content)
+        self.assertIn("unrestricted generic-technology scan", content)
 
     def test_quality_contract_enforces_zero_server_llm_public_mode(self) -> None:
         content = CANONICAL.read_text(encoding="utf-8")
