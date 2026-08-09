@@ -23,6 +23,7 @@ class V021SkillQualityTests(unittest.TestCase):
             set(self.cases),
             {
                 "brief-format-constraint-not-platform-filter",
+                "ai-domain-preserved-from-first-query",
                 "creator-host-judgment-provenance",
                 "brief-insight-provenance-and-reuse",
                 "both-skills-no-second-selection-after-handoff",
@@ -35,6 +36,16 @@ class V021SkillQualityTests(unittest.TestCase):
         self.assertIn("short video", must_not)
         self.assertIn("2–3 minute", must_not)
         self.assertIn("Chinese-language", must_not)
+
+    def test_ai_domain_is_preserved_from_first_bounded_query(self) -> None:
+        case = self.cases["ai-domain-preserved-from-first-query"]
+        self.assertIn(
+            "AI domain retained in the first bounded candidate query",
+            case["must_show"],
+        )
+        must_not = "\n".join(case["must_not"])
+        self.assertIn("generic technology feed", must_not)
+        self.assertIn("drop explicit user topic/domain scope", must_not)
 
     def test_provenance_cases_keep_fact_and_analysis_layers_separate(self) -> None:
         creator = self.cases["creator-host-judgment-provenance"]
