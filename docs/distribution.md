@@ -21,7 +21,7 @@ Because installation uses symlinks, updating the checked-out repository updates 
 
 ### 2. Standalone Skill archives
 
-Build uploadable/self-contained archives with:
+Build portable/self-contained release archives with:
 
 ```bash
 python3 scripts/build_release.py --output dist
@@ -52,7 +52,9 @@ The builder rejects symlinks inside a Skill package so a release cannot accident
 
 Current OpenAI product documentation supports creating/installing Skills in ChatGPT, including upload from a computer, subject to plan/workspace availability and permissions. OpenAI Skills follow the Agent Skills open standard and can be used across supported OpenAI surfaces.
 
-Use the standalone archive for the Skill you want to install. Treat ChatGPT installation as a separate distribution surface from the local Codex symlink installation; do not assume installed personal Skills automatically sync between every surface.
+The GitHub release ZIP is the portable distribution artifact. Use the current ChatGPT product's supported Skill-upload flow; if that flow expects an unpacked Skill file/folder rather than the ZIP itself, unpack the archive and upload the contained Skill directory/files. Do not assume a particular upload container format until the product UI/documentation specifies it.
+
+Treat ChatGPT installation as a separate distribution surface from the local Codex symlink installation; do not assume installed personal Skills automatically sync between every surface.
 
 ### 4. GitHub Release
 
@@ -91,9 +93,9 @@ It records the package name, release version, Skill name, file name, SHA256 dige
 
 No reinstall is needed when the existing symlinks still point to this checkout.
 
-### Standalone/ChatGPT archive install
+### Standalone/ChatGPT install
 
-Build or download the newer Skill archive and install/upload that version using the supported product UI. Do not assume an uploaded archive is automatically replaced by a newer GitHub release.
+Build or download the newer Skill archive and install/upload that version using the currently supported product flow. Do not assume an uploaded Skill is automatically replaced by a newer GitHub release.
 
 ## Plugin direction
 
