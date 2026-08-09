@@ -1,0 +1,6 @@
+interface:
+  display_name: "Evidence-Backed Content Brief"
+  short_description: "Turn a live Radar topic into a research-ready content brief"
+  default_prompt: "Turn a current AI Workstation Global Topic Radar topic into one executable, evidence-aware content brief."
+policy:
+  allow_implicit_invocation: true

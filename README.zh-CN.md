@@ -20,42 +20,17 @@ Skills -> 证据检查 -> 跨市场解释
 -> 选题机会判断 -> 内容简报编排
 ```
 
-本项目明确不重复实现：
+本项目明确不重复实现 crawler、Topic 聚类、`opportunity_score`、趋势历史、数据库或 GPT Topic Insight 后端。
 
-- NewsNow、TrendRadar、MediaCrawler、TikTok、YouTube、Hacker News、RSS 采集器；
-- Topic 聚类、去重；
-- `opportunity_score`、`trend_stage`、历史趋势算法；
-- 来源健康、缓存、stale、持久化；
-- 已有 GPT Topic Insight 后端。
-
-## M0 两个核心 Skill
+## 两个核心 Skill
 
 ### `cross-market-trend-research`
 
-用于回答：
-
-- 最近 24 小时全球有哪些值得关注的 AI/科技选题？
-- 哪些题材正在加速？
-- 哪些属于早期机会？
-- 不同地区、平台的信号有什么差异？
-- 是否存在值得进一步验证的跨市场时间差？
-
-它必须基于实时 Topic Radar 数据，不允许用模型记忆冒充“当前热点”。
+用于发现当前热点、加速题材、早期机会、平台/地区差异和需要进一步验证的跨市场时间差。
 
 ### `evidence-backed-content-brief`
 
-用于把一个已经存在于 Topic Radar 中的 Topic 转成可执行内容简报，包括：
-
-- 为什么现在值得做；
-- 目标受众和适合平台；
-- 推荐形式；
-- 3 个已有内容角度及推荐角度；
-- hook、前三秒、核心冲突、叙事节奏；
-- 视觉素材需求；
-- 后续研究问题、搜索词；
-- `must_verify` 与 `avoid_claims`。
-
-它优先复用现有 `/insight`，不重新实现一套 GPT 选题分析。
+用于把一个**当前、已由 Topic Radar 确认的 Topic**转成可执行内容简报，包括 angle、hook、前三秒、受众、视觉素材、研究问题、`must_verify` 与 `avoid_claims`。
 
 ## 已有公开 API
 
@@ -64,47 +39,73 @@ Skills -> 证据检查 -> 跨市场解释
 - `GET /api/v1/ai/topic-radar/history?topic_id=...`
 - `POST /api/v1/ai/topic-radar/insight?locale=zh|en`
 
-默认生产地址：
-
-```text
-https://aiworkstation.cn
-```
-
-本地/测试环境可以设置：
-
-```bash
-export AIWORKSTATION_TOPIC_RADAR_BASE_URL=http://127.0.0.1:8000
-```
+默认生产地址：`https://aiworkstation.cn`。
 
 ### Topic ID 命名
 
-生产 contract 中：
-
-- Feed 卡片的稳定 ID 字段名是 `id`；
-- 调用 history / insight 时，把这个 `id` 原样作为 `topic_id`；
+- Feed 卡片稳定 ID 字段是 `id`；
+- history / insight 请求把这个值原样作为 `topic_id`；
 - history / insight 响应再以 `topic_id` 返回同一身份。
-
-不要假设 feed 里还存在一个 `topic_id` 别名。
 
 ### 刷新中的一致性
 
-当 feed 返回 `refreshing=true` 时，连续请求 feed、history、sources 并不是一个原子快照事务。
+当 `refreshing=true` 时，连续请求并不是同一个原子快照；history 点数在两次请求之间增加是正常现象，应结合时间戳判断。
 
-因此可能出现：feed 中 `trend.history_points=6`，几秒后的 history 已经有 7 个点。这通常意味着刷新期间新增了一条观测，应结合时间戳判断，而不是直接当成 contract 错误。
+## 证据硬边界
+
+**实时请求失败时，绝不能去本地文件找“替代实时数据”。**
+
+两个 Skill 都明确禁止把以下内容当作当前证据：
+
+- `../akaiagents` 中的旧快照或本地数据；
+- SQLite 数据库；
+- fixtures / test captures；
+- cached JSON / 导出文件；
+- 日志、生成报告或其他持久化历史数据。
+
+这些材料可以用于开发/测试，但不能支撑“现在正在发生什么”的结论。
+
+如果 live Topic Radar 不可达，Skill 必须安全降级：说明实时证据不可用，而不是用模型记忆或本地旧数据补位。
+
+## Codex 安装
+
+M1 提供安全的 symlink 安装器：
+
+```bash
+python3 scripts/install_codex_skills.py install
+python3 scripts/install_codex_skills.py status
+```
+
+默认安装到：
+
+```text
+$HOME/.agents/skills/
+```
+
+不会复制 Skill，也不会覆盖已存在的无关目录。
+
+## Codex 验收分两道门
+
+### Gate A：Skill 触发/证据边界
+
+可以使用 `codex exec --ephemeral --sandbox read-only` 之类的安全隔离模式测试：
+
+- Skill 是否正确触发；
+- 负例是否不误触；
+- 无网络时是否安全拒绝；
+- 是否禁止本地旧快照 fallback。
+
+### Gate B：真实网络 E2E
+
+Codex sandbox 可能限制网络。网络受限时出现 DNS/连接失败，不应直接解释为 Topic Radar 生产故障。
+
+真实 API 验收必须使用**明确允许访问 Topic Radar 的执行路径**，例如普通 shell 直接运行本仓库的只读 helper，或由宿主提供网络能力。
+
+不要为了获得网络访问而把文件系统权限扩大到危险模式。
 
 ## 本地辅助脚本
 
-`scripts/topic_radar_client.py` 只是一个非常薄的 API client，只使用 Python 标准库。
-
-它不做：
-
-- 评分；
-- 聚类；
-- 数据库；
-- 抓取；
-- AI 业务推理。
-
-示例：
+`scripts/topic_radar_client.py` 只使用 Python 标准库，不做评分、聚类、数据库、抓取或新的 AI 推理。
 
 ```bash
 python3 scripts/topic_radar_client.py feed --category technology --max-age-hours 24 --limit 12
@@ -113,20 +114,14 @@ python3 scripts/topic_radar_client.py history TOPIC_ID
 python3 scripts/topic_radar_client.py insight TOPIC_ID --locale zh
 ```
 
-`insight` 会调用现有 Topic Radar GPT 分析能力；纯数据查看不需要调用它。
+`insight` 会调用现有 Topic Radar GPT 分析能力。
 
 ## 环境与依赖
 
-这个项目**不要长期共用** `../akaiagents/.venv`。
-
-建议：
-
 - Python 3.10+
 - 当前 helper 无第三方运行时依赖
+- 不依赖 `../akaiagents/.venv`
 - 不导入 `akaiagents` 私有模块
-- 两个兄弟项目仅用于参考 contract、版本和工程规范
-
-需要本地测试时，本仓库可以自己建立 `.venv`；M0 当前甚至无需额外安装依赖。
 
 ## 测试
 
@@ -134,22 +129,11 @@ python3 scripts/topic_radar_client.py insight TOPIC_ID --locale zh
 python3 -m unittest discover -s tests -v
 ```
 
-测试全部离线，不依赖实时公网。GitHub Actions 会在 Python 3.10 与 3.12 上运行同一套测试。
-
-## 核心原则
-
-必须区分：
-
-1. **Source facts**：Topic Radar 当前返回的事实字段；
-2. **Analysis**：对信号的解释；
-3. **Recommendations**：针对用户目标的建议；
-4. **Unknowns**：当前数据无法证明的内容；
-5. **Risks**：partial、stale、来源故障、证据不足、推断过强等风险。
-
-`/insight` 是现有 GPT 对 Topic 的分析结果，不应当被提升为新的 verified fact。
+GitHub Actions 在 Python 3.10 和 3.12 上运行同一套离线测试。
 
 ## 当前状态
 
-M0：Skill-first 基础版本。
+- M0：Skill-first 基础版本已合入 main。
+- M1：Codex 安装、触发 eval 和证据边界加固正在 PR #2 验收。
 
 暂不增加 crawler、数据库、新评分引擎、OAuth、Billing 或 Hosted MCP。

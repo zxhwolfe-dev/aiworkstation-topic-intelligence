@@ -4,7 +4,7 @@
 
 [简体中文](README.zh-CN.md)
 
-This repository does **not** collect, crawl, cluster, score, or persist trend data. Those responsibilities already live in the AI Workstation Global Topic Radar inside `akaiagents`. This repository is the thin Skills/workflow layer that teaches an AI host how to use that existing live data without turning model guesses into current facts.
+This repository does **not** collect, crawl, cluster, score, or persist trend data. Those responsibilities remain in the AI Workstation Global Topic Radar inside `akaiagents`. This repository is the thin Skills/workflow layer that teaches an AI host how to use that live data without turning model guesses or stale local files into current facts.
 
 ## Product boundary
 
@@ -20,60 +20,96 @@ AI Workstation Topic Intelligence
   -> content opportunity reasoning -> content brief orchestration
 ```
 
-Topic Intelligence intentionally does not duplicate:
+Topic Intelligence intentionally does not duplicate crawlers, topic clustering, scoring, persistence, source health, or the existing GPT topic-insight backend.
 
-- NewsNow, TrendRadar, MediaCrawler, TikTok, YouTube, Hacker News, or RSS connectors;
-- topic clustering or deduplication;
-- `opportunity_score`, `trend_stage`, or history calculations;
-- source-health, cache, stale-data, or persistence logic;
-- the existing GPT topic-insight service.
-
-## First two Skills
+## Skills
 
 ### `cross-market-trend-research`
 
-Use live Topic Radar data to find current topics, rising/early opportunities, platform or region differences, and plausible cross-market timing gaps. It treats cross-market propagation as an inference unless the live evidence actually supports it.
+Use live Topic Radar data to find current topics, rising/early opportunities, platform or region differences, and evidence-aware cross-market timing hypotheses.
 
 ### `evidence-backed-content-brief`
 
-Turn a verified Topic Radar topic into a practical content brief. It can use the existing `/insight` contract for recommended formats, audiences, three content angles, hooks, opening seconds, research questions, verification requirements, and claims to avoid.
+Turn a **current Topic Radar topic resolved from live evidence** into a practical content brief using the existing `/insight` contract for angles, hooks, audiences, research questions, verification requirements, and claims to avoid.
+
+## Hard evidence boundary
+
+When the live Topic Radar contract is unavailable, the Skills must stop the current-topic workflow instead of searching local files for replacement evidence.
+
+The following are **never valid substitutes for current live evidence**:
+
+- sibling-repository data such as old `../akaiagents` snapshots;
+- SQLite databases;
+- fixtures or test captures;
+- cached/exported JSON;
+- logs, generated reports, or other persisted historical artifacts.
+
+Those materials can be used for development/testing, but they cannot support claims such as “this topic is trending now”.
+
+A network-restricted sandbox is an unavailable-live-data state, not permission to use stale local data or model memory.
+
+## Install locally in Codex
+
+Install both Skills as safe symlinks into the Codex user Skill directory:
+
+```bash
+python3 scripts/install_codex_skills.py install
+python3 scripts/install_codex_skills.py status
+```
+
+Default destination:
+
+```text
+$HOME/.agents/skills/
+```
+
+The installer is idempotent and refuses to overwrite an unrelated existing Skill path. It keeps this checkout as the source of truth.
+
+Inside interactive Codex, `/skills` can confirm discovery when available. Explicit invocation uses `$cross-market-trend-research` or `$evidence-backed-content-brief`; M1 also evaluates implicit trigger selection.
+
+## Codex M1 has two acceptance gates
+
+### Gate A — discovery, trigger, and evidence behavior
+
+A safe network-restricted/read-only Codex sandbox is suitable for testing:
+
+- Skill discovery/selection;
+- positive and negative triggers;
+- safe degradation when live data is unavailable;
+- rejection of local/sibling snapshot fallback.
+
+### Gate B — live Topic Radar E2E
+
+Codex sandbox policy can restrict network access. A DNS or connection failure inside a network-restricted sandbox is not, by itself, evidence that Topic Radar production is down.
+
+Live E2E validation must use an execution path explicitly allowed to reach the Topic Radar origin, such as the normal shell running the read-only helper, a host configuration with suitable network permission, or an equivalent native host/MCP connection.
+
+Do not broaden filesystem permissions to a dangerous mode merely to regain network access.
+
+See [`docs/codex-m1-acceptance.md`](docs/codex-m1-acceptance.md).
 
 ## Existing Topic Radar API
-
-The Skills are built around the current public contract:
 
 - `GET /api/v1/ai/topic-radar/feed`
 - `GET /api/v1/ai/topic-radar/sources`
 - `GET /api/v1/ai/topic-radar/history?topic_id=...`
 - `POST /api/v1/ai/topic-radar/insight?locale=zh|en`
 
-The default public origin is `https://aiworkstation.cn`. Local or staging environments can set:
-
-```bash
-export AIWORKSTATION_TOPIC_RADAR_BASE_URL=http://127.0.0.1:8000
-```
+Default public origin: `https://aiworkstation.cn`.
 
 ### Topic identity
 
-The production contract names the stable identifier differently across endpoint shapes:
-
-- a feed topic card exposes `id`;
+- feed cards expose stable identity as `id`;
 - pass that exact value as `topic_id` to history or insight;
-- history and insight responses expose the same identity as `topic_id`.
-
-Do not assume feed items also contain a `topic_id` alias.
+- history and insight return the same identity as `topic_id`.
 
 ### Refresh consistency
 
-When a feed reports `refreshing=true`, sequential feed/history/sources requests are not one atomic snapshot transaction.
+When `refreshing=true`, sequential feed/history/sources calls are not an atomic snapshot. A newly persisted history point between reads is normal and should be interpreted using timestamps and refresh state.
 
-A feed item may therefore report `trend.history_points=6` while a history request moments later returns 7 points because another observation was persisted between reads. Compare identity, timestamps, and refresh state instead of treating this normal change as a contract mismatch.
+## Optional local API helper
 
-## Optional local helper
-
-`scripts/topic_radar_client.py` is deliberately small and uses only the Python standard library. It does not contain scoring or business logic; it only calls the existing public API and performs lightweight contract checks.
-
-Examples:
+`scripts/topic_radar_client.py` uses only the Python standard library and contains no scoring, clustering, crawler, persistence, or new model logic.
 
 ```bash
 python3 scripts/topic_radar_client.py feed --category technology --max-age-hours 24 --limit 12
@@ -82,43 +118,36 @@ python3 scripts/topic_radar_client.py history TOPIC_ID
 python3 scripts/topic_radar_client.py insight TOPIC_ID --locale zh
 ```
 
-The `insight` command calls the existing Topic Radar GPT analysis capability; ordinary feed/sources/history reads do not require that model call.
-
-The helper is useful in Codex or another local environment. A host with a native HTTP/MCP connection can follow the same Skills without using this script.
+The `insight` command calls the existing Topic Radar GPT analysis capability.
 
 ## Environment
 
-This repository should remain isolated from sibling project virtual environments.
-
-- Python: 3.10+
-- Runtime dependencies for the helper: none beyond the standard library
-- Do **not** make this repository depend on `../akaiagents/.venv`
-- Do **not** import private `akaiagents` modules
-
-Sibling repositories are references for contracts and engineering conventions, not runtime dependencies.
+- Python 3.10+
+- no third-party runtime dependency for the helper/installer
+- do not depend on `../akaiagents/.venv`
+- do not import private `akaiagents` modules
 
 ## Validation
-
-Run offline checks with:
 
 ```bash
 python3 -m unittest discover -s tests -v
 ```
 
-The tests do not require live network access. GitHub Actions runs the same suite on Python 3.10 and 3.12.
+GitHub Actions runs the offline suite on Python 3.10 and 3.12. M1 additionally validates Skill installation, trigger behavior, negative cases, local-evidence rejection, and the live Radar contract.
 
-## Evidence boundary
+## Evidence layers
 
-Always keep these layers separate:
+Keep these distinct:
 
-1. **Source facts** — fields returned by the current Topic Radar API, with freshness/evidence context.
+1. **Source facts** — current Topic Radar fields with freshness/evidence context.
 2. **Analysis** — interpretation of those fields.
 3. **Recommendations** — what the user should consider doing.
-4. **Unknowns** — facts the current data does not establish.
-5. **Risks** — stale/partial coverage, weak cross-market evidence, source outages, or unsupported claims.
+4. **Unknowns** — what current evidence does not establish.
+5. **Risks** — stale/partial coverage, source outages, weak evidence, or unsupported claims.
 
-The existing `/insight` output is model analysis over a server-known topic. It is not a new verified-fact source.
+`/insight` is model analysis over a server-known topic, not a new verified-fact source.
 
 ## Status
 
-M0 Skill-first foundation. No crawler, database, scoring engine, OAuth, billing, or hosted MCP is added here.
+- M0 is merged and production-contract validated.
+- M1 adds Codex installation/discovery metadata, trigger evals, and hardened live-evidence boundaries before plugin or hosted-MCP productization.

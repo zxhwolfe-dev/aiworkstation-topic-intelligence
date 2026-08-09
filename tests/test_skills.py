@@ -24,6 +24,14 @@ class SkillPackageTests(unittest.TestCase):
         self.assertIn("Source facts", content)
         self.assertIn("Unknowns", content)
 
+    def test_cross_market_skill_forbids_local_snapshot_fallback(self) -> None:
+        content = self._read("cross-market-trend-research").lower()
+        self.assertIn("live evidence is exclusive", content)
+        self.assertIn("do not search local files for a substitute", content)
+        self.assertIn("sibling repositories", content)
+        self.assertIn("sqlite databases", content)
+        self.assertIn("network-restricted sandbox", content)
+
     def test_content_brief_reuses_existing_insight_and_claim_boundaries(self) -> None:
         content = self._read("evidence-backed-content-brief")
         self.assertIn("name: evidence-backed-content-brief", content)
@@ -36,6 +44,14 @@ class SkillPackageTests(unittest.TestCase):
         self.assertIn("Feed topic cards expose the stable identifier as `id`", content)
         self.assertIn("refreshing=true", content)
         self.assertNotIn("new scoring engine", content.lower())
+
+    def test_content_brief_forbids_local_snapshot_fallback(self) -> None:
+        content = self._read("evidence-backed-content-brief").lower()
+        self.assertIn("live topic evidence is mandatory", content)
+        self.assertIn("do not search sibling repositories", content)
+        self.assertIn("old topic radar snapshots", content)
+        self.assertIn("network-restricted sandbox", content)
+        self.assertIn("if the live feed itself is unavailable", content)
 
 
 if __name__ == "__main__":

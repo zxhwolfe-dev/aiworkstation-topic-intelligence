@@ -16,6 +16,7 @@ from urllib.request import Request, urlopen
 DEFAULT_BASE_URL = "https://aiworkstation.cn"
 API_PATH = "/api/v1/ai/topic-radar"
 DEFAULT_TIMEOUT = 15.0
+DEFAULT_INSIGHT_TIMEOUT = 90.0
 _ALLOWED_SIGNALS = {"", "all", "multi_source", "early_opportunity", "single_source"}
 _ALLOWED_LOCALES = {"zh", "en"}
 
@@ -86,6 +87,7 @@ class TopicRadarClient:
         *,
         base_url: Optional[str] = None,
         timeout: float = DEFAULT_TIMEOUT,
+        insight_timeout: float = DEFAULT_INSIGHT_TIMEOUT,
         opener: Optional[Callable[..., Any]] = None,
     ) -> None:
         selected = (
@@ -97,8 +99,11 @@ class TopicRadarClient:
             raise ValueError("base_url must start with http:// or https://")
         if timeout <= 0:
             raise ValueError("timeout must be positive")
+        if insight_timeout <= 0:
+            raise ValueError("insight_timeout must be positive")
         self.base_url = selected
         self.timeout = float(timeout)
+        self.insight_timeout = float(insight_timeout)
         self._opener = opener or urlopen
 
     def _request(
@@ -109,6 +114,7 @@ class TopicRadarClient:
         params: Optional[Mapping[str, Any]] = None,
         body: Optional[Mapping[str, Any]] = None,
         kind: str,
+        timeout: Optional[float] = None,
     ) -> dict[str, Any]:
         query: dict[str, str] = {}
         for key, value in (params or {}).items():
@@ -133,9 +139,10 @@ class TopicRadarClient:
             headers["Content-Type"] = "application/json"
 
         request = Request(url=url, data=data, headers=headers, method=method)
+        request_timeout = self.timeout if timeout is None else float(timeout)
 
         try:
-            with self._opener(request, timeout=self.timeout) as response:
+            with self._opener(request, timeout=request_timeout) as response:
                 raw = response.read()
         except HTTPError as exc:
             detail = ""
@@ -239,6 +246,7 @@ class TopicRadarClient:
             params={"locale": locale},
             body={"topic_id": topic_id},
             kind="insight",
+            timeout=self.insight_timeout,
         )
         if payload["topic_id"] != topic_id:
             raise TopicRadarProtocolError(
@@ -257,6 +265,12 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--base-url", default=None)
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT)
+    parser.add_argument(
+        "--insight-timeout",
+        type=float,
+        default=DEFAULT_INSIGHT_TIMEOUT,
+        help="Timeout for the model-backed insight endpoint (default: 90 seconds)",
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
     feed = sub.add_parser("feed", help="Read the current topic feed")
@@ -289,7 +303,11 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = _build_parser().parse_args(argv)
-    client = TopicRadarClient(base_url=args.base_url, timeout=args.timeout)
+    client = TopicRadarClient(
+        base_url=args.base_url,
+        timeout=args.timeout,
+        insight_timeout=args.insight_timeout,
+    )
 
     try:
         if args.command == "feed":
