@@ -197,15 +197,21 @@ def doctor(target_root: Path, *, root: Optional[Path] = None) -> dict[str, objec
         source = Path(row["source"])
         metadata = source / "agents" / "openai.yaml"
         skill_md = source / "SKILL.md"
+        runtime_helper = source / "scripts" / "topic_radar_client.py"
+        handoff_contract = source / "references" / "handoff-contract.md"
         check: dict[str, object] = {
             **row,
             "skill_md": "ok" if skill_md.is_file() else "missing",
             "openai_metadata": "ok" if metadata.is_file() else "missing",
+            "runtime_helper": "ok" if runtime_helper.is_file() else "missing",
+            "handoff_contract": "ok" if handoff_contract.is_file() else "missing",
         }
         check["ok"] = (
             row["state"] == "installed"
             and check["skill_md"] == "ok"
             and check["openai_metadata"] == "ok"
+            and check["runtime_helper"] == "ok"
+            and check["handoff_contract"] == "ok"
         )
         skill_checks.append(check)
 

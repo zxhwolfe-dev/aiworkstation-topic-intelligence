@@ -1,6 +1,10 @@
 # Topic Intelligence Skill evals
 
-`cases.json` is the reusable acceptance matrix for real Codex/ChatGPT Skill behavior.
+Topic Intelligence now has two complementary eval layers.
+
+## 1. `cases.json` — trigger/routing boundary
+
+`cases.json` is the reusable acceptance matrix for real Codex/ChatGPT Skill discovery behavior.
 
 The goal is not to grade prose style. It checks whether the host:
 
@@ -11,51 +15,51 @@ The goal is not to grade prose style. It checks whether the host:
 5. does not invent a second scoring system or promote model insight to source fact;
 6. refuses local/sibling snapshot fallback when live evidence is unavailable.
 
-## Current matrix
-
-M2 contains **20 cases**:
+The M2 trigger matrix contains **20 cases**:
 
 - 6 `creator-topic-opportunity-research` positives;
 - 5 `evidence-backed-content-brief` positives;
 - 9 negative/boundary cases that should invoke neither Topic Intelligence Skill.
 
-Newer boundary cases intentionally include natural, ambiguous wording such as:
-
-- asking what overseas topic may not yet be crowded in Chinese content;
-- asking for freshness/source limitations before recommendations;
-- asking for a Xiaohongshu-oriented current-topic brief;
-- asking for the lowest-verification-risk angle;
-- comparing TikTok/YouTube content styles without requesting live trends;
-- writing a script from material the user already supplied;
-- asking for direct company news;
-- translating an AI-news passage.
-
-## Case fields
-
-- `id`: stable case identifier.
-- `prompt`: prompt to run in a fresh conversation when testing implicit invocation.
-- `expected_skill`: expected implicitly selected Skill, or `null` when neither Skill should trigger.
-- `expected_calls`: minimum logical Topic Radar calls needed for the workflow.
-- `optional_calls`: calls that are appropriate only when the answer needs them.
-- `must_show`: concepts or output sections that should be visible in a passing response.
-- `must_not`: failure modes that should not occur.
-
 `expected_calls` describe logical endpoint use (`feed`, `sources`, `history`, `insight`), not a requirement to print internal commands to the user.
 
-## How to run implicit evals
+Use a **fresh conversation per implicit-trigger case** so a previous explicit Skill selection does not bias the next case.
 
-Use a **fresh Codex/ChatGPT conversation per implicit-trigger case** so a previous explicit Skill selection does not bias the next case.
+## 2. `m3-skill-quality.json` — runtime/task quality
 
-For each case:
+The 0.2 development line adds `m3-skill-quality.json` because correct triggering is necessary but no longer sufficient.
 
-1. paste only the `prompt`;
-2. record whether a Topic Intelligence Skill was selected;
-3. record the selected Skill name when observable;
-4. inspect the answer and host/API activity for the required workflow;
-5. mark each `must_show` and `must_not` item;
-6. preserve exact failure text when something goes wrong.
+It covers 24+ realistic task and failure states across:
 
-For `expected_skill: null`, a pass means neither Topic Intelligence Skill is invoked.
+- creator-only install;
+- brief-only install;
+- both-Skills composition;
+- Chinese and English;
+- current-task `ati.topic-opportunity-handoff.v1`;
+- bounded Brief standalone selection;
+- invalid/ambiguous topic identity;
+- no-useful-candidate behavior;
+- stale/partial feed handling;
+- source `empty` vs explicit source error;
+- `refreshing=true` non-atomic reads;
+- degraded/unavailable insight;
+- blocked live data;
+- stale/persisted or identity-invalid handoffs;
+- verification-heavy and platform/audience-constrained tasks.
+
+The quality matrix grades:
+
+- correct workflow routing;
+- live-evidence boundary;
+- freshness handling;
+- topic identity preservation;
+- handoff continuity;
+- standalone Skill runtime;
+- bounded Brief fallback;
+- insight-as-analysis boundary;
+- task completion quality.
+
+For synthetic failure states, use the fixture notes as evaluation semantics; do not manipulate production to force an outage or stale snapshot.
 
 ## Explicit smoke tests
 
@@ -71,7 +75,7 @@ and:
 $evidence-backed-content-brief 从当前AI热点中选一个适合2到3分钟短视频的题材，给我研究就绪的选题简报。
 ```
 
-Explicit smoke tests prove installation/discovery. They do **not** replace implicit-trigger evals.
+Explicit smoke tests prove installation/discovery. They do **not** replace implicit-trigger or task-quality evals.
 
 ## Gate A vs Gate B
 
@@ -81,12 +85,16 @@ Do not interpret sandbox DNS failure as production failure, and never replace un
 
 ## Release quality bar
 
-For a trigger-quality release:
+For a 0.2-line release candidate:
 
-- all positive cases should select the expected Skill or an equivalent correct composed workflow;
-- all negative cases should avoid both Topic Intelligence Skills;
-- no case should invent current facts when live Radar data is unavailable;
-- no case should use local/sibling snapshots as current evidence;
-- stale/partial/source limitations must remain visible when material.
+- previous trigger positives/negatives must not regress;
+- standalone Skill ZIP runtime must pass;
+- creator-only, brief-only, and both-Skills installs must behave correctly;
+- composed Opportunity → handoff → Brief must preserve the exact topic identity;
+- no case may invent current facts when live Radar data is unavailable;
+- no case may use local/sibling snapshots or persisted handoffs as current evidence;
+- stale/partial/source limitations must remain visible when material;
+- no-useful-candidate must be allowed instead of forcing a recommendation;
+- selected-topic insight must remain analysis, not independent evidence.
 
-If a positive case misses the Skill or a negative case triggers it, adjust the Skill frontmatter `name`/`description` from observed evidence before adding backend complexity.
+See `docs/m3-skill-quality-acceptance.md` for the full fresh-session/live E2E gate.

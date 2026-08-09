@@ -40,7 +40,17 @@ The public contract is:
 - `GET /api/v1/ai/topic-radar/sources`
 - `GET /api/v1/ai/topic-radar/history?topic_id=...`
 
-A local/Codex host may use `scripts/topic_radar_client.py`. A host with a native HTTP or MCP connection may call the same contract directly.
+### Self-contained runtime
+
+This Skill package is self-contained for local/Codex execution. Resolve the bundled helper relative to this `SKILL.md`:
+
+```text
+scripts/topic_radar_client.py
+```
+
+Do not assume a repository-root `scripts/topic_radar_client.py`, sibling checkout, or `../akaiagents` exists. A host with a native HTTP/MCP connection may call the same public contract directly instead of using the bundled helper.
+
+The bundled helper is transport-only: no crawler, score, persistence, topic matching, or model backend is implemented inside the Skill.
 
 ### Live evidence is exclusive
 
@@ -169,6 +179,36 @@ History can help distinguish a new spike, sustained momentum, cooling, or a one-
 
 When a refresh is in progress, history can gain a point after the parent feed was generated. Compare timestamps and snapshot state rather than requiring `trend.history_points` to equal the later history response length exactly.
 
+## Compose with Evidence-Backed Content Brief
+
+When the user wants to continue one selected candidate into a content brief, prefer the installed `evidence-backed-content-brief` Skill when available.
+
+Do not make the Brief Skill rediscover the same topic from its title. For the **single selected finalist**, produce the structured handoff defined in:
+
+```text
+references/handoff-contract.md
+```
+
+The schema is:
+
+```text
+ati.topic-opportunity-handoff.v1
+```
+
+The handoff must preserve:
+
+- exact feed `id` as `topic_id`;
+- parent snapshot freshness fields;
+- the selected topic fields actually observed on that feed item;
+- the user's relevant platform/format/audience constraints;
+- selection reason, observed signals, unknowns, and risks clearly as analysis.
+
+Do not serialize the whole feed. Do not put invented fields into `topic_snapshot`.
+
+A handoff is valid only for the current task/session workflow. Never save or reload an old handoff as replacement current evidence on a later task.
+
+If `evidence-backed-content-brief` is not installed/available, finish the opportunity decision normally and expose the selected candidate plus handoff-ready facts. Do not pretend the full brief workflow ran.
+
 ## Evidence boundary
 
 Keep five layers explicit:
@@ -215,6 +255,10 @@ State verified differences first. Put timing-gap or propagation claims in a sepa
 
 Do not bury them.
 
+### Selected-topic handoff
+
+When the user is continuing directly into the Brief Skill, keep the machine/workflow handoff concise and scoped to the selected finalist; the user-facing answer does not need to dump raw JSON unless useful.
+
 ## Quality rules
 
 - Never fabricate a current topic from memory.
@@ -225,4 +269,5 @@ Do not bury them.
 - Never silently ignore `partial` or `stale`.
 - Never treat normal between-request changes during `refreshing=true` as contradictory evidence without checking timestamps.
 - Never merge different topics only because their titles are semantically similar.
+- Never persist a current-task handoff and later reuse it as current evidence.
 - Prefer a small evidence-backed shortlist over a long generic trend list.

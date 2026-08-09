@@ -46,9 +46,14 @@ class M3AdoptionTests(unittest.TestCase):
         self.assertIn("不会用模型记忆或本地旧数据冒充", content)
         self.assertNotIn("保证抓住热点", content.split("## 首页不应该承诺的内容", 1)[0])
 
-    def test_m3_does_not_bump_the_stable_public_preview_version(self) -> None:
+    def test_public_release_stays_v0_1_0_while_0_2_is_unreleased_development(self) -> None:
         version = (self.ROOT / "VERSION").read_text(encoding="utf-8").strip()
-        self.assertEqual(version, "0.1.0")
+        readme = (self.ROOT / "README.md").read_text(encoding="utf-8")
+        changelog = (self.ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        self.assertEqual(version, "0.2.0")
+        self.assertIn("Latest public release: **v0.1.0", readme)
+        self.assertIn("Development line: **v0.2.0 unreleased**", readme)
+        self.assertIn("## [0.2.0] - Unreleased", changelog)
 
 
 if __name__ == "__main__":

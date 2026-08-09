@@ -23,9 +23,9 @@
       "id": "live-topic-to-research-brief",
       "user_job": "Move from a current topic decision into a research-ready content brief without rebuilding the workflow manually.",
       "prompt_zh": "从当前 AI 热点里挑一个适合 2–3 分钟解释型内容的题材，给我受众收益、最强角度、前三秒、叙事结构、必须核验的事实、不能乱说的内容和素材建议。",
-      "expected_workflow": ["creator-topic-opportunity-research", "evidence-backed-content-brief"],
-      "must_show": ["topic freshness", "selected angle", "audience payoff", "must_verify", "avoid_claims", "research handoff", "visual needs"],
-      "must_not": ["insight presented as verified fact", "long generic brainstorm instead of selected angle", "local snapshot fallback"],
+      "expected_workflow": ["creator-topic-opportunity-research", "ati.topic-opportunity-handoff.v1", "evidence-backed-content-brief"],
+      "must_show": ["topic freshness", "same topic identity", "selected angle", "audience payoff", "must_verify", "avoid_claims", "research handoff", "visual needs"],
+      "must_not": ["title-based rediscovery after a valid handoff", "insight presented as verified fact", "long generic brainstorm instead of selected angle", "local snapshot fallback"],
       "activation_events": ["brief_accepted", "research_started", "production_handoff"]
     }
   ],

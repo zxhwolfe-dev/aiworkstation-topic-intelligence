@@ -7,6 +7,10 @@ Topic Intelligence ships as two Agent Skills:
 - `creator-topic-opportunity-research`
 - `evidence-backed-content-brief`
 
+Latest public release: **v0.1.0**.
+
+The repository's 0.2 development line is not a public release yet. It is being validated for self-contained standalone packages and Skill-to-Skill composition before any `v0.2.0` tag is considered.
+
 ## Current ChatGPT availability
 
 OpenAI's current Help Center says Personal Skills are generally available for ChatGPT Business, Enterprise, Healthcare, and Edu users. Workspace permissions can further control whether users may create, upload, share, publish, or install Skills.
@@ -30,6 +34,24 @@ For an eligible ChatGPT account/workspace:
 7. Let ChatGPT finish its Skill scan/review before use.
 
 Uploaded Skills may be available immediately after scanning, may require review, or may be blocked by the product's safety scan.
+
+## Standalone package boundary
+
+On the 0.2 development line, each Skill package contains:
+
+```text
+SKILL.md
+agents/openai.yaml
+scripts/topic_radar_client.py
+references/handoff-contract.md
+LICENSE
+```
+
+This removes the previous package gap where a standalone archive could describe the repository-root helper without carrying that helper itself.
+
+The package being self-contained does **not** guarantee that every ChatGPT workspace/surface grants arbitrary live network execution to the bundled helper. If the host cannot reach the current Topic Radar public contract, the Skill must report live evidence as unavailable and must not fall back to model memory/local artifacts.
+
+If ChatGPT exposes a native approved live connection/tool path instead, the Skill may use the same public Topic Radar contract through that host capability rather than executing the helper directly.
 
 ## Surface synchronization
 
@@ -57,12 +79,17 @@ creator-topic-opportunity-research
 从当前 AI 热点中挑一个适合 2–3 分钟内容的题材，给我受众收益、最强角度、前三秒、必须核验的事实和素材建议。
 ```
 
-Expected workflow:
+Preferred workflow when both are installed:
 
 ```text
 creator-topic-opportunity-research
+  -> ati.topic-opportunity-handoff.v1
   -> evidence-backed-content-brief
 ```
+
+When the handoff is produced and consumed inside the same task, the exact selected feed `id` should remain the history/insight `topic_id`; Brief should not rediscover the topic by title.
+
+When only `evidence-backed-content-brief` is installed, it may resolve a supplied topic directly or use its bounded single-topic fallback. It must not invent a new score or call insight for a broad feed.
 
 ## Important product boundary
 
@@ -75,3 +102,15 @@ OpenAI今天发布了什么新消息？
 is **not** a Topic Intelligence task by itself. It should use normal current-information lookup unless the user also asks for creator/editorial topic prioritization or content-opportunity analysis.
 
 Likewise, rewriting supplied material, translation, generic title writing, and platform-style comparison should not invoke Topic Intelligence unless a live-topic decision is requested.
+
+## Manual 0.2 release-candidate smoke
+
+Codex cannot prove ChatGPT UI/package behavior. Before a 0.2 release decision, if an eligible workspace is available, manually test:
+
+1. creator-only standalone package;
+2. brief-only standalone package;
+3. both packages with one composed Opportunity → handoff → Brief prompt;
+4. live Radar reachable or explicit blocked-live-data state;
+5. no repository-root file requirement.
+
+Record the result in the acceptance format from [`m3-skill-quality-acceptance.md`](m3-skill-quality-acceptance.md).
