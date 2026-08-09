@@ -42,6 +42,8 @@ v0.2.0 acceptance proved:
 
 Managed Codex sandboxes can still impose DNS/socket restrictions. Treat those as host-environment observations rather than silently weakening the Skill evidence boundary.
 
+Codex `exec --json` does not currently expose a first-class "Skill X triggered" event. A trace may contain Skill names because Codex inspected workspace files or Skill definitions while deciding what to do. Therefore a bare Skill-name occurrence is discovery/mention evidence, not proof of invocation.
+
 ### Standalone shell
 
 The published package helper has been validated independently of an agent host. This isolates public API transport from host-specific Skill discovery and sandbox behavior.
@@ -57,7 +59,11 @@ ChatGPT remains a separate manual product-surface smoke. Do not infer any of the
 
 Test the published v0.2.0 artifacts in creator-only, brief-only, and both-Skills shapes when the workspace supports Skill upload.
 
-## Host Eval Runner
+## Host Eval tooling
+
+M4 deliberately uses two stages.
+
+### Stage 1 — collect fresh host traces
 
 Use:
 
@@ -65,9 +71,9 @@ Use:
 python3 scripts/run_host_evals.py --help
 ```
 
-The first supported host is Codex.
+The collector launches one fresh `codex exec --json` process per selected case and stores the raw trace in an `ati.host-eval.v1` report.
 
-### Executable launcher
+#### Executable launcher
 
 When the launcher is a normal executable on `PATH`, pass it directly:
 
@@ -80,9 +86,9 @@ python3 scripts/run_host_evals.py \
   --output /tmp/ati-host-eval-trigger.json
 ```
 
-### Bash-function launcher
+#### Bash-function launcher
 
-Local aliases such as `codex_yinhe` may be Bash functions from `.bashrc`, not executables. The runner intentionally does not source shell configuration itself. Use the explicit adapter instead:
+Local launchers such as `codex_yinhe` may be Bash functions from `.bashrc`, not executables. Use the explicit adapter:
 
 ```bash
 python3 scripts/run_host_evals.py \
@@ -97,9 +103,7 @@ The adapter starts an interactive Bash so the user's `.bashrc` can define the re
 
 This mode is explicit because reading interactive shell configuration can have user-specific side effects. Do not silently fall back from a missing executable to a shell function.
 
-### Trigger suite
-
-Dry-run one case without invoking Codex:
+#### Dry-run
 
 ```bash
 python3 scripts/run_host_evals.py \
@@ -109,7 +113,7 @@ python3 scripts/run_host_evals.py \
   --launcher "python3 scripts/bash_function_launcher.py codex_yinhe"
 ```
 
-Run selected fresh-process cases and write a structured report:
+#### Selected trigger cases
 
 ```bash
 python3 scripts/run_host_evals.py \
@@ -121,7 +125,44 @@ python3 scripts/run_host_evals.py \
   --output /tmp/ati-host-eval-trigger.json
 ```
 
+The collector keeps a broad token-based `route_observation` for diagnostics and backward compatibility. Do not use a bare collector failure as final evidence that a Skill was invoked: passive file reads can contain Skill names.
+
+### Stage 2 — conservatively grade observable behavior
+
+Run:
+
+```bash
+python3 scripts/grade_host_eval.py \
+  /tmp/ati-host-eval-trigger.json \
+  --output /tmp/ati-host-evidence-trigger.json
+```
+
+The grader emits:
+
+```text
+ati.host-evidence.v1
+```
+
+It distinguishes:
+
+- `mentioned_skills` — a Skill name appeared anywhere in the raw trace;
+- `definition_read_skills` — a `command_execution.command` directly read `SKILL.md`, `agents/openai.yaml`, or the handoff reference;
+- `runtime_use_skills` — a `command_execution.command` directly referenced the Skill-local `scripts/topic_radar_client.py` helper;
+- `handoff_agent_message_observed` — the formal handoff schema appeared in an agent message.
+
+Important rules:
+
+- reading/listing a Skill definition is consultation/discovery evidence, not invocation;
+- command output that merely prints a helper path is not runtime-use evidence;
+- a negative trigger case fails only when unexpected Skill runtime use is actually observable;
+- a positive trigger case can pass at a weaker evidence level when the expected Skill definition is clearly consulted, because Codex currently lacks a first-class Skill-trigger event;
+- formal handoff use is not inferred merely because Codex read `handoff-contract.md`.
+
+This conservative grading model prevents the false positive where Codex scans Topic Intelligence Skill files while correctly answering a non-Topic-Intelligence request.
+
 ### Quality suite
+
+Collect:
 
 ```bash
 python3 scripts/run_host_evals.py \
@@ -132,11 +173,13 @@ python3 scripts/run_host_evals.py \
   --output /tmp/ati-host-eval-quality.json
 ```
 
-The runner always launches a fresh `codex exec` process per selected case. It does not reuse a conversation.
+Then grade the raw report with `grade_host_eval.py`.
+
+Semantic `must_show` / `must_not` review still remains a separate step. Neither script claims access to hidden reasoning.
 
 ## Safety boundary
 
-The runner intentionally does **not** mutate `$HOME/.agents/skills` in v1.
+The tooling intentionally does **not** mutate `$HOME/.agents/skills` in v1.
 
 It assumes the desired Skill installation shape has already been prepared by an operator. This avoids making hidden changes to a user's real Skill directory until a host-supported isolated Skill-home mechanism is explicitly validated.
 
@@ -147,36 +190,29 @@ It also does not:
 - silently source shell configuration unless the explicit Bash-function adapter is selected;
 - retry live Topic Insight across multiple candidates;
 - manufacture stale/partial/source-error production states;
-- grade hidden reasoning or guess a Skill selection that is absent from the trace.
+- grade hidden reasoning or guess a Skill selection that is absent from observable evidence.
 
-## Report schema
+## Report schemas
 
-Reports use:
+Collector reports use:
 
 ```text
 ati.host-eval.v1
 ```
 
-Each case records:
+Evidence grader reports use:
 
-- suite and case ID;
-- original prompt;
-- expected Skill/workflow metadata from the existing eval file;
-- fresh process command;
-- runtime status and timeout;
-- exit code and elapsed time;
-- raw stdout/stderr, with bounded storage;
-- Topic Intelligence Skill names visible in the trace;
-- expected workflow tokens visible in the trace;
-- an observation classification.
+```text
+ati.host-evidence.v1
+```
 
-The runner's classification is deliberately narrow. It can say that an expected Skill/workflow token was observable, wrong, partial, or unobservable. It does **not** claim to automatically grade all `must_show` / `must_not` semantic requirements.
+Keep the raw collector report when diagnosing host-version changes. The evidence report is the preferred source for trigger/runtime conclusions.
 
 ## M4 sequence
 
 1. Run the real ChatGPT upload smoke with v0.2.0 artifacts.
 2. Record ChatGPT capability evidence in `evals/host-capabilities.json`.
-3. Use `run_host_evals.py` to make Codex regression runs repeatable.
+3. Use the collector + evidence grader to make Codex regression runs repeatable.
 4. Decide whether Skills-only is sufficient for ChatGPT.
 5. Only if live access is the demonstrated blocker, design a thin Hosted MCP/App connection that exposes the existing Topic Radar contract without duplicating its business logic.
 
@@ -191,4 +227,4 @@ A later Skill version should be driven by observed host/user failures such as:
 - unreliable composition that needs a Skill contract change;
 - a repeatedly requested workflow extension such as research continuation.
 
-Host Eval Runner changes alone are repository tooling and do not require moving the immutable v0.2.0 release tag.
+Host Eval tooling changes alone are repository tooling and do not require moving the immutable v0.2.0 release tag.
