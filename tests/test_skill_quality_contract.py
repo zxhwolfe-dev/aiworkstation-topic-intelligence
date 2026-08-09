@@ -42,13 +42,17 @@ class SkillQualityContractTests(unittest.TestCase):
         self.assertIn("ati.topic-opportunity-handoff.v1", content)
         self.assertIn("do **not** run another broad/bounded candidate-selection feed pass", content)
 
-    def test_openai_metadata_points_hosts_to_quality_contract(self) -> None:
+    def test_skill_definitions_and_openai_metadata_point_to_quality_contract(self) -> None:
+        creator_skill = (CREATOR / "SKILL.md").read_text(encoding="utf-8")
+        brief_skill = (BRIEF / "SKILL.md").read_text(encoding="utf-8")
         creator_yaml = (CREATOR / "agents" / "openai.yaml").read_text(encoding="utf-8")
         brief_yaml = (BRIEF / "agents" / "openai.yaml").read_text(encoding="utf-8")
 
-        for content in (creator_yaml, brief_yaml):
+        for content in (creator_skill, brief_skill, creator_yaml, brief_yaml):
             self.assertIn("references/quality-contract.md", content)
 
+        self.assertIn("Host quality contract", creator_skill)
+        self.assertIn("Host quality contract", brief_skill)
         self.assertIn("content-format/language/audience", creator_yaml)
         self.assertIn("a second broad selection pass", creator_yaml)
         self.assertIn("duration, language, audience, or tone", brief_yaml)
