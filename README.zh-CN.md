@@ -28,9 +28,9 @@ Skills -> 证据检查 -> 跨市场解释
 
 ## 两个核心 Skill
 
-### `cross-market-trend-research`
+### `creator-topic-opportunity-research`
 
-用于发现当前热点、加速题材、早期机会、平台/地区差异，以及需要进一步验证的跨市场时间差。
+用于为创作者/编辑决策比较和排序实时 Topic Radar 候选，包括加速题材、早期机会、平台/地区差异、数据新鲜度，以及需要进一步验证的跨市场时间差。
 
 典型请求：
 
@@ -71,7 +71,7 @@ python3 scripts/install_codex_skills.py doctor
 $HOME/.agents/skills/
 ```
 
-安装器使用 symlink，不复制 Skill；重复安装安全，并拒绝覆盖无关目录。
+安装器使用 symlink，不复制 Skill；重复安装安全，并拒绝覆盖无关目录。pre-0.1.0 阶段曾使用旧名 `cross-market-trend-research`；升级执行 `install` 时，仅当旧 symlink 确认指向当前 checkout 的旧路径时才会安全删除，并替换为 `creator-topic-opportunity-research`。
 
 常用命令：
 
@@ -82,7 +82,7 @@ python3 scripts/install_codex_skills.py doctor
 python3 scripts/install_codex_skills.py uninstall
 ```
 
-交互式 Codex 可在支持时用 `/skills` 检查发现状态。显式调用使用 `$cross-market-trend-research` 或 `$evidence-backed-content-brief`；隐式触发由 eval 持续验证。
+交互式 Codex 可在支持时用 `/skills` 检查发现状态。显式调用使用 `$creator-topic-opportunity-research` 或 `$evidence-backed-content-brief`；隐式触发由 eval 持续验证。
 
 ## 构建独立 Skill 发行包
 
@@ -94,7 +94,7 @@ python3 scripts/build_release.py --output dist
 
 ```text
 dist/
-  aiworkstation-topic-intelligence-0.1.0-cross-market-trend-research.zip
+  aiworkstation-topic-intelligence-0.1.0-creator-topic-opportunity-research.zip
   aiworkstation-topic-intelligence-0.1.0-evidence-backed-content-brief.zip
   release-manifest.json
   SHA256SUMS
