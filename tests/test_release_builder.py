@@ -23,6 +23,7 @@ SKILLS = (
 )
 HELPER_TEXT = "#!/usr/bin/env python3\nprint('Thin client test helper')\n"
 HANDOFF_TEXT = "Schema: `ati.topic-opportunity-handoff.v1`\n"
+QUALITY_TEXT = "Topic Intelligence quality contract\n"
 
 
 def make_release_repo(root: Path, *, version: str = "0.1.0") -> None:
@@ -32,6 +33,9 @@ def make_release_repo(root: Path, *, version: str = "0.1.0") -> None:
     (root / "references").mkdir(parents=True)
     (root / "scripts" / "topic_radar_client.py").write_text(HELPER_TEXT, encoding="utf-8")
     (root / "references" / "topic-opportunity-handoff.md").write_text(HANDOFF_TEXT, encoding="utf-8")
+    (root / "references" / "topic-intelligence-quality-contract.md").write_text(
+        QUALITY_TEXT, encoding="utf-8"
+    )
     for name in SKILLS:
         skill = root / "skills" / name
         (skill / "agents").mkdir(parents=True)
@@ -47,6 +51,7 @@ def make_release_repo(root: Path, *, version: str = "0.1.0") -> None:
         )
         (skill / "scripts" / "topic_radar_client.py").write_text(HELPER_TEXT, encoding="utf-8")
         (skill / "references" / "handoff-contract.md").write_text(HANDOFF_TEXT, encoding="utf-8")
+        (skill / "references" / "quality-contract.md").write_text(QUALITY_TEXT, encoding="utf-8")
 
 
 class ReleaseBuilderTests(unittest.TestCase):
@@ -122,6 +127,14 @@ class ReleaseBuilderTests(unittest.TestCase):
             with self.assertRaisesRegex(ReleaseError, "references/handoff-contract.md"):
                 build_release(Path(out_dir), root=repo)
 
+    def test_release_rejects_missing_quality_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as out_dir:
+            repo = Path(repo_dir)
+            make_release_repo(repo)
+            (repo / "skills" / SKILLS[1] / "references" / "quality-contract.md").unlink()
+            with self.assertRaisesRegex(ReleaseError, "references/quality-contract.md"):
+                build_release(Path(out_dir), root=repo)
+
     def test_release_rejects_drifted_helper(self) -> None:
         with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as out_dir:
             repo = Path(repo_dir)
@@ -135,6 +148,14 @@ class ReleaseBuilderTests(unittest.TestCase):
             repo = Path(repo_dir)
             make_release_repo(repo)
             (repo / "skills" / SKILLS[1] / "references" / "handoff-contract.md").write_text("drifted\n", encoding="utf-8")
+            with self.assertRaisesRegex(ReleaseError, "portable runtime drift"):
+                build_release(Path(out_dir), root=repo)
+
+    def test_release_rejects_drifted_quality_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as out_dir:
+            repo = Path(repo_dir)
+            make_release_repo(repo)
+            (repo / "skills" / SKILLS[0] / "references" / "quality-contract.md").write_text("drifted\n", encoding="utf-8")
             with self.assertRaisesRegex(ReleaseError, "portable runtime drift"):
                 build_release(Path(out_dir), root=repo)
 
