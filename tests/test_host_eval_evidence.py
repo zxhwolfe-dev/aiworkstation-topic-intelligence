@@ -50,7 +50,7 @@ class HostEvalEvidenceTests(unittest.TestCase):
             }
         )
         evidence = observe_evidence(stdout)
-        self.assertEqual(evidence["definition_read_skills"], [BRIEF, CREATOR])
+        self.assertEqual(evidence["definition_read_skills"], [CREATOR, BRIEF])
         self.assertEqual(evidence["runtime_use_skills"], [])
         self.assertEqual(
             classify_case(_trigger_case(None), evidence),
