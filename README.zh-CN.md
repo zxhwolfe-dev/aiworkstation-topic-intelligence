@@ -4,13 +4,18 @@
 
 [English](README.md)
 
-最新公开版本：**v0.2.0**
+最新公开版本：**v0.2.0**  
+当前源码开发线：**v0.2.1 Unreleased**
 
-v0.2.0 已正式发布：包含真正 self-contained 的 standalone Skill、Opportunity → Brief 正式 handoff、单 Skill fallback，以及发布前完成的 M3.1 任务质量验收。此前的 `v0.1.0` tag/release 保持不可变。
+v0.2.0 已经证明：两个 standalone Skill 可以在 ChatGPT 上传/发现/执行，能直接访问实时 AI Workstation Topic Radar，也能完成 Creator → Brief 组合流程。
 
-Topic Intelligence 建在现有 AI Workstation「全球热点选题雷达」之上。它不重新做爬虫、聚类、评分、数据库或 GPT 后端，而是把实时 Radar 证据转成更可靠的创作者/编辑决策。
+当前未发布的 v0.2.1 继续优化真实 ChatGPT 使用中发现的问题，并新增一个非常重要的商业/成本边界：
 
-## 你可以直接拿它做什么？
+> **公开 Skill 的正常使用，不再消耗 AI Workstation 服务器端大模型 Token。**
+
+Topic Intelligence 继续建立在 AI Workstation「全球热点选题雷达」之上，不重新做爬虫、聚类、评分或持久化。
+
+## 你可以拿它做什么？
 
 ### 1. 今天什么 AI 题材值得研究？
 
@@ -24,23 +29,23 @@ Topic Intelligence 建在现有 AI Workstation「全球热点选题雷达」之�
 creator-topic-opportunity-research
 ```
 
-目标不是再给几十条新闻，而是给少量候选，并明确：数据新鲜度、来源覆盖、机会分/阶段、观察到的趋势、事实与推断、下一步核验什么。
+Skill 从实时 Radar 获取事实，由**当前 ChatGPT / Codex / Agent 自己的大模型**完成比较、解释和推荐。
 
-### 2. 海外有没有值得中文内容提前跟的机会？
+### 2. 海外有没有值得提前跟的机会？
 
 ```text
 海外现在有哪些科技话题正在升温、可能值得中文内容创作者提前研究？中文区是否已经做烂如果没有直接证据就明确说不知道。
 ```
 
-Skill 可以比较平台/地区的当前信号，但如果 Radar 没有直接测量“中文区内容饱和度”，就必须把它标成未知或假设，不能把猜测包装成数据。
+如果 Radar 没有直接测量中文区饱和度或传播时差，就必须标成未知/假设，不能当作数据事实。
 
-### 3. 选一个当前 Topic，并直接做成简报
+### 3. 选一个当前 Topic，并直接做成研究简报
 
 ```text
 从当前 AI 热点里挑一个适合 2–3 分钟解释型内容的题材，给我受众收益、最强角度、前三秒、叙事结构、必须核验的事实、不能乱说的内容和素材建议。
 ```
 
-两个 Skill 都安装时，优先工作流：
+两个 Skill 都安装时：
 
 ```text
 creator-topic-opportunity-research
@@ -48,41 +53,142 @@ creator-topic-opportunity-research
   -> evidence-backed-content-brief
 ```
 
-第一个 Skill 只选一个 finalist，把**同一个 live feed `id`**、快照 freshness、观察信号、未知、风险以及用户的平台/形式约束交给 Brief。当前任务里的有效 handoff 不再让 Brief 通过标题重新猜 Topic。
+Creator 只选一个 finalist，并把同一个 live `id` 交给 Brief。Brief 不再重新选题。
 
-如果只安装 `evidence-backed-content-brief`，它也能独立使用：用户给 Topic 名称/ID 时直接实时解析；如果用户让它“自己挑一个”，只做一次 bounded feed selection（默认通常不超过 5 个候选），用 Radar 已有 `opportunity_score`、stage、freshness、evidence 和用户约束选最多 1 个，再只对这个 Topic 调 insight。不会另造评分，也允许明确“当前没有合适候选”。
+如果只装 Brief，它会做一次 bounded live selection（通常最多 5 个候选），选最多一个，再按需要查 history，然后由**当前宿主模型**直接生成研究就绪的内容简报。
+
+## v0.2.1：公开 Skill 的成本边界
+
+公开 Skill 应该可以放心传播，而不是每有一个人调用，就消耗你网站服务器的大模型额度。
+
+### 公开 bundled helper 只允许读取无模型成本的 Radar 数据
+
+```text
+GET /api/v1/ai/topic-radar/feed
+GET /api/v1/ai/topic-radar/sources
+GET /api/v1/ai/topic-radar/history?topic_id=...
+```
+
+正常公开 Skill 流程：
+
+```text
+AI Workstation 实时 Radar 事实
+            ↓
+用户当前的 ChatGPT / Codex / Agent 模型
+            ↓
+选题 / 解释 / 角度 / hook / must_verify / avoid_claims / 素材建议
+```
+
+因此：
+
+> **正常公开 Skill 使用 = 0 次 AI Workstation 服务器端 LLM 调用。**
+
+公开 ZIP 不会：
+
+- 暴露匿名 `insight` CLI 命令；
+- 内置 AI Workstation API Key；
+- 放一个所有人共用的 bearer token；
+- 让用户把私人 Secret 粘贴到聊天里；
+- 偷偷扣网站免费用户/会员的大模型额度。
+
+### 未来 Premium 能力仍然可以保留
+
+服务器端 Topic Insight 并不是永久删除，而是改成**账号绑定的 Premium 能力**。
+
+未来如果 ChatGPT/其他宿主通过 AI Workstation App / Plugin / OAuth 等方式建立原生认证连接：
+
+```text
+用户连接 AI Workstation 账号
+      ↓
+识别 user_id / plan / quota
+      ↓
+由连接层扣会员/额度
+      ↓
+可选调用 Premium Topic Insight
+```
+
+这种情况下 `/insight` 可以作为增强能力。
+
+但 bundled public Skill **不是认证层**，不能自己带共享 Key 去调用收费模型。
+
+没有 Premium 连接也完全不影响公开 Skill 正常完成选题和 Brief；宿主模型直接做分析即可。
 
 ## 两个 Skill
 
 ### `creator-topic-opportunity-research`
 
-用于为创作者/编辑决策比较和排序实时 Radar 候选，包括：
+负责：
 
-- 当前升温/早期机会；
-- freshness 与 source coverage；
-- 多来源 evidence；
-- 平台/地区差异；
-- 跨市场传播时差假设；
-- 选中 finalist 后生成一个正式 current-task handoff。
+- 当前升温 / early opportunity；
+- freshness / source coverage；
+- 平台和地区差异；
+- evidence breadth；
+- 跨市场假设；
+- 选中一个 finalist 后生成 handoff。
 
 ### `evidence-backed-content-brief`
 
-把一个**已由实时 Radar 确认的当前 Topic**转成可执行内容简报，包括：
+把实时 Radar Topic 变成：
 
-- 一个优先角度；
-- 受众收益和平台/形式适配；
-- hook / 前三秒 / narrative beats；
-- research questions / search handoff；
+- make / conditional / watch 判断；
+- 受众收益；
+- 最强角度；
+- 前三秒 / hook；
+- 2–3 分钟叙事结构；
+- research questions / search queries；
 - `must_verify`；
 - `avoid_claims`；
-- `fact_basis` / unsupported assumptions；
-- visual/material needs。
+- 素材需求；
+- 未知与风险。
 
-它可以消费当前任务里的 `ati.topic-opportunity-handoff.v1`、实时解析用户指定 Topic，或在 Opportunity Skill 不可用时使用 bounded standalone fallback。
+在公开模式下，这些编辑策划内容由**用户当前宿主模型**生成，不再由 AI Workstation 服务器模型生成。
 
-## v0.2.0：真正 self-contained 的 Skill
+## v0.2.1 真实 ChatGPT 实测后修掉的问题
 
-每个 Skill 目录现在都是完整可分发单元：
+1. **内容形式不等于 Radar 平台**
+
+   `短视频 / 2–3 分钟 / 中文 / 普通用户` 不允许误当成 `platform/source` 过滤条件。
+
+2. **用户明确说 AI，第一轮就查 AI**
+
+   不能：
+
+   ```text
+   AI
+   → 先查 generic technology
+   → 得到手机/二维码/数据库
+   → 第二次再收窄 AI
+   ```
+
+3. **Radar 事实和 AI 编辑判断分开**
+
+   “受众更大”“更适合中国用户”“更容易传播”等默认属于宿主分析，不是 Radar 测量事实。
+
+4. **handoff 后不再二次选题**
+
+   ```text
+   Creator 选 A
+   → handoff A
+   → Brief 继续 A
+   ```
+
+5. **公开 Brief 不再调用服务器模型**
+
+   由宿主模型直接完成内容策划。
+
+统一规则在：
+
+```text
+references/topic-intelligence-quality-contract.md
+```
+
+每个 Skill 包内也自带：
+
+```text
+references/quality-contract.md
+```
+
+## Standalone Skill 结构
 
 ```text
 skill-name/
@@ -90,36 +196,26 @@ skill-name/
   agents/openai.yaml
   scripts/topic_radar_client.py
   references/handoff-contract.md
-  LICENSE   # release ZIP 中注入
+  references/quality-contract.md
+  LICENSE
 ```
 
-因此 standalone ZIP 不再依赖仓库根目录的 `scripts/topic_radar_client.py`，也不依赖 `../akaiagents`。
+release builder 会强制检查这些 portable 文件与 canonical source 一致。
 
-两个 Skill 内的 helper 与根目录开发 helper 由测试强制逐字节一致；如果 helper 或 handoff contract 缺失，release builder 会拒绝构建。
+## 安装
 
-## 安装方式
-
-### Codex / 开发者
+### Codex
 
 ```bash
 python3 scripts/install_codex_skills.py install
 python3 scripts/install_codex_skills.py doctor
 ```
 
-默认安装到：
+默认：
 
 ```text
 $HOME/.agents/skills/
 ```
-
-显式调用：
-
-```text
-$creator-topic-opportunity-research
-$evidence-backed-content-brief
-```
-
-`doctor` 不只检查 `SKILL.md` / `agents/openai.yaml`，也检查 bundled helper 和 handoff contract。
 
 ### Standalone ZIP
 
@@ -127,115 +223,77 @@ $evidence-backed-content-brief
 python3 scripts/build_release.py --output dist
 ```
 
-每个 ZIP 只包含一个 Skill 根目录，以及它自己需要的 runtime/helper/reference 和 Apache-2.0 license。详见 [`docs/distribution.md`](docs/distribution.md)。
-
 ### ChatGPT
 
-符合条件的 ChatGPT 工作区可以使用当前官方支持的 Skill 上传流程；具体资格、工作区权限和不同界面的同步行为可能变化，见 [`docs/chatgpt-install.md`](docs/chatgpt-install.md)。
+v0.2.0 已经在 ChatGPT Web 做过真实 Creator-only / Brief-only / Both-Skills smoke：
 
-ChatGPT UI 上传仍是单独的人工验证面，Codex 通过并不能证明 ChatGPT UI 上传一定可用。
+- ZIP 上传：PASS
+- Skill discovery：PASS
+- bundled runtime：PASS
+- live Radar：PASS
+- 双 Skill 组合：行为验证 PASS
+
+详见：
+
+- [`docs/chatgpt-install.md`](docs/chatgpt-install.md)
+- [`docs/chatgpt-v0.2.0-smoke-result-2026-08-09.md`](docs/chatgpt-v0.2.0-smoke-result-2026-08-09.md)
 
 ## 证据硬边界
 
-**实时请求失败时，绝不能去本地文件找“替代实时数据”。**
+当前热点事实只能来自当前任务里的 live Radar 数据，不能用：
 
-以下内容不能替代当前 live evidence：
-
-- `../akaiagents` 中的旧快照或本地数据；
+- `../akaiagents` 本地旧快照；
 - SQLite；
-- fixtures / test captures；
+- fixtures；
 - cached/exported JSON；
-- logs / generated reports；
-- 之前保存的 Topic Opportunity handoff；
-- 模型记忆冒充当前 Radar 事实。
+- logs / reports；
+- 旧 handoff；
+- 模型记忆冒充当前事实。
 
-当前任务里的 handoff 只是**工作流上下文**，不是新的持久化证据层。换了任务/时间后，需要重新读取 live Radar。
-
-同时必须区分：
+最终输出要区分：
 
 1. **Radar 事实**；
-2. **分析**；
-3. **建议**；
-4. **未知**；
-5. **风险**；
-6. **Topic Insight**：已知 Topic 上的模型分析，不是独立 verified fact。
+2. **宿主编辑分析**；
+3. **未知 / must_verify**；
+4. **可选 Premium Topic Insight**：只有已认证账号连接明确提供时才可使用，而且仍属于模型分析，不是独立事实来源。
 
 ## 产品边界
 
 ```text
-akaiagents / 全球热点选题雷达
-公开数据源 -> 聚合 -> 聚类 -> opportunity_score
--> trend/history -> source health -> GPT topic insight
-                         |
-                         | 公开 API
-                         v
-aiworkstation-topic-intelligence
-Skills -> 证据检查 -> 跨市场解释
--> 选题机会判断 -> current-task handoff
--> 内容简报编排
+AI Workstation Global Topic Radar
+公开源 -> 聚合 -> 聚类 -> opportunity_score
+-> trend/history -> source health
+                 |
+                 | public read API
+                 v
+Topic Intelligence Public Skills
+证据检查 -> 选题 -> handoff -> 宿主模型生成 Brief
+
+未来可选 Premium 连接
+用户认证 -> 会员/额度校验 -> Server Topic Insight
 ```
 
-本仓库不重复实现 crawler、Topic 聚类、`opportunity_score`、趋势历史、数据库、来源健康或 GPT Topic Insight 后端。
-
-## 已有 Topic Radar API
-
-- `GET /api/v1/ai/topic-radar/feed`
-- `GET /api/v1/ai/topic-radar/sources`
-- `GET /api/v1/ai/topic-radar/history?topic_id=...`
-- `POST /api/v1/ai/topic-radar/insight?locale=zh|en`
-
-默认生产地址：`https://aiworkstation.cn`。
-
-Feed 卡片稳定身份字段是 `id`；传给 history/insight 时使用同一个值作为 `topic_id`。
-
-当 `refreshing=true` 时，连续请求不是原子快照，应结合时间戳和刷新状态解释两次请求之间的变化。
+本仓库不负责网站账户、计费、会员数据库或服务器模型后端。
 
 ## 验证
 
-离线测试：
-
 ```bash
+python3 scripts/sync_skill_runtime.py --check
 python3 -m unittest discover -s tests -v
 ```
 
-现在除了原来的 trigger/evidence/release 测试，还会验证：
+测试会验证：
 
-- Skill-local helper 与根 helper 一致；
-- release ZIP 确实包含完整 runtime；
-- ZIP 解压到仓库之外后，用包内 helper 对本地假 Radar 发真实 feed 请求；
-- handoff 两边协议一致；
-- Brief bounded fallback 规则；
-- 24 条 M3.1 真实任务/故障态质量矩阵。
-
-质量与发布证据：
-
-- [`evals/m3-skill-quality.json`](evals/m3-skill-quality.json)
-- [`docs/m3-skill-quality-acceptance.md`](docs/m3-skill-quality-acceptance.md)
-- [`docs/m3.1-final-acceptance-2026-08-09.md`](docs/m3.1-final-acceptance-2026-08-09.md)
-- [`docs/release-v0.2.0-decision.md`](docs/release-v0.2.0-decision.md)
-
-v0.2.0 已通过 fresh Codex / live Radar handoff 验收。验收期间一次选中 Topic 的上游 Insight 请求返回 HTTP 503；Brief 正确降级成 evidence-based skeleton，没有伪造模型输出，也没有使用本地旧数据兜底。
-
-## 更多文档
-
-- M3.1 Skill 质量验收：[`docs/m3-skill-quality-acceptance.md`](docs/m3-skill-quality-acceptance.md)
-- 分发：[`docs/distribution.md`](docs/distribution.md)
-- 发布清单：[`docs/release-checklist.md`](docs/release-checklist.md)
-- 架构：[`docs/architecture.md`](docs/architecture.md)
-- ChatGPT 当前安装/资格说明：[`docs/chatgpt-install.md`](docs/chatgpt-install.md)
-- M3 用户场景：[`docs/m3-user-scenarios.md`](docs/m3-user-scenarios.md)
-
-## 环境
-
-- Python 3.10+
-- helper / installer / release builder 均无第三方运行时依赖
-- 不依赖 `../akaiagents/.venv`
-- 不导入 `akaiagents` 私有模块
+- helper 三份一致；
+- ZIP 确定性；
+- 解压后 standalone runtime 可执行；
+- handoff identity；
+- Brief bounded fallback；
+- v0.2.1 ChatGPT-derived quality cases；
+- 公共 helper 没有 `insight` 命令；
+- 公共 helper 只发 GET 请求。
 
 ## 当前状态
 
-- **M0 已完成：** Skill-first 基础与生产 API contract。
-- **M1 已完成：** Codex 安装/发现、trigger eval、证据边界、真实 Insight E2E。
-- **M2 已完成：** v0.1.0 public preview、确定性发行、release 自动化、最终 Skill 命名与边界收敛。
-- **M3 adoption baseline 已完成：** 用户入口文档和三个产品场景。
-- **M3.1 已完成：** self-contained standalone Skills、正式 Opportunity → Brief handoff、Brief-only fallback、ZIP E2E、任务质量/fresh-session 验收，以及 v0.2.0 正式发布。
+- **v0.2.0**：当前最新公开不可变版本。
+- **v0.2.1**：Unreleased；正在收敛 Skill 质量和商业成本边界，公开模式由宿主模型完成 Brief，不消耗 AI Workstation 服务器端 LLM Token。
