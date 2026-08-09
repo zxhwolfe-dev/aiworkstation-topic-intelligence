@@ -7,9 +7,8 @@ Topic Intelligence ships as two Agent Skills:
 - `creator-topic-opportunity-research`
 - `evidence-backed-content-brief`
 
-Latest public release: **v0.2.0**.
-
-v0.2.0 is the current public standalone Skill release. Each published Skill archive is self-contained and includes its own runtime helper plus the formal Topic Opportunity handoff reference.
+Latest public release: **v0.2.0**.  
+Current source line: **v0.2.1 Unreleased**.
 
 ## Current ChatGPT availability
 
@@ -27,59 +26,90 @@ For an eligible ChatGPT account/workspace:
 
 1. Open the ChatGPT sidebar.
 2. Select **Plugins**.
-3. Open the **Skills** tab in the Plugin Directory.
+3. Open **Skills**.
 4. Select **Create**.
 5. Choose **Upload from your computer**.
-6. Upload the Skill using the format currently accepted by the product UI. The GitHub Release ZIP is the canonical checksummed distribution artifact; unpack it first if the UI expects the contained Skill directory/files rather than the ZIP container.
-7. Let ChatGPT finish its Skill scan/review before use.
+6. Upload the checksummed Skill artifact (or its contained Skill directory if the UI requires unpacked files).
+7. Let ChatGPT finish scan/review before use.
 
-Uploaded Skills may be available immediately after scanning, may require review, or may be blocked by the product's safety scan.
+## Package boundary
 
-## Standalone package boundary
-
-In v0.2.0, each Skill package contains:
+v0.2.x Skill archives are self-contained and include:
 
 ```text
 SKILL.md
 agents/openai.yaml
 scripts/topic_radar_client.py
 references/handoff-contract.md
+references/quality-contract.md
 LICENSE
 ```
 
-This removes the previous package gap where a standalone archive could describe the repository-root helper without carrying that helper itself.
+The v0.2.1 source line changes the bundled helper into a **public no-cost read transport**. It exposes only:
 
-The package being self-contained does **not** guarantee that every ChatGPT workspace/surface grants arbitrary live network execution to the bundled helper. If the host cannot reach the current Topic Radar public contract, the Skill must report live evidence as unavailable and must not fall back to model memory/local artifacts.
+```text
+feed
+sources
+history
+```
 
-If ChatGPT exposes a native approved live connection/tool path instead, the Skill may use the same public Topic Radar contract through that host capability rather than executing the helper directly.
+It intentionally does not expose anonymous server-side Topic Insight.
 
-## Surface synchronization
+## Cost boundary in ChatGPT
 
-OpenAI currently documents that Personal Skills must be added separately on desktop and web/mobile; they do not automatically sync across those surfaces.
+Normal public ChatGPT use should work as:
 
-Treat each ChatGPT surface installation as an independent installation unless current product documentation says otherwise.
+```text
+ChatGPT Skill
+  -> live AI Workstation feed/sources/history
+  -> current ChatGPT model performs the editorial reasoning
+```
+
+This is the normal path, not a fallback.
+
+The public Skill must not:
+
+- call anonymous AI Workstation `/insight`;
+- embed a server API key/shared bearer token;
+- ask the user to paste a private credential into chat;
+- silently consume the website's free/member model quota.
+
+A future **authenticated** AI Workstation App/Plugin/OAuth connection may expose Premium Topic Insight separately. That native connection must identify the user and enforce membership/quota/credits. The portable Skill ZIP is not the authentication layer.
+
+## Real ChatGPT validation
+
+The published v0.2.0 packages were manually tested in ChatGPT web:
+
+- Creator-only upload/discovery/runtime/live Radar: PASS;
+- Brief-only bounded selection/live Radar: PASS;
+- both-Skills behavioral composition: PASS;
+- raw internal handoff serialization: not exposed by UI, so not overclaimed.
+
+See [`chatgpt-v0.2.0-smoke-result-2026-08-09.md`](chatgpt-v0.2.0-smoke-result-2026-08-09.md).
+
+The v0.2.1 source line additionally addresses issues found in that smoke:
+
+- short-video/duration/language constraints are not Radar platforms;
+- explicit `AI` topic scope is preserved from the first bounded query;
+- Radar facts are separated from host editorial analysis;
+- no second selection after a valid handoff;
+- public Brief uses host reasoning with zero AI Workstation server-model spend.
 
 ## First-use prompts
 
-### Find creator/editorial opportunities
+### Creator
 
 ```text
 过去24小时有哪些正在升温、值得中国科技内容创作者提前研究的 AI 题材？先告诉我 Radar 新鲜度和来源覆盖，再给候选。
 ```
 
-Expected Skill:
-
-```text
-creator-topic-opportunity-research
-```
-
-### Turn one live topic into a brief
+### Brief
 
 ```text
 从当前 AI 热点中挑一个适合 2–3 分钟内容的题材，给我受众收益、最强角度、前三秒、必须核验的事实和素材建议。
 ```
 
-Preferred workflow when both are installed:
+With both Skills installed:
 
 ```text
 creator-topic-opportunity-research
@@ -87,30 +117,18 @@ creator-topic-opportunity-research
   -> evidence-backed-content-brief
 ```
 
-When the handoff is produced and consumed inside the same task, the exact selected feed `id` should remain the history/insight `topic_id`; Brief should not rediscover the topic by title.
+The exact selected feed `id` should remain stable through the current-task handoff. Brief may query finalist history when needed, but in normal public mode it should then use the ChatGPT model itself to create the editorial plan.
 
-When only `evidence-backed-content-brief` is installed, it may resolve a supplied topic directly or use its bounded single-topic fallback. It must not invent a new score or call insight for a broad feed.
+## Product boundary
 
-## Important product boundary
-
-A normal factual request such as:
+A factual lookup such as:
 
 ```text
 OpenAI今天发布了什么新消息？
 ```
 
-is **not** a Topic Intelligence task by itself. It should use normal current-information lookup unless the user also asks for creator/editorial topic prioritization or content-opportunity analysis.
+is not automatically a Topic Intelligence task. Rewriting supplied material, translation, generic titles, and generic platform-style comparison also should not invoke these Skills unless a live-topic creator/editorial decision is requested.
 
-Likewise, rewriting supplied material, translation, generic title writing, and platform-style comparison should not invoke Topic Intelligence unless a live-topic decision is requested.
+## Surface synchronization
 
-## Manual ChatGPT package smoke (when eligible)
-
-Codex acceptance cannot prove ChatGPT UI/package behavior. If an eligible workspace is available, manually test the published v0.2.0 standalone packages:
-
-1. creator-only standalone package;
-2. brief-only standalone package;
-3. both packages with one composed Opportunity → handoff → Brief prompt;
-4. live Radar reachable or explicit blocked-live-data state;
-5. no repository-root file requirement.
-
-This is a separate product-surface smoke, not a reason to reinterpret Codex/runtime acceptance or move the immutable v0.2.0 tag. Record any ChatGPT-specific limitation separately from Skill code defects.
+Treat each ChatGPT surface installation independently unless current OpenAI product documentation says otherwise.
