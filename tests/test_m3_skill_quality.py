@@ -110,18 +110,18 @@ class M3SkillQualityTests(unittest.TestCase):
         self.assertIn("valid only for the current task/session workflow", source)
         self.assertIn("Do not assume a repository-root", source)
 
-    def test_brief_skill_supports_handoff_and_bounded_standalone_selection(self) -> None:
+    def test_brief_skill_supports_handoff_bounded_selection_and_host_reasoning(self) -> None:
         source = (
             ROOT / "skills" / "evidence-backed-content-brief" / "SKILL.md"
         ).read_text(encoding="utf-8")
         self.assertIn("### Mode A — current-task Topic Opportunity handoff", source)
         self.assertIn("### Mode B — user supplies a current topic ID or name", source)
-        self.assertIn("### Mode C — user asks this Skill to pick one topic", source)
-        self.assertIn("normally no more than 5", source)
-        self.assertIn("do not call `/insight` for every candidate", source)
-        self.assertIn("if no candidate is useful", source)
-        self.assertIn("do not re-identify the topic from its title", source)
-        self.assertIn("Do not assume a repository-root helper", source)
+        self.assertIn("### Mode C — Brief-only bounded selection", source)
+        self.assertIn("normally no more than 5 candidates", source)
+        self.assertIn("Build the brief with host reasoning", source)
+        self.assertIn("do not run another candidate-selection feed pass", source)
+        self.assertIn("Never call anonymous/public server `/insight`", source)
+        self.assertIn("native authenticated AI Workstation connection", source)
 
     def test_release_archives_include_required_standalone_runtime_files(self) -> None:
         with tempfile.TemporaryDirectory() as output_dir:
@@ -176,12 +176,23 @@ class M3SkillQualityTests(unittest.TestCase):
                     self.assertEqual(completed.returncode, 0, completed.stderr)
                     payload = json.loads(completed.stdout)
                     self.assertEqual(payload["items"][0]["id"], "topic:test-standalone")
+
+                    help_result = subprocess.run(
+                        [sys.executable, str(helper), "--help"],
+                        cwd=outside_dir,
+                        text=True,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        timeout=10,
+                    )
+                    self.assertEqual(help_result.returncode, 0, help_result.stderr)
+                    self.assertNotIn("insight", help_result.stdout.lower())
         finally:
             server.shutdown()
             server.server_close()
             thread.join(timeout=5)
 
-    def test_quality_eval_matrix_covers_runtime_and_failure_states(self) -> None:
+    def test_historical_m3_quality_matrix_remains_available(self) -> None:
         payload = json.loads(
             (ROOT / "evals" / "m3-skill-quality.json").read_text(encoding="utf-8")
         )
@@ -202,8 +213,6 @@ class M3SkillQualityTests(unittest.TestCase):
             "source-empty-is-not-outage",
             "source-error-limits-comparison",
             "refreshing-non-atomic-history",
-            "degraded-insight",
-            "insight-unavailable-live-evidence-available",
             "feed-unavailable-blocked",
             "stale-persisted-handoff-rejected",
             "handoff-identity-mismatch-rejected",
@@ -212,9 +221,6 @@ class M3SkillQualityTests(unittest.TestCase):
         self.assertTrue(required.issubset(ids))
         self.assertTrue(any(case["locale"] == "en" for case in cases))
         self.assertTrue(any(case["locale"] == "zh" for case in cases))
-        self.assertTrue(any(case["installed_skills"] == ["evidence-backed-content-brief"] for case in cases))
-        self.assertTrue(any(case["installed_skills"] == ["creator-topic-opportunity-research"] for case in cases))
-        self.assertTrue(any(len(case["installed_skills"]) == 2 for case in cases))
         dimensions = set(payload["acceptance_dimensions"])
         self.assertIn("standalone_skill_runtime", dimensions)
         self.assertIn("handoff_continuity", dimensions)
