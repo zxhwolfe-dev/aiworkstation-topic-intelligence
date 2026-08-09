@@ -1,6 +1,6 @@
 {
   "schema": "ati.v0.2.1-skill-quality.v1",
-  "source": "manual-chatgpt-v0.2.0-smoke-plus-public-cost-boundary",
+  "source": "manual-chatgpt-v0.2.0-smoke-plus-v0.2.1-rc-forward-tests-plus-public-cost-boundary",
   "cases": [
     {
       "id": "brief-format-constraint-not-platform-filter",
@@ -43,6 +43,23 @@
         "start with a generic technology feed when the user explicitly asked for AI",
         "spend a second query only to remove generic non-AI technology candidates",
         "drop explicit user topic/domain scope"
+      ]
+    },
+    {
+      "id": "ai-domain-substring-noise-is-rejected",
+      "prompt": "今天有哪些 AI 题材值得继续研究？先看当前 Radar，再给我最值得看的三个。",
+      "installed_skills": ["creator-topic-opportunity-research"],
+      "fixture_notes": "The bounded q=AI response includes one unrelated title where the letters ai occur only inside another word, plus valid AI candidates.",
+      "expected_workflow": ["creator-topic-opportunity-research"],
+      "must_show": [
+        "AI domain retained in the first bounded candidate query",
+        "literal substring collision removed before selection",
+        "any refinement remains AI-specific"
+      ],
+      "must_not": [
+        "select an unrelated literal substring match as an AI topic",
+        "treat q=AI return membership as proof of semantic AI relevance",
+        "replace the noisy AI query with an unrestricted generic technology scan"
       ]
     },
     {

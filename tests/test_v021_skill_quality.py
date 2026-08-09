@@ -24,6 +24,7 @@ class V021SkillQualityTests(unittest.TestCase):
             {
                 "brief-format-constraint-not-platform-filter",
                 "ai-domain-preserved-from-first-query",
+                "ai-domain-substring-noise-is-rejected",
                 "creator-host-judgment-provenance",
                 "brief-public-host-reasoning-zero-server-llm",
                 "both-skills-no-second-selection-or-server-llm",
@@ -48,6 +49,16 @@ class V021SkillQualityTests(unittest.TestCase):
         must_not = "\n".join(case["must_not"])
         self.assertIn("generic technology feed", must_not)
         self.assertIn("drop explicit user topic/domain scope", must_not)
+
+    def test_ai_domain_rejects_literal_substring_noise(self) -> None:
+        case = self.cases["ai-domain-substring-noise-is-rejected"]
+        self.assertIn(
+            "literal substring collision removed before selection",
+            case["must_show"],
+        )
+        must_not = "\n".join(case["must_not"])
+        self.assertIn("proof of semantic AI relevance", must_not)
+        self.assertIn("unrestricted generic technology scan", must_not)
 
     def test_public_brief_uses_host_reasoning_without_server_llm(self) -> None:
         case = self.cases["brief-public-host-reasoning-zero-server-llm"]

@@ -102,6 +102,8 @@ If the user explicitly asks for `AI`, robotics, semiconductors, or another subje
 
 Do not start an explicit `AI` request with generic technology merely for convenience. Broaden only when the narrow query produces too few useful candidates or the user asks for broader exploration.
 
+Treat the requested domain as a semantic relevance constraint after retrieval. A short token such as `AI` can appear as a literal substring inside an unrelated word or brand name. Discard those collisions. If they leave too few useful candidates, refine with supported AI-specific terms/entities/keywords while preserving the AI constraint; do not replace the noisy result with an unrestricted generic-technology scan.
+
 Content-format constraints such as `短视频`, `2–3 分钟`, `中文`, audience, or tone are **not** Radar platform/source filters.
 
 ### Early-opportunity scan

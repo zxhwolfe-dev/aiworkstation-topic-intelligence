@@ -31,6 +31,19 @@ Examples:
 
 Only broaden the domain when the narrow live query produces too few useful candidates or the user asks for broader exploration. If broadening is necessary, say so briefly and retain the original domain as a relevance constraint.
 
+### Reject literal substring noise without dropping the domain
+
+A short query token such as `AI` may be matched literally inside an unrelated word or brand name. Treat the user-supplied domain as a **semantic relevance constraint**, not proof that every literal match belongs to that domain.
+
+After the first domain-preserving bounded query:
+
+1. verify that each candidate actually concerns the requested subject;
+2. discard literal substring collisions and other clearly unrelated matches;
+3. when noise leaves too few useful candidates, refine with supported domain terms, entities, or keywords while keeping the original domain constraint;
+4. do not replace a noisy `AI` query with an unrestricted generic-technology scan.
+
+For example, a title containing the letters `ai` only as part of an unrelated word must not become an AI finalist merely because `/feed?q=AI` returned it.
+
 ## 2. Public Skill cost boundary: no AI Workstation model spend
 
 The downloadable/public Topic Intelligence Skills are intended to spread widely without consuming the publisher's server-side LLM quota for anonymous users.

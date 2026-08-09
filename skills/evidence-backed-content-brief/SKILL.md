@@ -126,11 +126,12 @@ When the user asks this Skill to pick the best current topic and Creator Opportu
 
 1. run one bounded live `/feed` query;
 2. preserve any explicit subject/domain constraint from the user in that first query;
-3. use a recent `max_age_hours` and normally no more than 5 candidates;
-4. select at most one candidate using Radar-provided `opportunity_score`, `trend_stage`, freshness, evidence breadth, and user constraints;
-5. never invent another ranking score;
-6. do not query history for every candidate;
-7. if no candidate is useful or evidence is too weak, say so instead of forcing a choice.
+3. reject literal substring collisions or other candidates that do not semantically match that domain; refine with supported domain terms when necessary instead of broadening to generic technology;
+4. use a recent `max_age_hours` and normally no more than 5 candidates;
+5. select at most one candidate using Radar-provided `opportunity_score`, `trend_stage`, freshness, evidence breadth, and user constraints;
+6. never invent another ranking score;
+7. do not query history for every candidate;
+8. if no candidate is useful or evidence is too weak, say so instead of forcing a choice.
 
 Do not map `短视频`, `2–3 分钟`, `中文`, audience, tone, or production style into Radar `platform`/`source` filters.
 
