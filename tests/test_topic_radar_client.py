@@ -96,17 +96,49 @@ class TopicRadarClientTests(unittest.TestCase):
         }
 
         def opener(request, timeout):
-            calls.append(request)
+            calls.append((request, timeout))
             return FakeResponse(payload)
 
         client = TopicRadarClient(base_url="https://example.test", opener=opener)
         result = client.insight("topic-1", locale="zh")
 
-        request = calls[0]
+        request, timeout = calls[0]
         self.assertEqual(result["topic_id"], "topic-1")
         self.assertEqual(request.get_method(), "POST")
         self.assertTrue(request.full_url.endswith("/insight?locale=zh"))
         self.assertEqual(json.loads(request.data.decode("utf-8")), {"topic_id": "topic-1"})
+        self.assertEqual(timeout, 90.0)
+
+    def test_insight_timeout_is_independent_from_read_timeout(self) -> None:
+        calls = []
+        responses = iter(
+            [
+                sample_feed(),
+                {
+                    "topic_id": "topic-1",
+                    "verdict": "值得研究",
+                    "angles": [{}, {}, {}],
+                    "short_video_handoff": {},
+                },
+            ]
+        )
+
+        def opener(request, timeout):
+            calls.append(timeout)
+            return FakeResponse(next(responses))
+
+        client = TopicRadarClient(
+            base_url="https://example.test",
+            timeout=4,
+            insight_timeout=71,
+            opener=opener,
+        )
+        client.feed()
+        client.insight("topic-1")
+
+        self.assertEqual(calls, [4.0, 71.0])
+        with self.assertRaisesRegex(ValueError, "insight_timeout"):
+            TopicRadarClient(base_url="https://example.test", insight_timeout=0)
 
     def test_history_requires_expected_contract(self) -> None:
         def opener(request, timeout):
