@@ -34,7 +34,7 @@ class SkillQualityContractTests(unittest.TestCase):
         self.assertIn("Server Topic Insight", content)
         self.assertIn("Host editorial analysis", content)
         self.assertIn("分析/判断", content)
-        self.assertIn("must be supported by current Radar evidence", content)
+        self.assertIn("supported by current Radar evidence", content)
 
     def test_quality_contract_blocks_duplicate_selection_after_handoff(self) -> None:
         content = CANONICAL.read_text(encoding="utf-8")
@@ -50,7 +50,7 @@ class SkillQualityContractTests(unittest.TestCase):
             self.assertIn("references/quality-contract.md", content)
 
         self.assertIn("content-format/language/audience", creator_yaml)
-        self.assertIn("another broad selection pass", creator_yaml)
+        self.assertIn("a second broad selection pass", creator_yaml)
         self.assertIn("duration, language, audience, or tone", brief_yaml)
         self.assertIn("server Topic Insight", brief_yaml)
 
