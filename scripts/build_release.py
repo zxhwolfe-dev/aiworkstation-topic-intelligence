@@ -20,6 +20,7 @@ VERSION_RE = re.compile(
     r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$"
 )
 MANIFEST_SCHEMA = "ati.release.v1"
+LICENSE_ID = "Apache-2.0"
 ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
 IGNORED_PARTS = {"__pycache__", ".pytest_cache"}
 IGNORED_NAMES = {".DS_Store"}
@@ -43,6 +44,15 @@ def read_version(root: Path | None = None) -> str:
     if not VERSION_RE.fullmatch(version):
         raise ReleaseError(f"invalid semantic VERSION: {version!r}")
     return version
+
+
+def _license_file(repo: Path) -> Path:
+    license_path = repo / "LICENSE"
+    if license_path.is_symlink():
+        raise ReleaseError("repository LICENSE must not be a symlink")
+    if not license_path.is_file():
+        raise ReleaseError("repository LICENSE file is missing")
+    return license_path
 
 
 def _skill_files(skill_dir: Path) -> list[Path]:
@@ -76,12 +86,16 @@ def _zip_info(archive_path: str) -> ZipInfo:
     return info
 
 
-def _write_skill_archive(skill_dir: Path, destination: Path) -> None:
+def _write_skill_archive(skill_dir: Path, destination: Path, *, license_path: Path) -> None:
     with ZipFile(destination, "w", compression=ZIP_STORED) as archive:
         for source in _skill_files(skill_dir):
             relative = source.relative_to(skill_dir).as_posix()
             archive_path = f"{skill_dir.name}/{relative}"
             archive.writestr(_zip_info(archive_path), source.read_bytes())
+        archive.writestr(
+            _zip_info(f"{skill_dir.name}/LICENSE"),
+            license_path.read_bytes(),
+        )
 
 
 def sha256_file(path: Path) -> str:
@@ -95,6 +109,7 @@ def sha256_file(path: Path) -> str:
 def build_release(output_dir: Path, *, root: Path | None = None) -> dict[str, object]:
     repo = (root or repository_root()).resolve()
     version = read_version(repo)
+    license_path = _license_file(repo)
     output = output_dir.expanduser().resolve()
     output.mkdir(parents=True, exist_ok=True)
 
@@ -108,7 +123,7 @@ def build_release(output_dir: Path, *, root: Path | None = None) -> dict[str, ob
         filename = f"aiworkstation-topic-intelligence-{version}-{skill_name}.zip"
         expected_names.add(filename)
         destination = output / filename
-        _write_skill_archive(skill_dir, destination)
+        _write_skill_archive(skill_dir, destination, license_path=license_path)
         artifacts.append(
             {
                 "skill": skill_name,
@@ -122,6 +137,7 @@ def build_release(output_dir: Path, *, root: Path | None = None) -> dict[str, ob
         "schema": MANIFEST_SCHEMA,
         "name": "aiworkstation-topic-intelligence",
         "version": version,
+        "license": LICENSE_ID,
         "artifacts": artifacts,
     }
 
