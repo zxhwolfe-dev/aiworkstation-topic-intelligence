@@ -1,0 +1,93 @@
+{
+  "schema": "ati.v0.2.1-skill-quality.v1",
+  "source": "manual-chatgpt-v0.2.0-smoke-2026-08-09",
+  "cases": [
+    {
+      "id": "brief-format-constraint-not-platform-filter",
+      "prompt": "只用当前安装的 Skill，从当前 AI 热点里挑一个最适合做 2–3 分钟中文解释视频的题材，并直接给我研究型内容简报。",
+      "installed_skills": [
+        "evidence-backed-content-brief"
+      ],
+      "expected_workflow": [
+        "evidence-backed-content-brief:bounded-selection",
+        "evidence-backed-content-brief"
+      ],
+      "must_show": [
+        "bounded current-topic selection",
+        "content format kept as a selection constraint",
+        "one selected topic"
+      ],
+      "must_not": [
+        "map short video to Radar platform filter",
+        "map 2–3 minute duration to Radar platform filter",
+        "map Chinese-language audience to Radar platform or source filter",
+        "run insight across multiple candidates"
+      ]
+    },
+    {
+      "id": "creator-host-judgment-provenance",
+      "prompt": "今天有哪些 AI 题材值得中国普通科技用户继续研究？给我最值得看的三个，并说明为什么。",
+      "installed_skills": [
+        "creator-topic-opportunity-research"
+      ],
+      "expected_workflow": [
+        "creator-topic-opportunity-research"
+      ],
+      "must_show": [
+        "Radar facts",
+        "host editorial judgment visibly separated when claiming audience or China-market fit",
+        "unknowns when audience size or saturation is unmeasured"
+      ],
+      "must_not": [
+        "present wider audience as a Radar-measured fact",
+        "present China suitability as a measured field when it is host analysis",
+        "claim virality from opportunity_score"
+      ]
+    },
+    {
+      "id": "brief-insight-provenance-and-reuse",
+      "prompt": "把当前选中的 AI Topic 做成 2–3 分钟中文研究型内容简报，保留事实边界。",
+      "installed_skills": [
+        "evidence-backed-content-brief"
+      ],
+      "expected_workflow": [
+        "evidence-backed-content-brief"
+      ],
+      "fixture_notes": "Provide a fresh server-known topic and a complete successful Topic Insight response.",
+      "must_show": [
+        "Radar facts separated from server Topic Insight analysis",
+        "server Insight used as the primary creative plan",
+        "host adaptation clearly treated as editorial analysis",
+        "must_verify and avoid_claims preserved"
+      ],
+      "must_not": [
+        "present server insight as independently verified fact",
+        "invent a second incompatible creative plan solely for variety",
+        "add new factual specifics without Radar support or verification label"
+      ]
+    },
+    {
+      "id": "both-skills-no-second-selection-after-handoff",
+      "prompt": "从当前 AI 热点里挑一个最适合做 2–3 分钟中文解释视频的题材，然后直接做成研究就绪的内容简报。",
+      "installed_skills": [
+        "creator-topic-opportunity-research",
+        "evidence-backed-content-brief"
+      ],
+      "expected_workflow": [
+        "creator-topic-opportunity-research",
+        "ati.topic-opportunity-handoff.v1",
+        "evidence-backed-content-brief"
+      ],
+      "must_show": [
+        "exact selected topic identity preserved",
+        "history or insight only for the selected finalist when needed",
+        "research-ready brief"
+      ],
+      "must_not": [
+        "run another broad or bounded candidate selection after a valid handoff",
+        "rediscover the topic by title after valid handoff",
+        "call insight for non-finalists"
+      ]
+    }
+  ]
+}

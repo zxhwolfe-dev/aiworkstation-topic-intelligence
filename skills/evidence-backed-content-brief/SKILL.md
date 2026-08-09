@@ -9,6 +9,16 @@ Use this Skill when the user wants to turn a **current Radar topic** into a prac
 
 This Skill does not create a second topic-analysis backend. Reuse the existing Topic Radar `/insight` output whenever a server-known topic is available.
 
+## Host quality contract
+
+Before mapping user constraints to Radar filters, selecting a standalone topic, consuming an Opportunity handoff, or adapting server Topic Insight, read and follow:
+
+```text
+references/quality-contract.md
+```
+
+In particular, content format/duration/language/audience/tone are post-query content constraints rather than Radar platform/source filters unless the user names a real supported Radar dimension; a valid current-task handoff must not trigger another broad selection pass; and Radar facts, server Insight analysis, host editorial adaptation, and must-verify unknowns must remain distinguishable.
+
 ## Required live contract
 
 Use:

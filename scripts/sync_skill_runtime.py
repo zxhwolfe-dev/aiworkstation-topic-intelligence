@@ -26,6 +26,7 @@ def mappings(root: Path | None = None) -> list[tuple[Path, Path]]:
     repo = (root or repository_root()).resolve()
     canonical_helper = repo / "scripts" / "topic_radar_client.py"
     canonical_handoff = repo / "references" / "topic-opportunity-handoff.md"
+    canonical_quality = repo / "references" / "topic-intelligence-quality-contract.md"
     rows: list[tuple[Path, Path]] = []
     for skill in SKILLS:
         skill_root = repo / "skills" / skill
@@ -33,6 +34,7 @@ def mappings(root: Path | None = None) -> list[tuple[Path, Path]]:
             [
                 (canonical_helper, skill_root / "scripts" / "topic_radar_client.py"),
                 (canonical_handoff, skill_root / "references" / "handoff-contract.md"),
+                (canonical_quality, skill_root / "references" / "quality-contract.md"),
             ]
         )
     return rows
