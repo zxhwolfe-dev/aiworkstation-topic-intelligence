@@ -36,7 +36,7 @@ For the first public preview:
 python3 -m unittest discover -s tests -v
 ```
 
-Expected M2 suite size on the initial release branch: **35 tests**.
+Expected M2 suite size on the initial release branch: **36 tests**.
 
 Do not install dependencies to make the suite pass; the project intentionally uses the Python standard library for these tools/tests.
 
@@ -169,7 +169,7 @@ Return:
 
 1. HEAD SHA;
 2. version result;
-3. 35-test result;
+3. 36-test result;
 4. `doctor` result;
 5. deterministic-build result and artifact names/hashes;
 6. archive content and license validation;
