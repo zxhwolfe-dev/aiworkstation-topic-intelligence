@@ -43,8 +43,9 @@ class SkillPackageTests(unittest.TestCase):
         self.assertIn("must_verify", content)
         self.assertIn("avoid_claims", content)
         self.assertIn("Never call anonymous/public server `/insight`", content)
-        self.assertIn("native authenticated AI Workstation connection", content)
-        self.assertIn("Never embed or share a server credential", content)
+        self.assertIn("native AI Workstation connection", content)
+        self.assertIn("explicitly authenticated", content)
+        self.assertIn("Never embed a shared server key", content)
         self.assertNotIn("Use exactly one of these entry modes before calling `/insight`", content)
         self.assertNotIn("do not call `/insight` for every candidate", content)
 
@@ -53,7 +54,7 @@ class SkillPackageTests(unittest.TestCase):
         self.assertIn("live topic evidence is mandatory", content)
         self.assertIn("do not search sibling repositories", content)
         self.assertIn("old radar snapshots", content)
-        self.assertIn("network-restricted sandbox", content)
+        self.assertIn("when the live contract is unavailable", content)
         self.assertIn("if live feed evidence cannot be reached", content)
 
     def test_public_skills_do_not_embed_credentials(self) -> None:
