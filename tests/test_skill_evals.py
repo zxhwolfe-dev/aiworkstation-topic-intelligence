@@ -18,6 +18,11 @@ class SkillEvalTests(unittest.TestCase):
         payload = json.loads((cls.ROOT / "evals" / "cases.json").read_text(encoding="utf-8"))
         return payload, payload["cases"]
 
+    @classmethod
+    def _skill_frontmatter(cls, skill: str) -> str:
+        content = (cls.ROOT / "skills" / skill / "SKILL.md").read_text(encoding="utf-8")
+        return content.split("---", 2)[1].lower()
+
     def test_eval_matrix_has_broad_positive_negative_and_boundary_coverage(self) -> None:
         payload, cases = self._cases()
         self.assertEqual(payload["schema"], "ati.skill-evals.v1")
@@ -79,6 +84,20 @@ class SkillEvalTests(unittest.TestCase):
             self.assertEqual(case["expected_calls"], [], case["id"])
             self.assertEqual(case["optional_calls"], [], case["id"])
             self.assertTrue(case["must_not"], case["id"])
+
+    def test_frontmatter_excludes_direct_news_lookup_and_supplied_material_writing(self) -> None:
+        trend = self._skill_frontmatter("cross-market-trend-research")
+        brief = self._skill_frontmatter("evidence-backed-content-brief")
+
+        self.assertIn("creator/editorial topic discovery", trend)
+        self.assertIn("do not use for a direct factual lookup", trend)
+        self.assertIn("one named company or person", trend)
+        self.assertIn("writing from supplied material", trend)
+
+        self.assertIn("evaluate or select a current topic", brief)
+        self.assertIn("do not use when the user already supplied the complete material", brief)
+        self.assertIn("only wants rewriting, scripting", brief)
+        self.assertIn("without a live-topic decision", brief)
 
     def test_each_skill_has_openai_metadata_for_discovery(self) -> None:
         for skill in self.SKILLS:
