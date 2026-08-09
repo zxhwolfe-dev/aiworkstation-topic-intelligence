@@ -21,7 +21,7 @@ SKILLS = (
 LEGACY_SKILL = "cross-market-trend-research"
 
 
-def make_fake_repo(root: Path, *, version: str = "0.2.0") -> None:
+def make_fake_repo(root: Path, *, version: str = "0.2.1") -> None:
     (root / "VERSION").write_text(version + "\n", encoding="utf-8")
     for name in SKILLS:
         skill = root / "skills" / name
@@ -42,6 +42,10 @@ def make_fake_repo(root: Path, *, version: str = "0.2.0") -> None:
         )
         (skill / "references" / "handoff-contract.md").write_text(
             "Schema: `ati.topic-opportunity-handoff.v1`\n",
+            encoding="utf-8",
+        )
+        (skill / "references" / "quality-contract.md").write_text(
+            "Topic Intelligence quality contract\n",
             encoding="utf-8",
         )
 
@@ -131,12 +135,12 @@ class CodexInstallerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as target_dir:
             repo = Path(repo_dir)
             target = Path(target_dir) / "skills"
-            make_fake_repo(repo, version="0.2.0")
+            make_fake_repo(repo, version="0.2.1")
             install(target, root=repo)
 
             report = doctor(target, root=repo)
 
-            self.assertEqual(report["version"], "0.2.0")
+            self.assertEqual(report["version"], "0.2.1")
             self.assertTrue(report["python_supported"])
             self.assertTrue(report["legacy_clean"])
             self.assertTrue(report["ok"])
@@ -145,6 +149,7 @@ class CodexInstallerTests(unittest.TestCase):
             self.assertTrue(all(item["openai_metadata"] == "ok" for item in report["skills"]))
             self.assertTrue(all(item["runtime_helper"] == "ok" for item in report["skills"]))
             self.assertTrue(all(item["handoff_contract"] == "ok" for item in report["skills"]))
+            self.assertTrue(all(item["quality_contract"] == "ok" for item in report["skills"]))
 
     def test_doctor_fails_when_required_runtime_file_is_missing(self) -> None:
         with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as target_dir:
@@ -176,6 +181,21 @@ class CodexInstallerTests(unittest.TestCase):
             self.assertFalse(report["ok"])
             second = next(item for item in report["skills"] if item["name"] == SKILLS[1])
             self.assertEqual(second["handoff_contract"], "missing")
+
+    def test_doctor_fails_when_quality_contract_is_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as target_dir:
+            repo = Path(repo_dir)
+            target = Path(target_dir) / "skills"
+            make_fake_repo(repo)
+            install(target, root=repo)
+            contract = repo / "skills" / SKILLS[0] / "references" / "quality-contract.md"
+            contract.unlink()
+
+            report = doctor(target, root=repo)
+
+            self.assertFalse(report["ok"])
+            first = next(item for item in report["skills"] if item["name"] == SKILLS[0])
+            self.assertEqual(first["quality_contract"], "missing")
 
     def test_project_version_rejects_invalid_value(self) -> None:
         with tempfile.TemporaryDirectory() as repo_dir:
