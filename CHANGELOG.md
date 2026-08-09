@@ -10,21 +10,33 @@ The project follows Semantic Versioning for distributable Skill releases.
 
 - Added a shared per-Skill `references/quality-contract.md` derived from real ChatGPT v0.2.0 host smoke testing.
 - Content format, duration, language, audience, tone, and production constraints are explicitly kept separate from Radar `platform`/`source` filters unless the user names a real supported Radar dimension.
-- User-facing answers must keep Radar facts, server Topic Insight analysis, and host/editorial analysis visibly distinguishable when the distinction matters.
+- Explicit topic/domain constraints such as `AI` are preserved from the first bounded query instead of starting with a broader generic technology scan.
+- User-facing answers keep live Radar facts and host/editorial analysis visibly distinguishable when the distinction matters.
 - A valid current-task `ati.topic-opportunity-handoff.v1` must not be followed by another broad/bounded candidate-selection pass merely to choose the topic again.
-- Complete server Topic Insight output is the primary creative plan for Brief; hosts may adapt it for the user but should not generate a second incompatible plan solely for variety.
+- The public Brief workflow now uses the current host model (ChatGPT/Codex/agent host) to create the research-ready brief from live Radar facts instead of consuming AI Workstation server-side model quota.
+- The bundled public helper exposes only `feed`, `sources`, and `history`; anonymous/public `insight` support and its model timeout option are removed from distributable Skills.
+- Server-generated Topic Insight is reserved as an optional future Premium capability that may be used only through a native authenticated AI Workstation connection that enforces the user's membership/quota/credits.
+
+### Cost and credential safety
+
+- Normal public Skill usage must produce zero AI Workstation server-side LLM calls.
+- No shared AI Workstation API key or bearer token may be embedded in a Skill ZIP.
+- The Skill must not ask users to paste private AI Workstation credentials into chat as an authentication workaround.
+- Lack of a Premium connection is normal public mode, not a degraded error state; the host model completes the editorial analysis itself.
 
 ### Validation
 
-- Added four ChatGPT-derived Skill-quality evals covering false platform mapping, editorial provenance, Insight reuse, and duplicate selection after handoff.
+- Added ChatGPT-derived Skill-quality evals covering false platform mapping, explicit AI-domain preservation, editorial provenance, zero-server-LLM public Brief generation, duplicate-selection prevention, and Premium-auth requirements.
+- Added helper tests proving public operations are GET-only and the packaged CLI has no `insight` command.
 - Recorded real ChatGPT web smoke evidence for Creator-only, Brief-only, and both-Skills v0.2.0 installs.
-- ChatGPT standalone package upload, Skill discovery, bundled runtime execution, live Topic Radar access, selected-topic Insight access, and behavioral multi-Skill composition all passed.
+- ChatGPT standalone package upload, Skill discovery, bundled runtime execution, live Topic Radar access, selected-topic Insight access under v0.2.0, and behavioral multi-Skill composition all passed.
 - The ChatGPT UI did not expose the raw internal handoff payload, so exact internal handoff serialization is not overclaimed as directly observed.
 
 ### Distribution
 
-- `v0.2.0` remains the latest public immutable release until the 0.2.1 quality patch is fully tested and explicitly released.
-- No Hosted MCP transport is planned solely for ChatGPT connectivity because the current standalone Skills successfully reached the live Topic Radar service.
+- `v0.2.0` remains the latest public immutable release until the 0.2.1 quality/cost patch is fully tested and explicitly released.
+- No Hosted MCP transport is required for public Radar connectivity because standalone ChatGPT Skills already reach the live public read endpoints.
+- A future authenticated App/Plugin/OAuth transport may be introduced only for Premium account-bound capabilities such as server Topic Insight.
 
 ## [0.2.0] - 2026-08-09
 
