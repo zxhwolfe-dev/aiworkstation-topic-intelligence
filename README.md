@@ -1,62 +1,57 @@
 # AI Workstation Topic Intelligence
 
-**Evidence-aware trend research and content-planning Skills on top of AI Workstation Global Topic Radar.**
+**Find the current topics worth researching — then turn one into a research-ready content brief.**
 
 [简体中文](README.zh-CN.md)
 
-Current distributable version: **0.1.0 public preview**
+Latest public release: **v0.1.0 public preview**
 
-This repository does **not** collect, crawl, cluster, score, or persist trend data. Those responsibilities remain in the AI Workstation Global Topic Radar inside `akaiagents`. Topic Intelligence is the thin Skills/workflow layer that teaches supported AI hosts how to use that live data without turning model guesses or stale local files into current facts.
+Topic Intelligence sits on top of the existing AI Workstation Global Topic Radar. It does not build another crawler, score, database, or GPT backend. Its job is to help an AI host turn live Radar evidence into a useful creator/editorial decision without pretending stale files or model memory are current facts.
 
-## Product boundary
+## What can I use it for?
+
+### 1. What is worth researching today?
 
 ```text
-AI Workstation Global Topic Radar (akaiagents)
-  public sources -> aggregation -> clustering -> opportunity score
-  -> trend/history -> source health -> optional GPT topic insight
-                              |
-                              | public API
-                              v
-AI Workstation Topic Intelligence
-  Skills -> evidence checks -> cross-market interpretation
-  -> content opportunity reasoning -> content brief orchestration
+今天有哪些 AI 题材值得我继续研究或做内容？先检查 Radar 是否足够新，再给我最值得看的 3 个。
 ```
 
-Topic Intelligence intentionally does not duplicate crawlers, topic clustering, scoring, persistence, source health, or the existing GPT topic-insight backend.
+Expected Skill:
 
-## Skills
+```text
+creator-topic-opportunity-research
+```
 
-### `creator-topic-opportunity-research`
+You should get a compact shortlist with freshness, evidence, observed momentum, fact-vs-inference boundaries, and next verification steps — not a generic news feed.
 
-Compare and prioritize live Topic Radar candidates for creator/editorial publishing decisions, including rising/early opportunities, platform or region differences, freshness, and evidence-aware cross-market timing hypotheses.
+### 2. Is there a cross-market early opportunity?
 
-Typical request:
+```text
+海外现在有哪些科技话题正在升温、可能值得中文内容创作者提前研究？中文区是否已经做烂如果没有直接证据就明确说不知道。
+```
 
-> What overseas AI topics are rising now and may be worth early attention for Chinese creators?
+The Skill can compare live platform/region signals, but audience saturation and propagation timing remain hypotheses unless the current evidence directly supports them.
 
-### `evidence-backed-content-brief`
+### 3. Turn a live topic into a research-ready brief
 
-Turn a **current Topic Radar topic resolved from live evidence** into a practical content brief using the existing `/insight` contract for angles, hooks, audiences, research questions, verification requirements, and claims to avoid.
+```text
+从当前 AI 热点里挑一个适合 2–3 分钟解释型内容的题材，给我受众收益、最强角度、前三秒、叙事结构、必须核验的事实、不能乱说的内容和素材建议。
+```
 
-Typical request:
+Expected workflow:
 
-> Pick one current AI topic for a 2–3 minute explainer and give me a research-ready brief.
+```text
+creator-topic-opportunity-research
+  -> evidence-backed-content-brief
+```
 
-## Hard evidence boundary
+The output should be ready to hand off into research, scripting, or production rather than forcing you to rebuild the brief manually.
 
-When the live Topic Radar contract is unavailable, the Skills must stop the current-topic workflow instead of searching local files for replacement evidence.
+See [`docs/m3-user-scenarios.md`](docs/m3-user-scenarios.md) for the M3 product scenarios and adoption metrics.
 
-The following are **never valid substitutes for current live evidence**:
+## Choose your entry path
 
-- sibling-repository data such as old `../akaiagents` snapshots;
-- SQLite databases;
-- fixtures or test captures;
-- cached/exported JSON;
-- logs, generated reports, or other persisted historical artifacts.
-
-A network-restricted sandbox is an unavailable-live-data state, not permission to use stale local data or model memory.
-
-## Codex quick start
+### Codex / developers
 
 ```bash
 python3 scripts/install_codex_skills.py install
@@ -69,46 +64,88 @@ Default destination:
 $HOME/.agents/skills/
 ```
 
-The installer uses safe symlinks, is idempotent, and refuses to overwrite unrelated paths. Pre-0.1.0 checkouts used the legacy name `cross-market-trend-research`; `install` safely removes that old symlink only when it points to this checkout and replaces it with `creator-topic-opportunity-research`.
-
-Useful commands:
-
-```bash
-python3 scripts/install_codex_skills.py version
-python3 scripts/install_codex_skills.py status
-python3 scripts/install_codex_skills.py doctor
-python3 scripts/install_codex_skills.py uninstall
-```
-
-Inside interactive Codex, `/skills` can confirm discovery when available. Explicit invocation uses `$creator-topic-opportunity-research` or `$evidence-backed-content-brief`; implicit invocation is covered by the eval suite.
-
-## Build standalone Skill archives
-
-```bash
-python3 scripts/build_release.py --output dist
-```
-
-Output:
+Explicit invocation:
 
 ```text
-dist/
-  aiworkstation-topic-intelligence-0.1.0-creator-topic-opportunity-research.zip
-  aiworkstation-topic-intelligence-0.1.0-evidence-backed-content-brief.zip
-  release-manifest.json
-  SHA256SUMS
+$creator-topic-opportunity-research
+$evidence-backed-content-brief
 ```
 
-Each ZIP contains one self-contained Skill directory with `SKILL.md`, `agents/openai.yaml`, and the Apache-2.0 `LICENSE`. Builds are deterministic and symlinks inside a Skill package are rejected.
+The installer is idempotent, refuses unrelated paths, and safely migrates the internal pre-0.1.0 `cross-market-trend-research` symlink only when it belongs to this checkout.
 
-See [`docs/distribution.md`](docs/distribution.md) for Codex, ChatGPT upload, GitHub Release, upgrade, and future Plugin/Hosted-MCP policy.
+### ChatGPT
 
-## ChatGPT distribution
+OpenAI's current Help Center says Personal Skills are generally available for ChatGPT Business, Enterprise, Healthcare, and Edu users; workspace permissions can further restrict creation/upload/install. Personal Skills currently need to be added separately on desktop and web/mobile rather than automatically syncing across those surfaces.
 
-Current OpenAI product documentation supports reusable Skills in ChatGPT and allows eligible users/workspaces to create or upload Skills from a computer. OpenAI Skills follow the Agent Skills open standard.
+For eligible users, ChatGPT currently exposes Skill upload under **Plugins → Skills → Create → Upload from your computer**. See [`docs/chatgpt-install.md`](docs/chatgpt-install.md) for the current install path and product caveats.
 
-The GitHub Release ZIP is the portable, checksummed artifact for each Skill. Use the currently supported ChatGPT Skill-upload flow; if the product UI expects unpacked Skill files/folders rather than the ZIP container itself, unpack the archive first. Availability and workspace permissions depend on the current ChatGPT plan/surface configuration.
+Official reference: https://help.openai.com/en/articles/20001066
 
-Do not assume a Skill installed on one ChatGPT surface automatically replaces or syncs every other installation.
+Do not treat ChatGPT Skill upload as the only product entry: M3 is explicitly testing a direct AI Workstation user-facing entry for people who should not need to understand Agent Skills before receiving value. The proposed landing/CTA copy is in [`docs/website-entry-copy.zh-CN.md`](docs/website-entry-copy.zh-CN.md).
+
+## The two Skills
+
+### `creator-topic-opportunity-research`
+
+Compare and prioritize live Topic Radar candidates for creator/editorial publishing decisions, including:
+
+- rising/early opportunities;
+- source freshness and coverage;
+- platform or region differences;
+- multi-source evidence;
+- evidence-aware cross-market timing hypotheses.
+
+### `evidence-backed-content-brief`
+
+Turn a **current Topic Radar topic resolved from live evidence** into a practical content brief with:
+
+- selected angle;
+- audience payoff and format fit;
+- hook/opening/narrative beats;
+- research questions and search handoff;
+- `must_verify`;
+- `avoid_claims`;
+- `fact_basis` and unsupported assumptions;
+- visual/material needs.
+
+## Hard evidence boundary
+
+When the live Topic Radar contract is unavailable, the Skills must stop the current-topic workflow instead of searching local files for replacement evidence.
+
+The following are **never valid substitutes for current live evidence**:
+
+- sibling-repository data such as old `../akaiagents` snapshots;
+- SQLite databases;
+- fixtures or test captures;
+- cached/exported JSON;
+- logs, generated reports, or other persisted historical artifacts;
+- model memory presented as current Radar evidence.
+
+A network-restricted sandbox is an unavailable-live-data state, not permission to fabricate a current shortlist.
+
+Also keep these layers separate:
+
+1. **Source facts** — current Radar fields and evidence;
+2. **Analysis** — interpretation of those fields;
+3. **Recommendations** — what the user may want to research/publish;
+4. **Unknowns** — what the current evidence does not establish;
+5. **Risks** — stale/partial coverage, weak evidence, source gaps, unsupported claims.
+
+## Product boundary
+
+```text
+AI Workstation Global Topic Radar (akaiagents)
+  public sources -> aggregation -> clustering -> opportunity score
+  -> trend/history -> source health -> optional GPT topic insight
+                              |
+                              | public API
+                              v
+AI Workstation Topic Intelligence
+  Skills -> evidence checks -> cross-market interpretation
+  -> topic opportunity decision -> content brief orchestration
+```
+
+Topic Intelligence intentionally does not duplicate crawlers, clustering, `opportunity_score`, persistence, source health, or the existing GPT topic-insight backend.
 
 ## Existing Topic Radar API
 
@@ -119,19 +156,21 @@ Do not assume a Skill installed on one ChatGPT surface automatically replaces or
 
 Default public origin: `https://aiworkstation.cn`.
 
-### Topic identity
-
-- feed cards expose stable identity as `id`;
-- pass that exact value as `topic_id` to history or insight;
-- history and insight return the same identity as `topic_id`.
-
-### Refresh consistency
+Feed cards expose stable topic identity as `id`; pass that exact value as `topic_id` to history/insight.
 
 When `refreshing=true`, sequential feed/history/sources calls are not an atomic snapshot. Interpret between-request changes using timestamps and refresh state.
 
-## Optional local API helper
+## Release / local helper
 
-`scripts/topic_radar_client.py` uses only the Python standard library and contains no scoring, clustering, crawler, persistence, or new model logic.
+Build standalone Skill archives:
+
+```bash
+python3 scripts/build_release.py --output dist
+```
+
+The release contains two deterministic, Apache-2.0 licensed Skill ZIPs plus `release-manifest.json` and `SHA256SUMS`.
+
+Optional read-only API helper:
 
 ```bash
 python3 scripts/topic_radar_client.py feed --category technology --max-age-hours 24 --limit 12
@@ -140,7 +179,7 @@ python3 scripts/topic_radar_client.py history TOPIC_ID
 python3 scripts/topic_radar_client.py insight TOPIC_ID --locale zh
 ```
 
-Ordinary reads use a short timeout; the model-backed `/insight` call has a separate longer timeout budget.
+The helper uses only the Python standard library and does not implement new scoring, crawling, persistence, or model logic.
 
 ## Validation
 
@@ -148,49 +187,28 @@ Ordinary reads use a short timeout; the model-backed `/insight` call has a separ
 python3 -m unittest discover -s tests -v
 ```
 
-GitHub Actions runs the offline suite on Python 3.10 and 3.12.
+The existing trigger matrix contains 20 real-world positive/negative cases. M3 adds a separate user-scenario contract in [`evals/m3-scenarios.json`](evals/m3-scenarios.json) so product adoption is evaluated independently from Skill routing correctness.
 
-The eval matrix currently contains **20 real-world trigger cases** covering:
+## M3 product signals
 
-- current/rising/early topic research;
-- platform and cross-market comparisons;
-- content briefs and verification-heavy briefs;
-- stale/partial source handling;
-- generic writing, translation, supplied-material scripting, coding, company-news lookup, and platform-style questions that should **not** invoke Topic Intelligence.
+M3 is not optimizing for more infrastructure or more unit tests. The early product signals are:
 
-M1 acceptance established zero observed false positives and zero false negatives on the original 12-case suite; M2 expands that boundary set before the first public-preview tag.
+- `scan_to_followup_rate`;
+- `scan_to_brief_rate`;
+- `next_day_return_rate`;
+- `blocked_live_data_rate`;
+- `no_useful_candidate_rate`.
 
-## Codex acceptance gates
+These are adoption metrics, not a replacement for Radar `opportunity_score`.
 
-### Gate A — discovery, trigger, evidence behavior
+## More docs
 
-A safe network-restricted/read-only Codex sandbox is suitable for testing Skill selection, negative cases, safe degradation, and rejection of local/sibling snapshot fallback.
-
-### Gate B — live Topic Radar E2E
-
-Live E2E must use an execution path explicitly allowed to reach Topic Radar. Do not broaden filesystem permissions to a dangerous mode merely to regain network access.
-
-See [`docs/codex-m1-acceptance.md`](docs/codex-m1-acceptance.md).
-
-## Release process
-
-- Version: [`VERSION`](VERSION)
-- Changes: [`CHANGELOG.md`](CHANGELOG.md)
-- License: [`LICENSE`](LICENSE) — Apache-2.0
+- ChatGPT install/current availability: [`docs/chatgpt-install.md`](docs/chatgpt-install.md)
+- M3 user scenarios: [`docs/m3-user-scenarios.md`](docs/m3-user-scenarios.md)
+- Proposed AI Workstation website entry copy: [`docs/website-entry-copy.zh-CN.md`](docs/website-entry-copy.zh-CN.md)
 - Distribution: [`docs/distribution.md`](docs/distribution.md)
-- Release gate: [`docs/release-checklist.md`](docs/release-checklist.md)
-
-A Git tag `vX.Y.Z` that matches `VERSION` triggers the release workflow. It runs tests, builds deterministic Skill ZIPs, and publishes the archives plus manifest/checksums to GitHub Releases.
-
-No tag is created automatically by normal branch/PR work.
-
-## Plugin and Hosted MCP direction
-
-OpenAI currently positions Plugins as a higher-level container that can package Skills and optionally Apps/app templates.
-
-M2 deliberately does **not** invent an unofficial Plugin manifest. Plugin packaging should be added only when the relevant official builder/schema/submission path is publicly documented and can be validated.
-
-Hosted MCP is also deferred. If later needed for reliable host networking, it must remain a thin transport/auth/tool layer over the existing Topic Radar rather than becoming a second backend.
+- Release checklist: [`docs/release-checklist.md`](docs/release-checklist.md)
+- Architecture: [`docs/architecture.md`](docs/architecture.md)
 
 ## Environment
 
@@ -203,4 +221,5 @@ Hosted MCP is also deferred. If later needed for reliable host networking, it mu
 
 - **M0 complete:** Skill-first foundation and production API contract.
 - **M1 complete:** Codex install/discovery, trigger evals, evidence-boundary hardening, real insight E2E.
-- **M2 in progress:** versioned public-preview distribution, deterministic artifacts, release automation, diagnostics, and expanded eval coverage.
+- **M2 complete:** v0.1.0 public preview, deterministic artifacts, release automation, diagnostics, final Skill names, and expanded trigger boundaries.
+- **M3 in progress:** user-facing entry, installation clarity, three real product scenarios, and adoption/return validation before deciding on v0.2.0 engineering.
