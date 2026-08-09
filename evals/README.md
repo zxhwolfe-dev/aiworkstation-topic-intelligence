@@ -13,9 +13,9 @@ The goal is not to grade prose style. It checks whether the host:
 
 ## Current matrix
 
-M2 expands the matrix to **20 cases**:
+M2 contains **20 cases**:
 
-- 6 `cross-market-trend-research` positives;
+- 6 `creator-topic-opportunity-research` positives;
 - 5 `evidence-backed-content-brief` positives;
 - 9 negative/boundary cases that should invoke neither Topic Intelligence Skill.
 
@@ -62,7 +62,7 @@ For `expected_skill: null`, a pass means neither Topic Intelligence Skill is inv
 Before implicit evals, verify explicit invocation works:
 
 ```text
-$cross-market-trend-research 过去24小时有哪些值得中国科技博主提前关注的海外AI选题？
+$creator-topic-opportunity-research 过去24小时有哪些值得中国科技博主提前关注的海外AI选题？
 ```
 
 and:
@@ -89,4 +89,4 @@ For a trigger-quality release:
 - no case should use local/sibling snapshots as current evidence;
 - stale/partial/source limitations must remain visible when material.
 
-If a positive case misses the Skill or a negative case triggers it, adjust the Skill frontmatter `description` from observed evidence before adding backend complexity.
+If a positive case misses the Skill or a negative case triggers it, adjust the Skill frontmatter `name`/`description` from observed evidence before adding backend complexity.
