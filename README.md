@@ -6,6 +6,8 @@
 
 Latest public release: **v0.1.0 public preview**
 
+Development line: **v0.2.0 unreleased** — standalone Skill runtime, formal Opportunity → Brief handoff, single-Skill fallback, and task-quality acceptance. No `v0.2.0` tag/release exists until fresh-session validation passes.
+
 Topic Intelligence sits on top of the existing AI Workstation Global Topic Radar. It does not build another crawler, score, database, or GPT backend. Its job is to help an AI host turn live Radar evidence into a useful creator/editorial decision without pretending stale files or model memory are current facts.
 
 ## What can I use it for?
@@ -32,22 +34,68 @@ You should get a compact shortlist with freshness, evidence, observed momentum, 
 
 The Skill can compare live platform/region signals, but audience saturation and propagation timing remain hypotheses unless the current evidence directly supports them.
 
-### 3. Turn a live topic into a research-ready brief
+### 3. Pick a live topic and turn it into a brief
 
 ```text
 从当前 AI 热点里挑一个适合 2–3 分钟解释型内容的题材，给我受众收益、最强角度、前三秒、叙事结构、必须核验的事实、不能乱说的内容和素材建议。
 ```
 
-Expected workflow:
+Preferred workflow when both Skills are installed:
 
 ```text
 creator-topic-opportunity-research
+  -> ati.topic-opportunity-handoff.v1
   -> evidence-backed-content-brief
 ```
 
-The output should be ready to hand off into research, scripting, or production rather than forcing you to rebuild the brief manually.
+The first Skill selects one current topic and hands the exact live feed `id`, freshness context, observed signals, unknowns, risks, and user constraints to the Brief Skill. A valid current-task handoff avoids rediscovering the same topic from its title.
 
-See [`docs/m3-user-scenarios.md`](docs/m3-user-scenarios.md) for the M3 product scenarios and adoption metrics.
+If only `evidence-backed-content-brief` is installed, it remains useful: it can resolve a supplied topic directly or run one bounded live-feed selection pass (normally <=5 candidates), select at most one using the existing Radar score/stage/freshness/evidence, and call insight only for that selected topic. It never invents a second score or forces a weak candidate.
+
+## The two Skills
+
+### `creator-topic-opportunity-research`
+
+Compare and prioritize live Topic Radar candidates for creator/editorial publishing decisions, including:
+
+- rising/early opportunities;
+- source freshness and coverage;
+- platform or region differences;
+- multi-source evidence;
+- evidence-aware cross-market timing hypotheses;
+- one structured handoff when a selected candidate continues into the Brief Skill.
+
+### `evidence-backed-content-brief`
+
+Turn a **current Topic Radar topic resolved from live evidence** into a practical content brief with:
+
+- selected angle;
+- audience payoff and format fit;
+- hook/opening/narrative beats;
+- research questions and search handoff;
+- `must_verify`;
+- `avoid_claims`;
+- `fact_basis` and unsupported assumptions;
+- visual/material needs.
+
+It accepts a valid current-task `ati.topic-opportunity-handoff.v1`, a user-supplied current topic resolved from live Radar, or its bounded standalone selection fallback when the Opportunity Skill is unavailable.
+
+## Standalone runtime — v0.2 development line
+
+Each Skill directory is now designed to be a complete portable unit:
+
+```text
+skill-name/
+  SKILL.md
+  agents/openai.yaml
+  scripts/topic_radar_client.py
+  references/handoff-contract.md
+  LICENSE   # included in release ZIP
+```
+
+That means a standalone Skill ZIP no longer depends on repository-root `scripts/topic_radar_client.py` or a sibling `../akaiagents` checkout.
+
+The two bundled helper copies are tested byte-for-byte against the root development helper. Release building fails if the helper or handoff contract is missing.
 
 ## Choose your entry path
 
@@ -71,42 +119,23 @@ $creator-topic-opportunity-research
 $evidence-backed-content-brief
 ```
 
-The installer is idempotent, refuses unrelated paths, and safely migrates the internal pre-0.1.0 `cross-market-trend-research` symlink only when it belongs to this checkout.
+`doctor` now validates the Skill definition, OpenAI metadata, bundled runtime helper, and handoff contract.
+
+### Standalone ZIP
+
+Build deterministic archives:
+
+```bash
+python3 scripts/build_release.py --output dist
+```
+
+Each ZIP contains one Skill root plus its own runtime/helper/reference files and Apache-2.0 license. See [`docs/distribution.md`](docs/distribution.md).
 
 ### ChatGPT
 
-OpenAI's current Help Center says Personal Skills are generally available for ChatGPT Business, Enterprise, Healthcare, and Edu users; workspace permissions can further restrict creation/upload/install. Personal Skills currently need to be added separately on desktop and web/mobile rather than automatically syncing across those surfaces.
+For eligible ChatGPT workspaces, use the currently supported Skill-upload flow documented by OpenAI. Personal Skill availability and workspace permissions can vary, and installed Skills do not necessarily sync automatically across every surface.
 
-For eligible users, ChatGPT currently exposes Skill upload under **Plugins → Skills → Create → Upload from your computer**. See [`docs/chatgpt-install.md`](docs/chatgpt-install.md) for the current install path and product caveats.
-
-Official reference: https://help.openai.com/en/articles/20001066
-
-Do not treat ChatGPT Skill upload as the only product entry: M3 is explicitly testing a direct AI Workstation user-facing entry for people who should not need to understand Agent Skills before receiving value. The proposed landing/CTA copy is in [`docs/website-entry-copy.zh-CN.md`](docs/website-entry-copy.zh-CN.md).
-
-## The two Skills
-
-### `creator-topic-opportunity-research`
-
-Compare and prioritize live Topic Radar candidates for creator/editorial publishing decisions, including:
-
-- rising/early opportunities;
-- source freshness and coverage;
-- platform or region differences;
-- multi-source evidence;
-- evidence-aware cross-market timing hypotheses.
-
-### `evidence-backed-content-brief`
-
-Turn a **current Topic Radar topic resolved from live evidence** into a practical content brief with:
-
-- selected angle;
-- audience payoff and format fit;
-- hook/opening/narrative beats;
-- research questions and search handoff;
-- `must_verify`;
-- `avoid_claims`;
-- `fact_basis` and unsupported assumptions;
-- visual/material needs.
+See [`docs/chatgpt-install.md`](docs/chatgpt-install.md). ChatGPT UI upload is a separate manual acceptance surface; Codex validation cannot prove that UI behavior.
 
 ## Hard evidence boundary
 
@@ -119,6 +148,7 @@ The following are **never valid substitutes for current live evidence**:
 - fixtures or test captures;
 - cached/exported JSON;
 - logs, generated reports, or other persisted historical artifacts;
+- an old saved Topic Opportunity handoff;
 - model memory presented as current Radar evidence.
 
 A network-restricted sandbox is an unavailable-live-data state, not permission to fabricate a current shortlist.
@@ -129,7 +159,8 @@ Also keep these layers separate:
 2. **Analysis** — interpretation of those fields;
 3. **Recommendations** — what the user may want to research/publish;
 4. **Unknowns** — what the current evidence does not establish;
-5. **Risks** — stale/partial coverage, weak evidence, source gaps, unsupported claims.
+5. **Risks** — stale/partial coverage, weak evidence, source gaps, unsupported claims;
+6. **Topic Insight** — model-generated analysis over a known topic, not an independent fact source.
 
 ## Product boundary
 
@@ -142,7 +173,8 @@ AI Workstation Global Topic Radar (akaiagents)
                               v
 AI Workstation Topic Intelligence
   Skills -> evidence checks -> cross-market interpretation
-  -> topic opportunity decision -> content brief orchestration
+  -> topic opportunity decision -> current-task handoff
+  -> content brief orchestration
 ```
 
 Topic Intelligence intentionally does not duplicate crawlers, clustering, `opportunity_score`, persistence, source health, or the existing GPT topic-insight backend.
@@ -160,55 +192,39 @@ Feed cards expose stable topic identity as `id`; pass that exact value as `topic
 
 When `refreshing=true`, sequential feed/history/sources calls are not an atomic snapshot. Interpret between-request changes using timestamps and refresh state.
 
-## Release / local helper
-
-Build standalone Skill archives:
-
-```bash
-python3 scripts/build_release.py --output dist
-```
-
-The release contains two deterministic, Apache-2.0 licensed Skill ZIPs plus `release-manifest.json` and `SHA256SUMS`.
-
-Optional read-only API helper:
-
-```bash
-python3 scripts/topic_radar_client.py feed --category technology --max-age-hours 24 --limit 12
-python3 scripts/topic_radar_client.py sources
-python3 scripts/topic_radar_client.py history TOPIC_ID
-python3 scripts/topic_radar_client.py insight TOPIC_ID --locale zh
-```
-
-The helper uses only the Python standard library and does not implement new scoring, crawling, persistence, or model logic.
-
 ## Validation
+
+Offline suite:
 
 ```bash
 python3 -m unittest discover -s tests -v
 ```
 
-The existing trigger matrix contains 20 real-world positive/negative cases. M3 adds a separate user-scenario contract in [`evals/m3-scenarios.json`](evals/m3-scenarios.json) so product adoption is evaluated independently from Skill routing correctness.
+The suite now validates:
 
-## M3 product signals
+- previous trigger/evidence/release guarantees;
+- Skill-local helper parity;
+- deterministic standalone archives;
+- extracted ZIP helper execution from outside the repository against a local fake Radar service;
+- handoff contract consistency;
+- bounded Brief fallback rules;
+- a 24-case M3.1 task-quality matrix.
 
-M3 is not optimizing for more infrastructure or more unit tests. The early product signals are:
+Quality scenarios:
 
-- `scan_to_followup_rate`;
-- `scan_to_brief_rate`;
-- `next_day_return_rate`;
-- `blocked_live_data_rate`;
-- `no_useful_candidate_rate`.
+- [`evals/m3-skill-quality.json`](evals/m3-skill-quality.json)
+- [`docs/m3-skill-quality-acceptance.md`](docs/m3-skill-quality-acceptance.md)
 
-These are adoption metrics, not a replacement for Radar `opportunity_score`.
+Fresh Codex/live-network acceptance is still required before a v0.2.0 release decision.
 
 ## More docs
 
-- ChatGPT install/current availability: [`docs/chatgpt-install.md`](docs/chatgpt-install.md)
-- M3 user scenarios: [`docs/m3-user-scenarios.md`](docs/m3-user-scenarios.md)
-- Proposed AI Workstation website entry copy: [`docs/website-entry-copy.zh-CN.md`](docs/website-entry-copy.zh-CN.md)
+- M3.1 Skill quality acceptance: [`docs/m3-skill-quality-acceptance.md`](docs/m3-skill-quality-acceptance.md)
 - Distribution: [`docs/distribution.md`](docs/distribution.md)
 - Release checklist: [`docs/release-checklist.md`](docs/release-checklist.md)
 - Architecture: [`docs/architecture.md`](docs/architecture.md)
+- ChatGPT install/current availability: [`docs/chatgpt-install.md`](docs/chatgpt-install.md)
+- M3 user scenarios: [`docs/m3-user-scenarios.md`](docs/m3-user-scenarios.md)
 
 ## Environment
 
@@ -222,4 +238,5 @@ These are adoption metrics, not a replacement for Radar `opportunity_score`.
 - **M0 complete:** Skill-first foundation and production API contract.
 - **M1 complete:** Codex install/discovery, trigger evals, evidence-boundary hardening, real insight E2E.
 - **M2 complete:** v0.1.0 public preview, deterministic artifacts, release automation, diagnostics, final Skill names, and expanded trigger boundaries.
-- **M3 in progress:** user-facing entry, installation clarity, three real product scenarios, and adoption/return validation before deciding on v0.2.0 engineering.
+- **M3 adoption baseline complete:** user-facing entry docs and three product scenarios.
+- **M3.1 in progress:** self-contained standalone Skills, formal Opportunity → Brief handoff, brief-only fallback, package E2E, and task-quality/fresh-session acceptance for the unreleased 0.2 line.
