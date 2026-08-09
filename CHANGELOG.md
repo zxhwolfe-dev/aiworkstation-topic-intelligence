@@ -4,6 +4,29 @@ All notable public changes to AI Workstation Topic Intelligence are recorded her
 
 The project follows Semantic Versioning for distributable Skill releases.
 
+## [0.2.0] - Unreleased
+
+### Added
+
+- Self-contained runtime helper inside each distributable Skill so standalone ZIP/ChatGPT/Codex installs do not depend on the repository root.
+- `ati.topic-opportunity-handoff.v1` contract for passing one selected live Topic Radar candidate from `creator-topic-opportunity-research` into `evidence-backed-content-brief` without re-identifying the topic from scratch.
+- Standalone fallback behavior for `evidence-backed-content-brief` when the opportunity-research Skill is not installed: one bounded feed selection pass, then insight only for the selected topic.
+- M3.1 task-quality eval matrix covering stale/partial/refreshing data, source gaps, no-candidate states, invalid topics, degraded/unavailable insight, single-Skill installs, composed workflows, and Chinese/English tasks.
+- Offline E2E validation that extracts each release ZIP and executes its bundled Topic Radar helper without access to repository-root runtime files.
+
+### Changed
+
+- Both Skills now resolve the local helper relative to their own Skill directory rather than assuming repository-root `scripts/topic_radar_client.py` exists.
+- Codex `doctor` validates the files required for a self-contained Skill runtime, not only `SKILL.md` and `agents/openai.yaml`.
+- Distribution and release acceptance now require the bundled runtime helper and handoff reference in each archive.
+
+### Safety and workflow rules
+
+- A handoff is current-task evidence context, not persisted evidence that may be reused as current on a later task.
+- The receiving Brief Skill refreshes live evidence when a handoff is stale, materially partial, missing required freshness fields, or not from the current task.
+- Standalone brief selection never invents a second score and does not recreate full cross-market opportunity research.
+- The public v0.1.0 tag/release remains immutable; v0.2.0 is not published until real fresh-session Skill acceptance passes.
+
 ## [0.1.0] - 2026-08-09
 
 ### Added
