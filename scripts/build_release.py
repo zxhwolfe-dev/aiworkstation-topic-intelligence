@@ -21,6 +21,7 @@ REQUIRED_SKILL_FILES = (
     "agents/openai.yaml",
     "scripts/topic_radar_client.py",
     "references/handoff-contract.md",
+    "references/quality-contract.md",
 )
 CANONICAL_PORTABLE_FILES = {
     "scripts/topic_radar_client.py": "scripts/topic_radar_client.py",
