@@ -8,7 +8,7 @@ from pathlib import Path
 class SkillEvalTests(unittest.TestCase):
     ROOT = Path(__file__).resolve().parents[1]
     SKILLS = {
-        "cross-market-trend-research",
+        "creator-topic-opportunity-research",
         "evidence-backed-content-brief",
     }
     CALLS = {"feed", "sources", "history", "insight"}
@@ -18,21 +18,38 @@ class SkillEvalTests(unittest.TestCase):
         payload = json.loads((cls.ROOT / "evals" / "cases.json").read_text(encoding="utf-8"))
         return payload, payload["cases"]
 
-    def test_eval_matrix_has_positive_and_negative_trigger_cases(self) -> None:
+    @classmethod
+    def _skill_frontmatter(cls, skill: str) -> str:
+        content = (cls.ROOT / "skills" / skill / "SKILL.md").read_text(encoding="utf-8")
+        return content.split("---", 2)[1].lower()
+
+    def test_eval_matrix_has_broad_positive_negative_and_boundary_coverage(self) -> None:
         payload, cases = self._cases()
         self.assertEqual(payload["schema"], "ati.skill-evals.v1")
-        self.assertGreaterEqual(len(cases), 10)
+        self.assertGreaterEqual(len(cases), 20)
         self.assertEqual(len({case["id"] for case in cases}), len(cases))
 
         positive = [case for case in cases if case["expected_skill"]]
         negative = [case for case in cases if case["expected_skill"] is None]
-        self.assertGreaterEqual(len(negative), 4)
+        self.assertGreaterEqual(len(negative), 8)
         self.assertEqual({case["expected_skill"] for case in positive}, self.SKILLS)
         for skill in self.SKILLS:
             self.assertGreaterEqual(
                 sum(case["expected_skill"] == skill for case in positive),
-                3,
+                5,
             )
+
+        required_boundary_ids = {
+            "trend-zh-less-crowded",
+            "trend-en-freshness-first",
+            "brief-zh-xiaohongshu",
+            "brief-en-verification-heavy",
+            "negative-platform-style-comparison",
+            "negative-provided-material-script",
+            "negative-current-company-news",
+            "negative-translation",
+        }
+        self.assertLessEqual(required_boundary_ids, {case["id"] for case in cases})
 
     def test_eval_calls_use_only_existing_topic_radar_contract(self) -> None:
         _, cases = self._cases()
@@ -40,7 +57,7 @@ class SkillEvalTests(unittest.TestCase):
             expected = set(case["expected_calls"])
             optional = set(case["optional_calls"])
             self.assertLessEqual(expected | optional, self.CALLS, case["id"])
-            if case["expected_skill"] == "cross-market-trend-research":
+            if case["expected_skill"] == "creator-topic-opportunity-research":
                 self.assertIn("feed", expected, case["id"])
                 self.assertNotIn("insight", expected, case["id"])
             if case["expected_skill"] == "evidence-backed-content-brief":
@@ -59,6 +76,38 @@ class SkillEvalTests(unittest.TestCase):
                 any(token in combined for token in ("local", "sibling", "snapshot", "cached")),
                 case["id"],
             )
+
+    def test_negative_evals_do_not_request_topic_radar_calls(self) -> None:
+        _, cases = self._cases()
+        negative = [case for case in cases if case["expected_skill"] is None]
+        for case in negative:
+            self.assertEqual(case["expected_calls"], [], case["id"])
+            self.assertEqual(case["optional_calls"], [], case["id"])
+            self.assertTrue(case["must_not"], case["id"])
+
+    def test_frontmatter_uses_narrow_creator_editorial_decision_intent(self) -> None:
+        trend = self._skill_frontmatter("creator-topic-opportunity-research")
+        brief = self._skill_frontmatter("evidence-backed-content-brief")
+        trend_metadata = (
+            self.ROOT
+            / "skills"
+            / "creator-topic-opportunity-research"
+            / "agents"
+            / "openai.yaml"
+        ).read_text(encoding="utf-8").lower()
+
+        self.assertIn("compare and prioritize live topic candidates", trend)
+        self.assertIn("creator or editorial publishing decisions", trend)
+        self.assertIn("choosing what to research, cover, or publish", trend)
+        self.assertNotIn("what is trending now", trend)
+        self.assertNotIn("direct factual lookup", trend)
+        self.assertIn("topic opportunities for creators and editors", trend_metadata)
+        self.assertNotIn("find current and rising topics", trend_metadata)
+
+        self.assertIn("evaluate or select a current topic", brief)
+        self.assertIn("do not use when the user already supplied the complete material", brief)
+        self.assertIn("only wants rewriting, scripting", brief)
+        self.assertIn("without a live-topic decision", brief)
 
     def test_each_skill_has_openai_metadata_for_discovery(self) -> None:
         for skill in self.SKILLS:

@@ -1,0 +1,38 @@
+name: Release Skills
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify tag matches VERSION
+        shell: bash
+        run: |
+          VERSION="$(cat VERSION)"
+          test "${GITHUB_REF_NAME#v}" = "$VERSION"
+
+      - name: Run offline tests
+        run: python3 -m unittest discover -s tests -v
+
+      - name: Build deterministic Skill archives
+        run: python3 scripts/build_release.py --output dist
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "AI Workstation Topic Intelligence $GITHUB_REF_NAME" \
+            --generate-notes

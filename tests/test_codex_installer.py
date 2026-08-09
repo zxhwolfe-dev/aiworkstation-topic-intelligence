@@ -4,21 +4,34 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.install_codex_skills import InstallError, inspect, install, uninstall
-
-
-SKILLS = (
-    "cross-market-trend-research",
-    "evidence-backed-content-brief",
+from scripts.install_codex_skills import (
+    InstallError,
+    doctor,
+    inspect,
+    install,
+    project_version,
+    uninstall,
 )
 
 
-def make_fake_repo(root: Path) -> None:
+SKILLS = (
+    "creator-topic-opportunity-research",
+    "evidence-backed-content-brief",
+)
+LEGACY_SKILL = "cross-market-trend-research"
+
+
+def make_fake_repo(root: Path, *, version: str = "0.1.0") -> None:
+    (root / "VERSION").write_text(version + "\n", encoding="utf-8")
     for name in SKILLS:
         skill = root / "skills" / name
-        skill.mkdir(parents=True)
+        (skill / "agents").mkdir(parents=True)
         (skill / "SKILL.md").write_text(
             f"---\nname: {name}\ndescription: test\n---\n",
+            encoding="utf-8",
+        )
+        (skill / "agents" / "openai.yaml").write_text(
+            "interface:\n  display_name: Test\n",
             encoding="utf-8",
         )
 
@@ -38,6 +51,27 @@ class CodexInstallerTests(unittest.TestCase):
             for name in SKILLS:
                 self.assertTrue((target / name).is_symlink())
                 self.assertEqual((target / name).resolve(), (repo / "skills" / name).resolve())
+
+    def test_install_migrates_matching_broken_legacy_symlink(self) -> None:
+        with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as target_dir:
+            repo = Path(repo_dir)
+            target = Path(target_dir) / "skills"
+            make_fake_repo(repo)
+            target.mkdir(parents=True)
+
+            legacy_source = repo / "skills" / LEGACY_SKILL
+            legacy_link = target / LEGACY_SKILL
+            legacy_link.symlink_to(legacy_source, target_is_directory=True)
+            self.assertTrue(legacy_link.is_symlink())
+            self.assertFalse(legacy_source.exists())
+
+            rows = install(target, root=repo)
+            report = doctor(target, root=repo)
+
+            self.assertFalse(legacy_link.is_symlink())
+            self.assertEqual([row["state"] for row in rows], ["installed", "installed"])
+            self.assertTrue(report["legacy_clean"])
+            self.assertTrue(report["ok"])
 
     def test_install_refuses_conflict_before_creating_other_links(self) -> None:
         with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as target_dir:
@@ -82,6 +116,44 @@ class CodexInstallerTests(unittest.TestCase):
 
             self.assertEqual([row["state"] for row in rows], ["missing", "missing"])
             self.assertFalse(target.exists())
+
+    def test_doctor_reports_version_python_metadata_and_install_health(self) -> None:
+        with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as target_dir:
+            repo = Path(repo_dir)
+            target = Path(target_dir) / "skills"
+            make_fake_repo(repo, version="0.1.0")
+            install(target, root=repo)
+
+            report = doctor(target, root=repo)
+
+            self.assertEqual(report["version"], "0.1.0")
+            self.assertTrue(report["python_supported"])
+            self.assertTrue(report["legacy_clean"])
+            self.assertTrue(report["ok"])
+            self.assertEqual(len(report["skills"]), 2)
+            self.assertTrue(all(item["skill_md"] == "ok" for item in report["skills"]))
+            self.assertTrue(all(item["openai_metadata"] == "ok" for item in report["skills"]))
+
+    def test_doctor_fails_when_metadata_or_install_is_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as target_dir:
+            repo = Path(repo_dir)
+            target = Path(target_dir) / "skills"
+            make_fake_repo(repo)
+            (repo / "skills" / SKILLS[0] / "agents" / "openai.yaml").unlink()
+
+            report = doctor(target, root=repo)
+
+            self.assertFalse(report["ok"])
+            first = next(item for item in report["skills"] if item["name"] == SKILLS[0])
+            self.assertEqual(first["state"], "missing")
+            self.assertEqual(first["openai_metadata"], "missing")
+
+    def test_project_version_rejects_invalid_value(self) -> None:
+        with tempfile.TemporaryDirectory() as repo_dir:
+            repo = Path(repo_dir)
+            make_fake_repo(repo, version="banana")
+            with self.assertRaisesRegex(InstallError, "invalid VERSION"):
+                project_version(repo)
 
 
 if __name__ == "__main__":

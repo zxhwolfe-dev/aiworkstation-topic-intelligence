@@ -1,6 +1,6 @@
 ---
 name: evidence-backed-content-brief
-description: Turn a current AI Workstation Global Topic Radar topic into an evidence-aware content brief using the existing feed, history, and topic-insight contracts. Use when the user wants a short-video or content angle, hook, opening, audience, platform fit, research checklist, or a ready-to-research brief for a live topic.
+description: Turn a live AI Workstation Global Topic Radar topic into an evidence-aware content strategy and research-ready brief using the existing feed, history, and topic-insight contracts. Use when the user wants to evaluate or select a current topic and plan its angle, audience, format, hook, verification, or research handoff. Do not use when the user already supplied the complete material and only wants rewriting, scripting, summarization, translation, or generic title generation without a live-topic decision.
 ---
 
 # Evidence-Backed Content Brief

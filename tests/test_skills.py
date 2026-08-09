@@ -10,9 +10,9 @@ class SkillPackageTests(unittest.TestCase):
     def _read(self, slug: str) -> str:
         return (self.ROOT / "skills" / slug / "SKILL.md").read_text(encoding="utf-8")
 
-    def test_cross_market_skill_has_live_freshness_and_evidence_gates(self) -> None:
-        content = self._read("cross-market-trend-research")
-        self.assertIn("name: cross-market-trend-research", content)
+    def test_topic_opportunity_skill_has_live_freshness_and_evidence_gates(self) -> None:
+        content = self._read("creator-topic-opportunity-research")
+        self.assertIn("name: creator-topic-opportunity-research", content)
         self.assertIn("/feed", content)
         self.assertIn("/history", content)
         self.assertIn("partial", content)
@@ -24,8 +24,8 @@ class SkillPackageTests(unittest.TestCase):
         self.assertIn("Source facts", content)
         self.assertIn("Unknowns", content)
 
-    def test_cross_market_skill_forbids_local_snapshot_fallback(self) -> None:
-        content = self._read("cross-market-trend-research").lower()
+    def test_topic_opportunity_skill_forbids_local_snapshot_fallback(self) -> None:
+        content = self._read("creator-topic-opportunity-research").lower()
         self.assertIn("live evidence is exclusive", content)
         self.assertIn("do not search local files for a substitute", content)
         self.assertIn("sibling repositories", content)

@@ -1,6 +1,6 @@
 # Codex M1 acceptance
 
-This guide validates Topic Intelligence as a real installed Codex Skill package, not just as repository documentation.
+This guide records the M1 validation workflow for Topic Intelligence as a real installed Codex Skill package. The final public 0.1.0 topic-research Skill name is `creator-topic-opportunity-research`; internal pre-0.1.0 M1 runs used the legacy name `cross-market-trend-research`.
 
 M1 has two distinct gates:
 
@@ -9,15 +9,9 @@ M1 has two distinct gates:
 
 Do not confuse a sandbox network restriction with a Topic Radar production outage.
 
-## 1. Sync the M1 branch
+## 1. Sync the intended branch
 
-```bash
-git fetch origin
-git switch feat/topic-intelligence-m1-evals
-git pull --ff-only
-```
-
-Keep the working tree clean during acceptance. The acceptance operator should report failures, not patch them.
+Use the branch or release being validated and keep the working tree clean. Historical M1 acceptance used `feat/topic-intelligence-m1-evals`; current releases should validate the intended current ref instead.
 
 ## 2. Run offline tests
 
@@ -40,14 +34,14 @@ The installer creates symlinks under:
 $HOME/.agents/skills/
 ```
 
-Expected entries:
+Current expected entries:
 
 ```text
-$HOME/.agents/skills/cross-market-trend-research
+$HOME/.agents/skills/creator-topic-opportunity-research
 $HOME/.agents/skills/evidence-backed-content-brief
 ```
 
-It refuses to overwrite an existing unrelated path.
+It refuses to overwrite an existing unrelated path. On a checkout upgraded from the internal pre-0.1.0 name, `install` safely removes the legacy `cross-market-trend-research` symlink only when it points to this checkout's former Skill path.
 
 ## 4. Verify discovery
 
@@ -59,7 +53,7 @@ Non-interactive `codex exec` may not expose the `/skills` UI. In that case, succ
 
 For automated trigger/evidence-boundary tests, prefer fresh isolated Codex processes and a read-only sandbox when supported.
 
-Run the two explicit prompts from `evals/README.md`, then all entries in `evals/cases.json`.
+Run the two explicit prompts from `evals/README.md`, then the current entries in `evals/cases.json`.
 
 Use a fresh Codex conversation/process for every implicit-trigger case. Do not prefix implicit prompts with `$skill-name`.
 
@@ -108,7 +102,7 @@ python3 scripts/topic_radar_client.py sources
 python3 scripts/topic_radar_client.py history REAL_TOPIC_ID
 ```
 
-For M1 content-brief E2E, perform one intentional `/insight` call for a real server-known topic when model usage is acceptable:
+For content-brief E2E, perform one intentional `/insight` call for a real server-known topic when model usage is acceptable:
 
 ```bash
 python3 scripts/topic_radar_client.py insight REAL_TOPIC_ID --locale zh
@@ -128,7 +122,7 @@ For live Radar calls preserve these rules:
 - `/insight` is model analysis, not independent source evidence;
 - local/sibling snapshots are never acceptable substitutes for a failed live call.
 
-## 8. Final M1 report
+## 8. Final report
 
 Return:
 
@@ -137,10 +131,10 @@ Return:
 3. installer/status result;
 4. `/skills` discovery result or explicit non-observability;
 5. explicit trigger smoke-test results;
-6. one result row for every implicit eval case;
+6. one result row for every requested implicit eval case;
 7. false positives/false negatives;
 8. evidence-boundary regressions, especially local snapshot fallback;
-9. Gate B live API/insight result;
+9. Gate B live API/insight result when required;
 10. any host/sandbox network limitation;
 11. final `git status`.
 

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Creator Topic Opportunity Research"
+  short_description: "Prioritize live topic opportunities for creators and editors"
+  default_prompt: "Compare and prioritize live topic candidates for a creator or editorial publishing decision using AI Workstation Global Topic Radar evidence."
+policy:
+  allow_implicit_invocation: true
