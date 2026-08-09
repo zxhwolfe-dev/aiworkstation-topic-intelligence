@@ -62,8 +62,11 @@ class HostCapabilityMatrixTests(unittest.TestCase):
         self.assertIn("Do not add Hosted MCP", content)
         self.assertIn("scripts/run_host_evals.py", content)
         self.assertIn("does **not** mutate `$HOME/.agents/skills`", content)
-        self.assertIn("creator-only, brief-only, and both-Skills", content)
-        self.assertIn("Skills-only is sufficient", content)
+        self.assertIn("Creator-only", content)
+        self.assertIn("Brief-only", content)
+        self.assertIn("both Skills installed", content)
+        self.assertIn("SKILLS_ONLY_PASS", content)
+        self.assertIn("Skills-only determined sufficient", content)
 
     def test_chatgpt_smoke_result_records_skills_only_pass(self) -> None:
         content = (
