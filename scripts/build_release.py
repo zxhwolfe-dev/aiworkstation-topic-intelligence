@@ -26,6 +26,7 @@ REQUIRED_SKILL_FILES = (
 CANONICAL_PORTABLE_FILES = {
     "scripts/topic_radar_client.py": "scripts/topic_radar_client.py",
     "references/handoff-contract.md": "references/topic-opportunity-handoff.md",
+    "references/quality-contract.md": "references/topic-intelligence-quality-contract.md",
 }
 VERSION_RE = re.compile(
     r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$"
