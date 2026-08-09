@@ -8,6 +8,7 @@ from pathlib import Path
 from zipfile import ZipFile
 
 from scripts.build_release import (
+    LICENSE_ID,
     MANIFEST_SCHEMA,
     ReleaseError,
     build_release,
@@ -23,6 +24,7 @@ SKILLS = (
 
 def make_release_repo(root: Path, *, version: str = "0.1.0") -> None:
     (root / "VERSION").write_text(version + "\n", encoding="utf-8")
+    (root / "LICENSE").write_text("Apache License 2.0 test fixture\n", encoding="utf-8")
     for name in SKILLS:
         skill = root / "skills" / name
         (skill / "agents").mkdir(parents=True)
@@ -56,6 +58,7 @@ class ReleaseBuilderTests(unittest.TestCase):
 
             self.assertEqual(manifest["schema"], MANIFEST_SCHEMA)
             self.assertEqual(manifest["version"], "0.1.0")
+            self.assertEqual(manifest["license"], LICENSE_ID)
             self.assertEqual(
                 {item["skill"] for item in manifest["artifacts"]},
                 set(SKILLS),
@@ -75,7 +78,7 @@ class ReleaseBuilderTests(unittest.TestCase):
                 self.assertIn(item["sha256"], sums)
                 self.assertIn(item["file"], sums)
 
-    def test_archives_are_deterministic_and_self_contained(self) -> None:
+    def test_archives_are_deterministic_self_contained_and_licensed(self) -> None:
         with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as first_dir, tempfile.TemporaryDirectory() as second_dir:
             repo = Path(repo_dir)
             make_release_repo(repo)
@@ -97,6 +100,7 @@ class ReleaseBuilderTests(unittest.TestCase):
                 prefix = item["skill"] + "/"
                 self.assertIn(prefix + "SKILL.md", names)
                 self.assertIn(prefix + "agents/openai.yaml", names)
+                self.assertIn(prefix + "LICENSE", names)
                 self.assertTrue(all(name.startswith(prefix) for name in names))
                 self.assertFalse(any("__pycache__" in name for name in names))
 
@@ -112,28 +116,40 @@ class ReleaseBuilderTests(unittest.TestCase):
             with self.assertRaisesRegex(ReleaseError, "symlink not allowed"):
                 build_release(Path(out_dir), root=repo)
 
+    def test_release_requires_repository_license(self) -> None:
+        with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as out_dir:
+            repo = Path(repo_dir)
+            make_release_repo(repo)
+            (repo / "LICENSE").unlink()
+            with self.assertRaisesRegex(ReleaseError, "LICENSE file is missing"):
+                build_release(Path(out_dir), root=repo)
+
     def test_current_repository_builds_real_skill_archives(self) -> None:
         with tempfile.TemporaryDirectory() as out_dir:
             output = Path(out_dir)
             manifest = build_release(output, root=self.ROOT)
 
             self.assertEqual(manifest["version"], read_version(self.ROOT))
+            self.assertEqual(manifest["license"], "Apache-2.0")
             self.assertEqual(len(manifest["artifacts"]), 2)
             for item in manifest["artifacts"]:
                 with ZipFile(output / item["file"]) as archive:
                     names = archive.namelist()
                 self.assertIn(f'{item["skill"]}/SKILL.md', names)
                 self.assertIn(f'{item["skill"]}/agents/openai.yaml', names)
+                self.assertIn(f'{item["skill"]}/LICENSE', names)
 
     def test_repository_release_metadata_is_consistent(self) -> None:
         version = read_version(self.ROOT)
         changelog = (self.ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         distribution = (self.ROOT / "docs" / "distribution.md").read_text(encoding="utf-8")
         checklist = (self.ROOT / "docs" / "release-checklist.md").read_text(encoding="utf-8")
+        license_text = (self.ROOT / "LICENSE").read_text(encoding="utf-8")
 
         self.assertIn(f"## [{version}]", changelog)
         self.assertIn("scripts/build_release.py", distribution)
         self.assertIn("release-manifest.json", distribution)
+        self.assertIn("Apache", license_text)
         self.assertIn("v${VERSION}", checklist)
 
     def test_tag_release_workflow_validates_version_before_publishing(self) -> None:
