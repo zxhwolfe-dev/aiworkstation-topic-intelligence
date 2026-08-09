@@ -16,6 +16,12 @@ SKILL_NAMES = (
     "creator-topic-opportunity-research",
     "evidence-backed-content-brief",
 )
+REQUIRED_SKILL_FILES = (
+    "SKILL.md",
+    "agents/openai.yaml",
+    "scripts/topic_radar_client.py",
+    "references/handoff-contract.md",
+)
 VERSION_RE = re.compile(
     r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$"
 )
@@ -56,7 +62,7 @@ def _license_file(repo: Path) -> Path:
 
 
 def _skill_files(skill_dir: Path) -> list[Path]:
-    required = (skill_dir / "SKILL.md", skill_dir / "agents" / "openai.yaml")
+    required = tuple(skill_dir / relative for relative in REQUIRED_SKILL_FILES)
     missing = [str(path.relative_to(skill_dir)) for path in required if not path.is_file()]
     if missing:
         raise ReleaseError(
