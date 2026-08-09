@@ -25,8 +25,9 @@ class V021SkillQualityTests(unittest.TestCase):
                 "brief-format-constraint-not-platform-filter",
                 "ai-domain-preserved-from-first-query",
                 "creator-host-judgment-provenance",
-                "brief-insight-provenance-and-reuse",
-                "both-skills-no-second-selection-after-handoff",
+                "brief-public-host-reasoning-zero-server-llm",
+                "both-skills-no-second-selection-or-server-llm",
+                "premium-insight-requires-authenticated-native-connection",
             },
         )
 
@@ -36,6 +37,7 @@ class V021SkillQualityTests(unittest.TestCase):
         self.assertIn("short video", must_not)
         self.assertIn("2–3 minute", must_not)
         self.assertIn("Chinese-language", must_not)
+        self.assertIn("anonymous server insight", must_not)
 
     def test_ai_domain_is_preserved_from_first_bounded_query(self) -> None:
         case = self.cases["ai-domain-preserved-from-first-query"]
@@ -47,33 +49,40 @@ class V021SkillQualityTests(unittest.TestCase):
         self.assertIn("generic technology feed", must_not)
         self.assertIn("drop explicit user topic/domain scope", must_not)
 
-    def test_provenance_cases_keep_fact_and_analysis_layers_separate(self) -> None:
-        creator = self.cases["creator-host-judgment-provenance"]
-        brief = self.cases["brief-insight-provenance-and-reuse"]
-        self.assertIn("Radar facts", creator["must_show"])
-        self.assertIn(
-            "Radar facts separated from server Topic Insight analysis",
-            brief["must_show"],
-        )
-        self.assertIn(
-            "present server insight as independently verified fact",
-            brief["must_not"],
-        )
+    def test_public_brief_uses_host_reasoning_without_server_llm(self) -> None:
+        case = self.cases["brief-public-host-reasoning-zero-server-llm"]
+        self.assertIn("host model produces the creative plan", case["must_show"])
+        must_not = "\n".join(case["must_not"])
+        self.assertIn("POST /insight", must_not)
+        self.assertIn("server-side model quota", must_not)
+        self.assertIn("paste an API key", must_not)
 
-    def test_composed_case_blocks_second_selection(self) -> None:
-        case = self.cases["both-skills-no-second-selection-after-handoff"]
+    def test_composed_case_blocks_second_selection_and_server_llm(self) -> None:
+        case = self.cases["both-skills-no-second-selection-or-server-llm"]
         self.assertEqual(
             case["expected_workflow"],
             [
                 "creator-topic-opportunity-research",
                 "ati.topic-opportunity-handoff.v1",
-                "evidence-backed-content-brief",
+                "evidence-backed-content-brief:host-reasoning",
             ],
         )
+        must_not = "\n".join(case["must_not"])
+        self.assertIn("another broad or bounded candidate selection", must_not)
+        self.assertIn("anonymous server insight", must_not)
+        self.assertIn("shared server credential", must_not)
+
+    def test_premium_insight_requires_authenticated_native_connection(self) -> None:
+        case = self.cases["premium-insight-requires-authenticated-native-connection"]
+        self.assertIn("Premium Insight is optional", case["must_show"])
         self.assertIn(
-            "run another broad or bounded candidate selection after a valid handoff",
-            case["must_not"],
+            "authenticated connection is responsible for membership and quota enforcement",
+            case["must_show"],
         )
+        must_not = "\n".join(case["must_not"])
+        self.assertIn("shared public bearer token", must_not)
+        self.assertIn("private credential", must_not)
+        self.assertIn("without explicit authenticated AI Workstation connection", must_not)
 
 
 if __name__ == "__main__":
