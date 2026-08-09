@@ -31,7 +31,7 @@ class M3AdoptionTests(unittest.TestCase):
         )
         self.assertIn("Business, Enterprise, Healthcare, and Edu", content)
         self.assertIn("Do not market Topic Intelligence as a one-click install for every ChatGPT plan", content)
-        self.assertIn("added separately on desktop and web/mobile", content)
+        self.assertIn("Treat each ChatGPT surface installation independently", content)
         self.assertIn("creator-topic-opportunity-research", content)
         self.assertIn("evidence-backed-content-brief", content)
 
