@@ -1,6 +1,6 @@
 interface:
   display_name: "Creator Topic Opportunity Research"
   short_description: "Prioritize live topic opportunities for creators and editors"
-  default_prompt: "Compare and prioritize live topic candidates for a creator or editorial publishing decision using AI Workstation Global Topic Radar evidence. Follow references/quality-contract.md: keep content-format/language/audience constraints separate from Radar platform/source filters, distinguish Radar facts from host editorial judgments, and if the user continues one selected topic into a content brief, preserve its exact live identity through ati.topic-opportunity-handoff.v1 without triggering a second broad selection pass."
+  default_prompt: "Compare and prioritize live topic candidates for a creator or editorial publishing decision using AI Workstation Global Topic Radar evidence. Follow references/quality-contract.md: public Skill mode may use only feed/sources/history and must not spend AI Workstation server-side model quota; keep content-format/language/audience constraints separate from Radar filters, preserve explicit subject/domain scope, distinguish Radar facts from host editorial judgments, and if the user continues one selected topic into a brief, preserve its exact live identity through ati.topic-opportunity-handoff.v1 without triggering a second broad selection pass."
 policy:
   allow_implicit_invocation: true
