@@ -59,13 +59,16 @@ class _RadarHandler(BaseHTTPRequestHandler):
 
 
 class M3SkillQualityTests(unittest.TestCase):
-    def test_development_version_is_0_2_0_while_public_release_remains_0_1_0(self) -> None:
+    def test_v0_2_release_metadata_is_finalized_and_v0_1_history_is_preserved(self) -> None:
         self.assertEqual((ROOT / "VERSION").read_text(encoding="utf-8").strip(), "0.2.0")
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        self.assertIn("Latest public release: **v0.1.0", readme)
-        self.assertIn("## [0.2.0] - Unreleased", changelog)
+        acceptance = (
+            ROOT / "docs" / "m3.1-final-acceptance-2026-08-09.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("## [0.2.0] - 2026-08-09", changelog)
         self.assertIn("## [0.1.0] - 2026-08-09", changelog)
+        self.assertIn("M3_1_SKILL_QUALITY_PASS", acceptance)
+        self.assertIn("HANDOFF_STATUS: PASS", acceptance)
 
     def test_skill_local_helpers_match_canonical_root_helper_byte_for_byte(self) -> None:
         canonical = (ROOT / "scripts" / "topic_radar_client.py").read_bytes()

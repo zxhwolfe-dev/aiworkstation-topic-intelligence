@@ -4,7 +4,7 @@ All notable public changes to AI Workstation Topic Intelligence are recorded her
 
 The project follows Semantic Versioning for distributable Skill releases.
 
-## [0.2.0] - Unreleased
+## [0.2.0] - 2026-08-09
 
 ### Added
 
@@ -25,7 +25,17 @@ The project follows Semantic Versioning for distributable Skill releases.
 - A handoff is current-task evidence context, not persisted evidence that may be reused as current on a later task.
 - The receiving Brief Skill refreshes live evidence when a handoff is stale, materially partial, missing required freshness fields, or not from the current task.
 - Standalone brief selection never invents a second score and does not recreate full cross-market opportunity research.
-- The public v0.1.0 tag/release remains immutable; v0.2.0 is not published until real fresh-session Skill acceptance passes.
+- The public v0.1.0 tag/release remains immutable.
+- Upstream Topic Insight failure degrades to an evidence-based skeleton; the Skill must not fabricate model output or use local/sibling evidence as fallback.
+
+### Validation
+
+- Python 3.10 and 3.12 GitHub CI passed the full offline suite.
+- Managed-sandbox acceptance completed with 57 passed, 1 environment-only loopback-socket skip, and exit code 0.
+- Standalone release archives were built twice with identical SHA256 values.
+- Creator-only, Brief-only, and both-Skills fresh-session behavior was checked without observable trigger false positives or false negatives.
+- `ati.topic-opportunity-handoff.v1` preserved one selected live feed `id` exactly through handoff and history lookup, with no title-based rediscovery observed.
+- A real selected-topic Insight request returned an upstream HTTP 503; degraded Brief behavior passed by exposing the limitation, preserving `must_verify`/`avoid_claims`, and not inventing Insight output. See `docs/m3.1-final-acceptance-2026-08-09.md`.
 
 ## [0.1.0] - 2026-08-09
 
