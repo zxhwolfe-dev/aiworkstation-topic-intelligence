@@ -4,9 +4,9 @@
 
 [English](README.md)
 
-最新公开版本：**v0.1.0 public preview**
+最新公开版本：**v0.2.0**
 
-当前开发线：**v0.2.0 未发布** —— 重点是 standalone Skill 真正自包含、Opportunity → Brief 正式 handoff、单 Skill fallback，以及真实任务质量验收。只有 fresh-session 验收通过后才考虑 `v0.2.0` tag/release；现有 `v0.1.0` 保持不变。
+v0.2.0 已正式发布：包含真正 self-contained 的 standalone Skill、Opportunity → Brief 正式 handoff、单 Skill fallback，以及发布前完成的 M3.1 任务质量验收。此前的 `v0.1.0` tag/release 保持不可变。
 
 Topic Intelligence 建在现有 AI Workstation「全球热点选题雷达」之上。它不重新做爬虫、聚类、评分、数据库或 GPT 后端，而是把实时 Radar 证据转成更可靠的创作者/编辑决策。
 
@@ -80,9 +80,9 @@ creator-topic-opportunity-research
 
 它可以消费当前任务里的 `ati.topic-opportunity-handoff.v1`、实时解析用户指定 Topic，或在 Opportunity Skill 不可用时使用 bounded standalone fallback。
 
-## v0.2 开发线：真正 self-contained 的 Skill
+## v0.2.0：真正 self-contained 的 Skill
 
-每个 Skill 目录现在都设计成完整可分发单元：
+每个 Skill 目录现在都是完整可分发单元：
 
 ```text
 skill-name/
@@ -119,7 +119,7 @@ $creator-topic-opportunity-research
 $evidence-backed-content-brief
 ```
 
-`doctor` 现在不只检查 `SKILL.md` / `agents/openai.yaml`，也检查 bundled helper 和 handoff contract。
+`doctor` 不只检查 `SKILL.md` / `agents/openai.yaml`，也检查 bundled helper 和 handoff contract。
 
 ### Standalone ZIP
 
@@ -133,7 +133,7 @@ python3 scripts/build_release.py --output dist
 
 符合条件的 ChatGPT 工作区可以使用当前官方支持的 Skill 上传流程；具体资格、工作区权限和不同界面的同步行为可能变化，见 [`docs/chatgpt-install.md`](docs/chatgpt-install.md)。
 
-ChatGPT UI 上传是单独的人工验收面，Codex 通过并不能证明 ChatGPT UI 上传一定可用。
+ChatGPT UI 上传仍是单独的人工验证面，Codex 通过并不能证明 ChatGPT UI 上传一定可用。
 
 ## 证据硬边界
 
@@ -207,12 +207,14 @@ python3 -m unittest discover -s tests -v
 - Brief bounded fallback 规则；
 - 24 条 M3.1 真实任务/故障态质量矩阵。
 
-质量场景：
+质量与发布证据：
 
 - [`evals/m3-skill-quality.json`](evals/m3-skill-quality.json)
 - [`docs/m3-skill-quality-acceptance.md`](docs/m3-skill-quality-acceptance.md)
+- [`docs/m3.1-final-acceptance-2026-08-09.md`](docs/m3.1-final-acceptance-2026-08-09.md)
+- [`docs/release-v0.2.0-decision.md`](docs/release-v0.2.0-decision.md)
 
-在决定发布 v0.2.0 之前，还必须做真实 fresh Codex / live network 验收。
+v0.2.0 已通过 fresh Codex / live Radar handoff 验收。验收期间一次选中 Topic 的上游 Insight 请求返回 HTTP 503；Brief 正确降级成 evidence-based skeleton，没有伪造模型输出，也没有使用本地旧数据兜底。
 
 ## 更多文档
 
@@ -236,4 +238,4 @@ python3 -m unittest discover -s tests -v
 - **M1 已完成：** Codex 安装/发现、trigger eval、证据边界、真实 Insight E2E。
 - **M2 已完成：** v0.1.0 public preview、确定性发行、release 自动化、最终 Skill 命名与边界收敛。
 - **M3 adoption baseline 已完成：** 用户入口文档和三个产品场景。
-- **M3.1 进行中：** self-contained standalone Skills、正式 Opportunity → Brief handoff、Brief-only fallback、ZIP E2E、任务质量与 fresh-session 验收，作为未发布 0.2 开发线。
+- **M3.1 已完成：** self-contained standalone Skills、正式 Opportunity → Brief handoff、Brief-only fallback、ZIP E2E、任务质量/fresh-session 验收，以及 v0.2.0 正式发布。
