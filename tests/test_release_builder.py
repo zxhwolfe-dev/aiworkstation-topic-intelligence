@@ -112,6 +112,19 @@ class ReleaseBuilderTests(unittest.TestCase):
             with self.assertRaisesRegex(ReleaseError, "symlink not allowed"):
                 build_release(Path(out_dir), root=repo)
 
+    def test_current_repository_builds_real_skill_archives(self) -> None:
+        with tempfile.TemporaryDirectory() as out_dir:
+            output = Path(out_dir)
+            manifest = build_release(output, root=self.ROOT)
+
+            self.assertEqual(manifest["version"], read_version(self.ROOT))
+            self.assertEqual(len(manifest["artifacts"]), 2)
+            for item in manifest["artifacts"]:
+                with ZipFile(output / item["file"]) as archive:
+                    names = archive.namelist()
+                self.assertIn(f'{item["skill"]}/SKILL.md', names)
+                self.assertIn(f'{item["skill"]}/agents/openai.yaml', names)
+
     def test_repository_release_metadata_is_consistent(self) -> None:
         version = read_version(self.ROOT)
         changelog = (self.ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
