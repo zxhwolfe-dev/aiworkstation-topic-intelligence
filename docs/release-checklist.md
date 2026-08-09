@@ -2,7 +2,7 @@
 
 Use this checklist for every public Topic Intelligence Skill release.
 
-## 1. Version and source
+## 1. Version, license, and source
 
 ```bash
 VERSION="$(cat VERSION)"
@@ -14,6 +14,7 @@ Requirements:
 
 - `VERSION` is valid Semantic Versioning;
 - `CHANGELOG.md` contains `## [${VERSION}]`;
+- root `LICENSE` is present and is the intended Apache-2.0 license;
 - working tree is clean;
 - release is built from the intended `main` commit.
 
@@ -74,7 +75,12 @@ cat dist/release-manifest.json
 cat dist/SHA256SUMS
 ```
 
-Verify that each archive contains one expected Skill directory and no unrelated repository files.
+Verify that:
+
+- each archive contains one expected Skill directory and no unrelated repository files;
+- each archive contains `SKILL.md`, `agents/openai.yaml`, and `LICENSE`;
+- the manifest reports `license: Apache-2.0`;
+- artifact hashes in the manifest match `SHA256SUMS`.
 
 Optional reproducibility check:
 
@@ -113,6 +119,7 @@ Confirm:
 
 - GitHub Release exists;
 - archive checksums match the manifest;
+- each standalone archive carries the Apache-2.0 license text;
 - release notes/changelog are accurate;
 - README points users to the supported install path;
 - no experimental Plugin or Hosted MCP claim is presented as a released capability.
