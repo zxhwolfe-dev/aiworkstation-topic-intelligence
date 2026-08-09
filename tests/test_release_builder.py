@@ -21,11 +21,17 @@ SKILLS = (
     "creator-topic-opportunity-research",
     "evidence-backed-content-brief",
 )
+HELPER_TEXT = "#!/usr/bin/env python3\nprint('Thin client test helper')\n"
+HANDOFF_TEXT = "Schema: `ati.topic-opportunity-handoff.v1`\n"
 
 
 def make_release_repo(root: Path, *, version: str = "0.1.0") -> None:
     (root / "VERSION").write_text(version + "\n", encoding="utf-8")
     (root / "LICENSE").write_text("Apache License 2.0 test fixture\n", encoding="utf-8")
+    (root / "scripts").mkdir(parents=True)
+    (root / "references").mkdir(parents=True)
+    (root / "scripts" / "topic_radar_client.py").write_text(HELPER_TEXT, encoding="utf-8")
+    (root / "references" / "topic-opportunity-handoff.md").write_text(HANDOFF_TEXT, encoding="utf-8")
     for name in SKILLS:
         skill = root / "skills" / name
         (skill / "agents").mkdir(parents=True)
@@ -39,14 +45,8 @@ def make_release_repo(root: Path, *, version: str = "0.1.0") -> None:
             "interface:\n  display_name: Test\n",
             encoding="utf-8",
         )
-        (skill / "scripts" / "topic_radar_client.py").write_text(
-            "#!/usr/bin/env python3\nprint('Thin client test helper')\n",
-            encoding="utf-8",
-        )
-        (skill / "references" / "handoff-contract.md").write_text(
-            "Schema: `ati.topic-opportunity-handoff.v1`\n",
-            encoding="utf-8",
-        )
+        (skill / "scripts" / "topic_radar_client.py").write_text(HELPER_TEXT, encoding="utf-8")
+        (skill / "references" / "handoff-contract.md").write_text(HANDOFF_TEXT, encoding="utf-8")
 
 
 class ReleaseBuilderTests(unittest.TestCase):
@@ -70,22 +70,14 @@ class ReleaseBuilderTests(unittest.TestCase):
             self.assertEqual(manifest["schema"], MANIFEST_SCHEMA)
             self.assertEqual(manifest["version"], "0.1.0")
             self.assertEqual(manifest["license"], LICENSE_ID)
-            self.assertEqual(
-                {item["skill"] for item in manifest["artifacts"]},
-                set(SKILLS),
-            )
-            disk_manifest = json.loads(
-                (output / "release-manifest.json").read_text(encoding="utf-8")
-            )
+            self.assertEqual({item["skill"] for item in manifest["artifacts"]}, set(SKILLS))
+            disk_manifest = json.loads((output / "release-manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(disk_manifest, manifest)
             sums = (output / "SHA256SUMS").read_text(encoding="utf-8")
             for item in manifest["artifacts"]:
                 archive = output / item["file"]
                 self.assertTrue(archive.is_file())
-                self.assertEqual(
-                    hashlib.sha256(archive.read_bytes()).hexdigest(),
-                    item["sha256"],
-                )
+                self.assertEqual(hashlib.sha256(archive.read_bytes()).hexdigest(), item["sha256"])
                 self.assertIn(item["sha256"], sums)
                 self.assertIn(item["file"], sums)
 
@@ -99,14 +91,13 @@ class ReleaseBuilderTests(unittest.TestCase):
 
             first = build_release(Path(first_dir), root=repo)
             second = build_release(Path(second_dir), root=repo)
-
-            first_hashes = {item["skill"]: item["sha256"] for item in first["artifacts"]}
-            second_hashes = {item["skill"]: item["sha256"] for item in second["artifacts"]}
-            self.assertEqual(first_hashes, second_hashes)
+            self.assertEqual(
+                {item["skill"]: item["sha256"] for item in first["artifacts"]},
+                {item["skill"]: item["sha256"] for item in second["artifacts"]},
+            )
 
             for item in first["artifacts"]:
-                archive_path = Path(first_dir) / item["file"]
-                with ZipFile(archive_path) as archive:
+                with ZipFile(Path(first_dir) / item["file"]) as archive:
                     names = archive.namelist()
                 prefix = item["skill"] + "/"
                 for relative in REQUIRED_SKILL_FILES:
@@ -120,7 +111,6 @@ class ReleaseBuilderTests(unittest.TestCase):
             repo = Path(repo_dir)
             make_release_repo(repo)
             (repo / "skills" / SKILLS[0] / "scripts" / "topic_radar_client.py").unlink()
-
             with self.assertRaisesRegex(ReleaseError, "scripts/topic_radar_client.py"):
                 build_release(Path(out_dir), root=repo)
 
@@ -129,8 +119,23 @@ class ReleaseBuilderTests(unittest.TestCase):
             repo = Path(repo_dir)
             make_release_repo(repo)
             (repo / "skills" / SKILLS[1] / "references" / "handoff-contract.md").unlink()
-
             with self.assertRaisesRegex(ReleaseError, "references/handoff-contract.md"):
+                build_release(Path(out_dir), root=repo)
+
+    def test_release_rejects_drifted_helper(self) -> None:
+        with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as out_dir:
+            repo = Path(repo_dir)
+            make_release_repo(repo)
+            (repo / "skills" / SKILLS[0] / "scripts" / "topic_radar_client.py").write_text("drifted\n", encoding="utf-8")
+            with self.assertRaisesRegex(ReleaseError, "portable runtime drift"):
+                build_release(Path(out_dir), root=repo)
+
+    def test_release_rejects_drifted_handoff(self) -> None:
+        with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as out_dir:
+            repo = Path(repo_dir)
+            make_release_repo(repo)
+            (repo / "skills" / SKILLS[1] / "references" / "handoff-contract.md").write_text("drifted\n", encoding="utf-8")
+            with self.assertRaisesRegex(ReleaseError, "portable runtime drift"):
                 build_release(Path(out_dir), root=repo)
 
     def test_release_rejects_symlinks_inside_skill_package(self) -> None:
@@ -141,7 +146,6 @@ class ReleaseBuilderTests(unittest.TestCase):
             target.write_text("outside", encoding="utf-8")
             link = repo / "skills" / SKILLS[0] / "linked.txt"
             link.symlink_to(target)
-
             with self.assertRaisesRegex(ReleaseError, "symlink not allowed"):
                 build_release(Path(out_dir), root=repo)
 
@@ -157,7 +161,6 @@ class ReleaseBuilderTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as out_dir:
             output = Path(out_dir)
             manifest = build_release(output, root=self.ROOT)
-
             self.assertEqual(manifest["version"], read_version(self.ROOT))
             self.assertEqual(manifest["license"], "Apache-2.0")
             self.assertEqual(len(manifest["artifacts"]), 2)
@@ -175,7 +178,6 @@ class ReleaseBuilderTests(unittest.TestCase):
         distribution = (self.ROOT / "docs" / "distribution.md").read_text(encoding="utf-8")
         checklist = (self.ROOT / "docs" / "release-checklist.md").read_text(encoding="utf-8")
         license_text = (self.ROOT / "LICENSE").read_text(encoding="utf-8")
-
         self.assertIn(f"## [{version}]", changelog)
         self.assertIn("scripts/build_release.py", distribution)
         self.assertIn("release-manifest.json", distribution)
@@ -185,9 +187,7 @@ class ReleaseBuilderTests(unittest.TestCase):
         self.assertIn("v${VERSION}", checklist)
 
     def test_tag_release_workflow_validates_version_before_publishing(self) -> None:
-        workflow = (self.ROOT / ".github" / "workflows" / "release.yml").read_text(
-            encoding="utf-8"
-        )
+        workflow = (self.ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
         self.assertIn('tags: ["v*"]', workflow)
         self.assertIn('GITHUB_REF_NAME#v', workflow)
         self.assertIn('python3 scripts/build_release.py --output dist', workflow)
