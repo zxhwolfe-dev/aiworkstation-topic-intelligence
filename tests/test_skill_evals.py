@@ -8,7 +8,7 @@ from pathlib import Path
 class SkillEvalTests(unittest.TestCase):
     ROOT = Path(__file__).resolve().parents[1]
     SKILLS = {
-        "cross-market-trend-research",
+        "creator-topic-opportunity-research",
         "evidence-backed-content-brief",
     }
     CALLS = {"feed", "sources", "history", "insight"}
@@ -57,7 +57,7 @@ class SkillEvalTests(unittest.TestCase):
             expected = set(case["expected_calls"])
             optional = set(case["optional_calls"])
             self.assertLessEqual(expected | optional, self.CALLS, case["id"])
-            if case["expected_skill"] == "cross-market-trend-research":
+            if case["expected_skill"] == "creator-topic-opportunity-research":
                 self.assertIn("feed", expected, case["id"])
                 self.assertNotIn("insight", expected, case["id"])
             if case["expected_skill"] == "evidence-backed-content-brief":
@@ -85,22 +85,23 @@ class SkillEvalTests(unittest.TestCase):
             self.assertEqual(case["optional_calls"], [], case["id"])
             self.assertTrue(case["must_not"], case["id"])
 
-    def test_frontmatter_excludes_direct_news_lookup_and_supplied_material_writing(self) -> None:
-        trend = self._skill_frontmatter("cross-market-trend-research")
+    def test_frontmatter_uses_narrow_creator_editorial_decision_intent(self) -> None:
+        trend = self._skill_frontmatter("creator-topic-opportunity-research")
         brief = self._skill_frontmatter("evidence-backed-content-brief")
         trend_metadata = (
             self.ROOT
             / "skills"
-            / "cross-market-trend-research"
+            / "creator-topic-opportunity-research"
             / "agents"
             / "openai.yaml"
         ).read_text(encoding="utf-8").lower()
 
-        self.assertIn("content-topic discovery, comparison, ranking", trend)
-        self.assertIn("requires a content/editorial decision", trend)
-        self.assertIn("standalone factual lookup", trend)
-        self.assertNotIn("one named company or person released today", trend)
-        self.assertIn("creator/editorial topic opportunities", trend_metadata)
+        self.assertIn("compare and prioritize live topic candidates", trend)
+        self.assertIn("creator or editorial publishing decisions", trend)
+        self.assertIn("choosing what to research, cover, or publish", trend)
+        self.assertNotIn("what is trending now", trend)
+        self.assertNotIn("direct factual lookup", trend)
+        self.assertIn("topic opportunities for creators and editors", trend_metadata)
         self.assertNotIn("find current and rising topics", trend_metadata)
 
         self.assertIn("evaluate or select a current topic", brief)
