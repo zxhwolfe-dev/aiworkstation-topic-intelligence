@@ -36,25 +36,33 @@ For the first public preview:
 python3 -m unittest discover -s tests -v
 ```
 
-Expected M2 suite size on the initial release branch: **36 tests**.
+Expected M2 suite size on the initial release branch: **37 tests**.
 
 Do not install dependencies to make the suite pass; the project intentionally uses the Python standard library for these tools/tests.
 
-## 4. Codex install health
+## 4. Codex install health and legacy-name migration
+
+Run the idempotent installer before status/doctor so a pre-release legacy symlink can be migrated safely:
 
 ```bash
+python3 scripts/install_codex_skills.py install
 python3 scripts/install_codex_skills.py status
 python3 scripts/install_codex_skills.py doctor
 ```
 
 Requirements:
 
-- both Skills are `installed`;
+- `creator-topic-opportunity-research` is `installed`;
+- `evidence-backed-content-brief` is `installed`;
+- the pre-0.1.0 `cross-market-trend-research` path is absent after migration;
+- `legacy_clean=true`;
 - symlinks point to this checkout;
 - both `SKILL.md` files exist;
 - both `agents/openai.yaml` files exist;
 - `python_supported=true`;
 - `doctor.ok=true`.
+
+The installer may remove the legacy path only when it is a symlink that points to this checkout's former `skills/cross-market-trend-research` location. Any unrelated path with that name is a migration conflict and must not be deleted automatically.
 
 ## 5. Deterministic release build
 
@@ -75,6 +83,13 @@ diff -u /tmp/ati-m2-release-a/release-manifest.json /tmp/ati-m2-release-b/releas
 
 Both diffs must be empty.
 
+The two artifact Skill names must be:
+
+```text
+creator-topic-opportunity-research
+evidence-backed-content-brief
+```
+
 Inspect each ZIP with Python's standard-library zip tool or equivalent read-only tooling. Each archive must contain only one top-level Skill directory and include:
 
 ```text
@@ -93,7 +108,7 @@ license: Apache-2.0
 
 Run all 20 cases in `evals/cases.json` using fresh isolated conversations/processes when automated execution is safe.
 
-The original M1 cases already established a baseline of zero observed false positives and zero false negatives. M2 adds ambiguous/boundary prompts.
+The original M1 cases established the baseline; M2 adds ambiguous/boundary prompts and the final public Skill name is `creator-topic-opportunity-research`.
 
 For every case record:
 
@@ -169,11 +184,11 @@ Return:
 
 1. HEAD SHA;
 2. version result;
-3. 36-test result;
-4. `doctor` result;
+3. 37-test result;
+4. install migration + `doctor` result;
 5. deterministic-build result and artifact names/hashes;
 6. archive content and license validation;
-7. all 20 eval results or an exact blocker if safe automation cannot observe them;
+7. all 20 eval results or the focused rerun requested by the author;
 8. false-positive count;
 9. false-negative count;
 10. evidence/freshness issues;
