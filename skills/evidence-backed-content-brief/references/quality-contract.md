@@ -1,17 +1,17 @@
 # Topic Intelligence quality contract
 
-This reference tightens host behavior learned from real ChatGPT v0.2.0 smoke tests. It does not change the Topic Radar API or evidence source of truth.
+This reference tightens host behavior learned from real ChatGPT v0.2.0 smoke tests and defines the public Skill cost boundary. It does not change the Topic Radar evidence source of truth.
 
-## 1. User content constraints are not Radar platform filters
+## 1. Separate Radar query constraints from content constraints
 
 Keep these concepts separate:
 
-- **Radar filters**: actual supported source/platform/region/category dimensions such as YouTube, TikTok, Bilibili, Douyin, Xiaohongshu, region, category, or an explicit source name when the live contract supports it.
-- **Content constraints**: short video, 2–3 minute explainer, article, graphic post, Chinese-language content, ordinary users, developers, parents, research-heavy, visual-first, and similar publishing requirements.
+- **Radar filters**: supported source/platform/region/category/topic dimensions such as YouTube, TikTok, Bilibili, Douyin, Xiaohongshu, region, category, source, `q`, or `keywords`.
+- **Content constraints**: short video, 2–3 minute explainer, article, Chinese-language content, ordinary users, developers, parents, tone, research depth, and production style.
 
-Never map a content-format, duration, language, audience, tone, or production constraint into the Radar `platform` or `source` query merely because the words resemble a platform/content concept.
+Never map content format, duration, language, audience, tone, or production constraints into Radar `platform` or `source` merely because the words resemble a platform/content concept.
 
-Examples that must remain post-query selection constraints unless the user explicitly names a supported Radar platform:
+Examples that remain post-query selection constraints unless the user explicitly names a supported Radar platform:
 
 - `短视频` / `short video`;
 - `2–3 分钟` / `2 minute explainer`;
@@ -19,43 +19,72 @@ Examples that must remain post-query selection constraints unless the user expli
 - `图文` / `article` / `explainer`;
 - `普通用户` / `开发者` / `家长`.
 
-If a query returns irrelevant candidates because a user constraint was mapped to the wrong Radar dimension, correct the mapping once and explain the correction briefly. Do not broaden into an unrelated full-market search.
-
 ### Preserve explicit topic/domain scope from the first bounded query
 
-Content-format constraints should stay out of Radar platform/source filters, but **subject/domain constraints supplied by the user must stay in the query**.
+Subject/domain constraints supplied by the user **must stay in the query**.
 
 Examples:
 
-- `AI 热点` / `AI topics` → first bounded scan must stay AI-focused rather than starting with generic technology;
-- `机器人` / `robotics` → do not broaden to all technology unless the user asks for it;
-- `芯片` / `semiconductors` → keep that domain in `q`, `keywords`, `category`, or another supported live Radar dimension as appropriate.
+- `AI 热点` / `AI topics` → the first bounded scan stays AI-focused instead of starting with generic technology;
+- `机器人` / `robotics` → do not broaden to all technology unless necessary;
+- `芯片` / `semiconductors` → preserve that domain with `q`, `keywords`, `category`, or another supported Radar field.
 
-When the user explicitly names a topic/domain, carry that constraint into the first bounded feed request using the narrowest supported Radar fields. Do not begin with a broader parent domain merely for convenience and then spend another query removing irrelevant candidates.
+Only broaden the domain when the narrow live query produces too few useful candidates or the user asks for broader exploration. If broadening is necessary, say so briefly and retain the original domain as a relevance constraint.
 
-Only broaden the topic/domain when the narrow live query produces too few usable candidates or the user asks for exploration beyond that domain. If broadening is necessary, say so briefly and keep the original domain as a post-query relevance constraint.
+## 2. Public Skill cost boundary: no AI Workstation model spend
 
-## 2. Preserve provenance in user-facing claims
+The downloadable/public Topic Intelligence Skills are intended to spread widely without consuming the publisher's server-side LLM quota for anonymous users.
 
-Keep three analytical layers distinguishable:
+Therefore the bundled public runtime may use only no-cost/read-only Radar evidence endpoints:
+
+- `GET /feed`;
+- `GET /sources`;
+- `GET /history`.
+
+The bundled helper must **not** expose or call anonymous/public `POST /insight` or another AI Workstation model-backed endpoint.
+
+For the normal public Skill workflow:
+
+1. fetch live Radar facts;
+2. use the **current host model** (ChatGPT, Codex, or another agent host) to compare candidates and create the editorial brief;
+3. label that creative/editorial work as host analysis, not Radar fact.
+
+Never:
+
+- embed an AI Workstation server API key in a Skill ZIP;
+- use one shared public bearer token for all Skill users;
+- ask users to paste private AI Workstation credentials into chat as a workaround;
+- silently spend an AI Workstation member/free quota through an anonymous Skill call.
+
+### Optional authenticated Premium capability
+
+A server-generated Topic Insight may be used only through a **native authenticated AI Workstation connection** that itself identifies the user and enforces membership/quota/credits.
+
+Examples of an acceptable future transport include an AI Workstation App/Plugin/OAuth connection or another host-native authenticated tool. The bundled public helper is not that authentication layer.
+
+When no authenticated Premium connection exists, that is normal public-Skill mode—not a degraded error state. Generate the brief with host reasoning from live Radar evidence.
+
+## 3. Preserve provenance in user-facing claims
+
+Keep these layers distinguishable:
 
 ### Radar facts
 
-Direct live Topic Radar fields from the current task, such as title, source, evidence, timestamps, `opportunity_score`, `trend_stage`, source count, freshness, and history.
-
-### Server Topic Insight
-
-Model-generated `/insight` fields such as verdict, audience payoff, hooks, angles, narrative beats, `must_verify`, `avoid_claims`, and visual needs. These are analysis/recommendations over a server-known topic, not independent evidence.
+Direct live fields from the current task such as title, evidence, source, timestamps, `opportunity_score`, `trend_stage`, freshness, source count, and history.
 
 ### Host editorial analysis
 
-The current host/model's own adaptation, prioritization, comparison, audience judgment, or recommendation.
+The current host/model's own comparison, recommendation, target-audience judgment, hook, angle, narrative, `must_verify`, `avoid_claims`, and visual/research plan when running in normal public mode.
 
-Do not phrase host judgments such as “更适合中国用户”, “受众更大”, “更容易传播”, “可能爆”, “监管更难”, or “最值得做” as though Radar directly measured them. Mark them as **分析/判断**, **编辑判断**, **假设**, or equivalent wording when the distinction matters.
+Do not phrase judgments such as “更适合中国用户”, “受众更大”, “更容易传播”, “可能爆”, “监管更难”, or “最值得做” as though Radar directly measured them. Mark them as **分析/判断**, **编辑判断**, **假设**, or equivalent wording when the distinction matters.
+
+### Authenticated Premium Topic Insight, when explicitly available
+
+A Premium `/insight` response is still model-generated analysis over a server-known topic, not independent evidence. Preserve that provenance and do not treat it as verified fact merely because it came from the server.
 
 Do not repeat a provenance label before every sentence; make the boundary visible at the section/claim level without making the answer unreadable.
 
-## 3. Composition must not re-run broad selection after a valid handoff
+## 4. Composition must not re-run broad selection after a valid handoff
 
 When both Skills are installed:
 
@@ -63,28 +92,38 @@ When both Skills are installed:
 2. it hands off the exact live feed `id` through `ati.topic-opportunity-handoff.v1`;
 3. `evidence-backed-content-brief` consumes that same `topic_id`;
 4. after a valid current-task handoff, do **not** run another broad/bounded candidate-selection feed pass merely to choose again;
-5. only refresh/re-resolve when the handoff is stale, materially partial for the requested claim, identity-invalid, from another task, or the user explicitly asks for a fresh re-check.
+5. only refresh/re-resolve when the handoff is stale, materially partial, identity-invalid, from another task, or the user explicitly requests a fresh re-check.
 
-A follow-up history request and one selected-topic insight request are normal and are not duplicate selection.
+A finalist `/history` request is normal and is not duplicate selection.
 
-## 4. Reuse complete server Insight instead of independently rewriting it from scratch
+In normal public mode, continue from the handed-off Radar evidence with host reasoning. A selected-topic Premium Insight request is allowed only when an explicitly authenticated Premium AI Workstation transport is available and quota enforcement is outside the Skill package.
 
-When `/insight` succeeds with a complete usable result:
+## 5. Public Brief uses host reasoning
 
-- treat its creative fields as the primary editorial plan;
-- adapt ordering, emphasis, length, wording, and user-specific constraints as needed;
-- do not invent a second incompatible hook/angle/narrative solely for variety;
-- any new factual claim added by the host must still be supported by current Radar evidence or explicitly marked for verification.
+In normal public mode the Brief Skill should create an evidence-bounded plan itself from live Radar facts. It may generate:
 
-When `/insight` is degraded or unavailable, follow the Skill's existing degraded/evidence-skeleton rules and label the host-generated plan accordingly.
+- make / conditional / watch recommendation;
+- audience and audience payoff;
+- why-now interpretation;
+- one strongest angle;
+- hook and opening three seconds;
+- narrative beats;
+- research questions and search queries;
+- preferred source types;
+- `must_verify`;
+- `avoid_claims`;
+- visual/material needs;
+- known unknowns and risks.
 
-## 5. Quality target
+These are editorial analysis unless directly backed by a Radar field. New factual specifics must be supported by current Radar evidence or clearly marked for verification.
+
+## 6. Quality target
 
 The final answer should make it easy to tell:
 
 - **what the live Radar observed**;
-- **what the server Insight recommended** when used;
 - **what the current host is judging or adapting**;
-- **what remains unknown or must be verified**.
+- **what remains unknown or must be verified**;
+- **whether an optional authenticated Premium Insight was actually used**.
 
-This contract strengthens interpretation and routing only. It must never create a second Radar score, local evidence fallback, or duplicate backend.
+This contract must never create a second Radar score, local evidence fallback, duplicate backend, shared secret, or anonymous server-side LLM spend.
