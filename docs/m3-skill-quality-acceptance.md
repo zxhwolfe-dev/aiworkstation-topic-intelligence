@@ -27,13 +27,17 @@ Explicitly out of scope:
 - new database/persistence;
 - duplicate GPT backend;
 - Hosted MCP/Plugin packaging;
+- AI Workstation website analytics, `akaiagents` adoption-report scripts, or `report_topic_radar_m3_metrics.py`;
 - changes to the immutable public `v0.1.0` tag.
+
+Do not import acceptance requirements from sibling `akaiagents` work. Missing website analytics/report scripts are not Topic Intelligence Skill failures.
 
 ## Gate 1 — repository/offline contracts
 
 Run:
 
 ```bash
+python3 scripts/sync_skill_runtime.py --check
 python3 -m unittest discover -s tests -v
 ```
 
@@ -46,7 +50,9 @@ Must prove:
 - M3.1 quality eval matrix is valid and covers the required failure/task states;
 - all existing M0/M1/M2 trigger, evidence, installer, and release tests remain green.
 
-No network is required.
+The extracted-ZIP HTTP E2E uses a loopback socket. Some managed sandboxes deny even local socket bind. In that specific environment the test may report `skipped` for `PermissionError`; that is an environment limitation, not a code failure, provided the same commit has a successful normal CI run where the HTTP E2E executes. Other failures remain failures.
+
+No public network is required for Gate 1.
 
 ## Gate 2 — deterministic standalone package E2E
 
@@ -67,11 +73,13 @@ Requirements:
 - each extracted helper executes from a working directory outside the repository;
 - no repository-root helper or sibling repository is required.
 
-The automated unit suite already exercises the extracted helper against an offline local fake Radar HTTP server. A release candidate must keep that test green.
+The normal CI suite exercises the extracted helper against an offline local fake Radar HTTP server. A release candidate must keep that CI test green.
 
 ## Gate 3 — isolated Codex install matrix
 
 Use fresh processes/conversations. Do not rely on an already-loaded Skill catalog.
+
+A network-restricted Codex sandbox is acceptable for discovery, trigger routing, evidence-boundary behavior, and blocked-live-data checks. Do not classify its DNS failure as a production or Skill failure.
 
 Validate three installation shapes separately:
 
@@ -85,7 +93,9 @@ creator-topic-opportunity-research
 
 Expected:
 
-- current topic scan works with live access;
+- Skill discovery/selection works;
+- with live access, current topic scan works;
+- without live access, it stops safely and does not use local/sibling evidence;
 - it does not pretend the Brief Skill ran;
 - when the user asks to continue, it can expose one handoff-ready selected candidate and explain that the full Brief Skill is unavailable.
 
@@ -99,11 +109,13 @@ evidence-backed-content-brief
 
 Expected:
 
-- named topic resolution works;
+- Skill discovery/selection works;
+- named topic resolution works when live evidence is available;
 - “pick one for me” uses the bounded fallback, normally <=5 candidates;
 - no new score is invented;
 - insight is called only after one topic is selected;
-- no-useful-candidate is an allowed result.
+- no-useful-candidate is an allowed result;
+- when live access is blocked, it stops instead of fabricating a candidate.
 
 ### C. Both Skills
 
@@ -124,6 +136,8 @@ creator-topic-opportunity-research
 
 The selected feed `id` must remain the exact `topic_id` consumed by history/insight. A valid current-task handoff must not trigger title-based topic rediscovery.
 
+If the host does not expose internal Skill-to-Skill trace, run one audit prompt that explicitly asks it to surface the compact `ati.topic-opportunity-handoff.v1` object before continuing into the Brief. Validate `topic_id == topic_snapshot.id` and the same ID in downstream history/insight when those calls are observable. Do not guess hidden trace state.
+
 ## Gate 4 — trigger safety
 
 Run the existing `evals/cases.json` positive/negative trigger suite in fresh Codex sessions.
@@ -134,6 +148,8 @@ Requirements:
 - direct single-company/current-news lookups that do not ask for creator/editorial opportunity research do not attract Topic Intelligence;
 - pure rewriting/summarization/title-generation over fully supplied material does not attract Brief;
 - explicit Skill invocation still works.
+
+Timeout or non-observable host traces must be reported separately from false positives/false negatives. Do not invent a selected Skill name when the host does not expose it.
 
 ## Gate 5 — M3.1 task-quality matrix
 
@@ -155,29 +171,35 @@ For fixture-driven failure states that are impractical to force against producti
 
 ## Gate 6 — live network E2E
 
-Use a normal network-capable environment, not a network-restricted trigger sandbox.
+Use an execution path explicitly allowed to reach the public Topic Radar API. A normal standalone helper shell is sufficient for transport validation. A managed Codex `read-only` or network-disabled sandbox is not required to pass live transport.
+
+Do not switch to dangerous/full-access sandbox modes merely to regain network access. Keep live-network capability and filesystem permission decisions separate.
 
 Minimum live checks:
 
-1. Creator-only current scan:
+1. Standalone Creator helper:
    - feed reachable;
-   - freshness fields surfaced;
-   - compact current shortlist or explicit no-useful-candidate.
-2. Brief-only current selection:
-   - bounded feed selection;
-   - exact selected feed ID preserved;
-   - one real insight request after selection.
-3. Both-Skills composed workflow:
-   - Opportunity Skill selects one current topic;
+   - freshness fields visible;
+   - stable feed IDs present.
+2. Standalone Brief helper:
+   - history preserves the exact selected feed ID;
+   - perform at most one intentional insight request for the selected topic;
+   - capture stdout, stderr, exit code, and elapsed time separately;
+   - if the request times out or the upstream returns no usable response, report `LIVE_INSIGHT_BLOCKED` and do not retry across other topics.
+3. Fresh Codex workflows:
+   - if the Codex sandbox itself cannot reach live Radar, use it only for discovery/blocked behavior;
+   - current API responses obtained in the same acceptance run may be supplied to a fresh Skill session as current user-supplied Radar evidence when freshness fields are visible;
+   - never substitute persisted historical/local data.
+4. Both-Skills composition:
+   - Opportunity Skill selects one current topic from live/current supplied evidence;
    - formal handoff uses exact feed ID;
    - Brief consumes the same topic ID without title rediscovery;
-   - one real insight request for that selected topic;
-   - output includes `must_verify`, `avoid_claims`, and research handoff.
-4. Network blocked/degraded check in read-only sandbox:
+   - if live insight is separately unavailable, the Brief must degrade to an evidence-based skeleton and clearly label that limitation rather than breaking handoff continuity.
+5. Network blocked/degraded check in read-only sandbox:
    - Skill stops current-state workflow;
    - no local/sibling snapshot fallback.
 
-Do not run insight across a broad feed. A few intentional selected-topic calls are enough.
+A `stale=true` live feed is valid transport evidence but is not sufficient for a confident “current/fresh” recommendation. Record that as `LIVE_DATA_STALE` and wait for a fresher snapshot for final live-quality acceptance rather than overriding the Skill evidence boundary.
 
 ## Gate 7 — ChatGPT package smoke (manual UI, when eligible)
 
@@ -191,6 +213,19 @@ Codex cannot validate ChatGPT's product UI. If an eligible ChatGPT workspace is 
 
 This manual UI gate must not be replaced by assumptions about current ChatGPT upload behavior.
 
+## Acceptance classification
+
+Keep failure classes separate:
+
+- `CODE` — repository/runtime/contract defect reproduced outside environment restrictions;
+- `CODEX_ENVIRONMENT` — sandbox/socket/trace/timeout limitation specific to Codex execution;
+- `LIVE_NETWORK` — public Radar/Insight unavailable or stale enough to block the requested live-quality claim;
+- `SKILL_DISCOVERY` — installed Skill is not discoverable/selected when observable;
+- `HANDOFF` — observable ID continuity or handoff-schema violation;
+- `INSTALL_RESTORE` — acceptance failed to restore the user's original Skill installation.
+
+Do not report `CODE` merely because a managed sandbox blocks sockets or DNS when normal CI/standalone transport passes.
+
 ## Acceptance report
 
 Record:
@@ -202,9 +237,10 @@ Record:
 - `VERSION`.
 
 ### Offline
-- test count/result;
+- test count/result/skips;
 - deterministic archive check;
-- standalone extracted-helper result.
+- standalone extracted-helper result;
+- normal CI status for the tested commit when local loopback is skipped.
 
 ### Install matrix
 - creator-only;
@@ -215,14 +251,15 @@ Record:
 - positives passed;
 - negatives passed;
 - false positives;
-- false negatives.
+- false negatives;
+- unobservable/timeouts separately.
 
 ### Live E2E
 - feed freshness/status;
 - selected topic ID;
 - handoff topic ID;
 - Brief history/insight topic ID;
-- insight elapsed/result quality;
+- insight exit code/stderr/elapsed/result quality;
 - blocked-live-data behavior.
 
 ### Quality
