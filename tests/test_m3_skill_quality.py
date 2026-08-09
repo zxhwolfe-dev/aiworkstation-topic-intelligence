@@ -80,18 +80,10 @@ class M3SkillQualityTests(unittest.TestCase):
 
     def test_handoff_contract_is_identical_in_both_skills(self) -> None:
         creator = (
-            ROOT
-            / "skills"
-            / "creator-topic-opportunity-research"
-            / "references"
-            / "handoff-contract.md"
+            ROOT / "skills" / SKILLS[0] / "references" / "handoff-contract.md"
         ).read_text(encoding="utf-8")
         brief = (
-            ROOT
-            / "skills"
-            / "evidence-backed-content-brief"
-            / "references"
-            / "handoff-contract.md"
+            ROOT / "skills" / SKILLS[1] / "references" / "handoff-contract.md"
         ).read_text(encoding="utf-8")
         self.assertEqual(creator, brief)
         self.assertIn(HANDOFF_SCHEMA, creator)
@@ -100,20 +92,17 @@ class M3SkillQualityTests(unittest.TestCase):
         self.assertIn("persisted handoff is never a substitute", creator)
 
     def test_creator_skill_produces_current_task_handoff(self) -> None:
-        source = (
-            ROOT / "skills" / "creator-topic-opportunity-research" / "SKILL.md"
-        ).read_text(encoding="utf-8")
+        source = (ROOT / "skills" / SKILLS[0] / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("### Self-contained runtime", source)
         self.assertIn("references/handoff-contract.md", source)
         self.assertIn(HANDOFF_SCHEMA, source)
         self.assertIn("Do not serialize the whole feed", source)
         self.assertIn("valid only for the current task/session workflow", source)
         self.assertIn("Do not assume a repository-root", source)
+        self.assertIn("do not call anonymous/public", source.lower())
 
     def test_brief_skill_supports_handoff_bounded_selection_and_host_reasoning(self) -> None:
-        source = (
-            ROOT / "skills" / "evidence-backed-content-brief" / "SKILL.md"
-        ).read_text(encoding="utf-8")
+        source = (ROOT / "skills" / SKILLS[1] / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("### Mode A — current-task Topic Opportunity handoff", source)
         self.assertIn("### Mode B — user supplies a current topic ID or name", source)
         self.assertIn("### Mode C — Brief-only bounded selection", source)
@@ -121,7 +110,8 @@ class M3SkillQualityTests(unittest.TestCase):
         self.assertIn("Build the brief with host reasoning", source)
         self.assertIn("do not run another candidate-selection feed pass", source)
         self.assertIn("Never call anonymous/public server `/insight`", source)
-        self.assertIn("native authenticated AI Workstation connection", source)
+        self.assertIn("native AI Workstation connection", source)
+        self.assertIn("explicitly authenticated", source)
 
     def test_release_archives_include_required_standalone_runtime_files(self) -> None:
         with tempfile.TemporaryDirectory() as output_dir:
@@ -155,18 +145,9 @@ class M3SkillQualityTests(unittest.TestCase):
                     destination.mkdir()
                     with ZipFile(archive_path) as archive:
                         archive.extractall(destination)
-                    skill_root = destination / item["skill"]
-                    helper = skill_root / "scripts" / "topic_radar_client.py"
+                    helper = destination / item["skill"] / "scripts" / "topic_radar_client.py"
                     completed = subprocess.run(
-                        [
-                            sys.executable,
-                            str(helper),
-                            "--base-url",
-                            base_url,
-                            "feed",
-                            "--limit",
-                            "1",
-                        ],
+                        [sys.executable, str(helper), "--base-url", base_url, "feed", "--limit", "1"],
                         cwd=outside_dir,
                         text=True,
                         stdout=subprocess.PIPE,
