@@ -17,7 +17,9 @@ python3 scripts/install_codex_skills.py doctor
 
 The installer links the two Skill directories into `$HOME/.agents/skills` and refuses to overwrite unrelated paths.
 
-Because installation uses symlinks, updating the checked-out repository updates the installed Skill source immediately. After changing versions or branches, run `doctor` again.
+Because installation uses symlinks, updating the checked-out repository updates the installed Skill source immediately. After changing versions or branches, run `install` and then `doctor`; `install` is idempotent and also performs safe pre-release name migration when needed.
+
+The final public 0.1.0 Skill name is `creator-topic-opportunity-research`. Internal pre-0.1.0 checkouts used `cross-market-trend-research`; the installer removes that legacy symlink only when it points to this checkout's old Skill path. Unrelated paths are never removed automatically.
 
 ### 2. Standalone Skill archives
 
@@ -31,7 +33,7 @@ The builder produces:
 
 ```text
 dist/
-  aiworkstation-topic-intelligence-VERSION-cross-market-trend-research.zip
+  aiworkstation-topic-intelligence-VERSION-creator-topic-opportunity-research.zip
   aiworkstation-topic-intelligence-VERSION-evidence-backed-content-brief.zip
   release-manifest.json
   SHA256SUMS
@@ -92,9 +94,10 @@ It records the package name, release version, license identifier, Skill name, fi
 
 1. switch to the desired release/main branch;
 2. `git pull --ff-only` or checkout a release tag;
-3. run `python3 scripts/install_codex_skills.py doctor`.
+3. run `python3 scripts/install_codex_skills.py install`;
+4. run `python3 scripts/install_codex_skills.py doctor`.
 
-No reinstall is needed when the existing symlinks still point to this checkout.
+No manual reinstall/copy is needed. The idempotent installer keeps matching current links and performs safe legacy-name migration when necessary.
 
 ### Standalone/ChatGPT install
 
