@@ -1,6 +1,0 @@
-interface:
-  display_name: "Cross-Market Trend Research"
-  short_description: "Prioritize creator/editorial topic opportunities from live Radar"
-  default_prompt: "Compare and prioritize live topic opportunities for a content or editorial decision using AI Workstation Global Topic Radar evidence."
-policy:
-  allow_implicit_invocation: true
