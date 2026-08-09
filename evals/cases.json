@@ -8,7 +8,7 @@
       "expected_calls": ["feed"],
       "optional_calls": ["sources", "history"],
       "must_show": ["freshness", "source facts", "unknowns"],
-      "must_not": ["invent current topics from model memory", "use local or sibling-repository snapshots as current evidence"]
+      "must_not": ["invent current topics from model memory", "use local or sibling-repository snapshots as current evidence", "call anonymous server insight"]
     },
     {
       "id": "trend-zh-early-multisource",
@@ -17,7 +17,7 @@
       "expected_calls": ["feed"],
       "optional_calls": ["history"],
       "must_show": ["opportunity_score", "trend_stage", "evidence"],
-      "must_not": ["create a second score", "use stale local data when live access fails"]
+      "must_not": ["create a second score", "use stale local data when live access fails", "call anonymous server insight"]
     },
     {
       "id": "trend-en-cross-market",
@@ -26,7 +26,7 @@
       "expected_calls": ["feed"],
       "optional_calls": ["sources", "history"],
       "must_show": ["cross-market hypothesis when lead-lag is not verified"],
-      "must_not": ["state an unverified propagation path as fact", "replace live evidence with local snapshots"]
+      "must_not": ["state an unverified propagation path as fact", "replace live evidence with local snapshots", "call anonymous server insight"]
     },
     {
       "id": "trend-platform-compare",
@@ -35,34 +35,34 @@
       "expected_calls": ["feed"],
       "optional_calls": ["sources", "history"],
       "must_show": ["comparable time windows", "source coverage"],
-      "must_not": ["treat target_platforms as observed performance", "use local cached data as current platform evidence"]
+      "must_not": ["treat target_platforms as observed performance", "use local cached data as current platform evidence", "call anonymous server insight"]
     },
     {
       "id": "brief-zh-from-current-topic",
       "prompt": "这个热点现在值得拍短视频吗？给我一个能直接进入资料研究阶段的选题简报。",
       "expected_skill": "evidence-backed-content-brief",
-      "expected_calls": ["feed", "insight"],
+      "expected_calls": ["feed"],
       "optional_calls": ["history"],
-      "must_show": ["selected angle", "must_verify", "avoid_claims", "research handoff"],
-      "must_not": ["present insight as verified fact", "use a local stale snapshot as the current topic"]
+      "must_show": ["selected angle", "must_verify", "avoid_claims", "research handoff", "host editorial analysis"],
+      "must_not": ["call anonymous server insight", "spend AI Workstation server-side model quota", "use a local stale snapshot as the current topic"]
     },
     {
       "id": "brief-zh-pick-best",
       "prompt": "从今天的AI热点里挑一个最适合做2到3分钟短视频的题材，然后给我完整选题简报。",
       "expected_skill": "evidence-backed-content-brief",
-      "expected_calls": ["feed", "insight"],
+      "expected_calls": ["feed"],
       "optional_calls": ["history"],
-      "must_show": ["why now", "opening_3_seconds", "visual plan", "research questions"],
-      "must_not": ["call insight across a large feed", "recover a current topic from sibling-repository data"]
+      "must_show": ["why now", "opening_3_seconds", "visual plan", "research questions", "host-generated brief"],
+      "must_not": ["call anonymous server insight", "spend AI Workstation server-side model quota", "recover a current topic from sibling-repository data"]
     },
     {
       "id": "brief-en-known-topic",
       "prompt": "Turn this current Radar topic into a research-ready content brief with the strongest angle, verification checklist, and claims to avoid.",
       "expected_skill": "evidence-backed-content-brief",
-      "expected_calls": ["feed", "insight"],
+      "expected_calls": ["feed"],
       "optional_calls": ["history"],
-      "must_show": ["audience payoff", "platform fit", "claims boundary"],
-      "must_not": ["invent missing source facts", "use ../akaiagents or any local snapshot as current evidence"]
+      "must_show": ["audience payoff", "platform fit", "claims boundary", "host editorial analysis"],
+      "must_not": ["invent missing source facts", "use ../akaiagents or any local snapshot as current evidence", "call anonymous server insight"]
     },
     {
       "id": "trend-zh-less-crowded",
@@ -71,7 +71,7 @@
       "expected_calls": ["feed"],
       "optional_calls": ["sources", "history"],
       "must_show": ["current evidence", "cross-market hypothesis", "unknown audience saturation"],
-      "must_not": ["claim Chinese-market saturation is measured when it is not", "use local snapshots as current evidence"]
+      "must_not": ["claim Chinese-market saturation is measured when it is not", "use local snapshots as current evidence", "call anonymous server insight"]
     },
     {
       "id": "trend-en-freshness-first",
@@ -80,25 +80,25 @@
       "expected_calls": ["feed"],
       "optional_calls": ["sources", "history"],
       "must_show": ["freshness", "partial/stale state", "source coverage"],
-      "must_not": ["hide stale or partial coverage", "replace live evidence with cached local data"]
+      "must_not": ["hide stale or partial coverage", "replace live evidence with cached local data", "call anonymous server insight"]
     },
     {
       "id": "brief-zh-xiaohongshu",
       "prompt": "从当前科技热点里挑一个更适合小红书图文、而不是短视频的题材，给我研究就绪的内容简报。",
       "expected_skill": "evidence-backed-content-brief",
-      "expected_calls": ["feed", "insight"],
+      "expected_calls": ["feed"],
       "optional_calls": ["history"],
-      "must_show": ["platform fit", "selected angle", "research questions", "must_verify"],
-      "must_not": ["assume short-video format is mandatory", "use local stale data as the current topic"]
+      "must_show": ["platform fit", "selected angle", "research questions", "must_verify", "host-generated brief"],
+      "must_not": ["assume short-video format is mandatory", "use local stale data as the current topic", "call anonymous server insight"]
     },
     {
       "id": "brief-en-verification-heavy",
       "prompt": "Pick one current AI topic for an evidence-heavy explainer and give me the angle with the lowest verification risk plus the research handoff.",
       "expected_skill": "evidence-backed-content-brief",
-      "expected_calls": ["feed", "insight"],
+      "expected_calls": ["feed"],
       "optional_calls": ["history"],
-      "must_show": ["verification burden", "fact basis", "research handoff", "claims boundary"],
-      "must_not": ["choose the most sensational angle by default", "recover current facts from sibling files"]
+      "must_show": ["verification burden", "fact basis", "research handoff", "claims boundary", "host editorial analysis"],
+      "must_not": ["choose the most sensational angle by default", "recover current facts from sibling files", "call anonymous server insight", "spend AI Workstation server-side model quota"]
     },
     {
       "id": "negative-evergreen-history",
