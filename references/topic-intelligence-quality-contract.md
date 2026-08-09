@@ -21,6 +21,20 @@ Examples that must remain post-query selection constraints unless the user expli
 
 If a query returns irrelevant candidates because a user constraint was mapped to the wrong Radar dimension, correct the mapping once and explain the correction briefly. Do not broaden into an unrelated full-market search.
 
+### Preserve explicit topic/domain scope from the first bounded query
+
+Content-format constraints should stay out of Radar platform/source filters, but **subject/domain constraints supplied by the user must stay in the query**.
+
+Examples:
+
+- `AI 热点` / `AI topics` → first bounded scan must stay AI-focused rather than starting with generic technology;
+- `机器人` / `robotics` → do not broaden to all technology unless the user asks for it;
+- `芯片` / `semiconductors` → keep that domain in `q`, `keywords`, `category`, or another supported live Radar dimension as appropriate.
+
+When the user explicitly names a topic/domain, carry that constraint into the first bounded feed request using the narrowest supported Radar fields. Do not begin with a broader parent domain merely for convenience and then spend another query removing irrelevant candidates.
+
+Only broaden the topic/domain when the narrow live query produces too few usable candidates or the user asks for exploration beyond that domain. If broadening is necessary, say so briefly and keep the original domain as a post-query relevance constraint.
+
 ## 2. Preserve provenance in user-facing claims
 
 Keep three analytical layers distinguishable:
