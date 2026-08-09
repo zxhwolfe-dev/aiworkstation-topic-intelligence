@@ -42,16 +42,22 @@
     },
     {
       "id": "chatgpt",
-      "status": "manual_smoke_required",
-      "skill_discovery": "unverified",
-      "standalone_package": "unverified",
-      "bundled_runtime_execution": "unverified",
-      "live_topic_radar_access": "unverified",
-      "multi_skill_composition": "unverified",
-      "evidence": [],
+      "status": "skills_only_pass_with_ui_observability_limit",
+      "skill_discovery": "validated",
+      "standalone_package": "validated",
+      "bundled_runtime_execution": "validated",
+      "live_topic_radar_access": "validated",
+      "multi_skill_composition": "validated_behaviorally_handoff_trace_not_exposed",
+      "evidence": [
+        "docs/chatgpt-v0.2.0-smoke-result-2026-08-09.md"
+      ],
       "notes": [
-        "Do not infer ChatGPT behavior from Codex acceptance.",
-        "Test creator-only, brief-only, and both-Skills with the published v0.2.0 artifacts when an eligible workspace is available."
+        "Published v0.2.0 Creator-only, Brief-only, and both-Skills shapes were manually exercised in ChatGPT web.",
+        "Creator-only reached live Radar and respected freshness/source boundaries.",
+        "Brief-only performed bounded selection, selected one topic, reached history and server Topic Insight, and produced the required brief sections.",
+        "With both Skills installed, ChatGPT explicitly consulted Creator before selecting one finalist and then continued to finalist history/Insight without a second broad selection pass.",
+        "The ChatGPT UI did not expose the raw ati.topic-opportunity-handoff.v1 payload or an internal handoff ID trace, so exact internal handoff serialization is not claimed as directly observed.",
+        "No Hosted MCP transport is justified by the current ChatGPT evidence because standalone package execution and live aiworkstation.cn access both succeeded."
       ]
     }
   ]
