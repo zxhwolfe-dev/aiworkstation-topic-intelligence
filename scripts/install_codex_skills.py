@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Install Topic Intelligence skills into Codex's user skill directory.
+"""Install and diagnose Topic Intelligence Skills for Codex.
 
 The installer uses symlinks so the checked-out repository remains the source of
-truth. It never overwrites an existing unrelated skill directory or symlink.
+truth. It never overwrites an existing unrelated Skill directory or symlink.
 """
 
 from __future__ import annotations
@@ -10,14 +10,18 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Optional
 
 
 SKILL_NAMES = (
     "cross-market-trend-research",
     "evidence-backed-content-brief",
+)
+VERSION_RE = re.compile(
+    r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$"
 )
 
 
@@ -27,6 +31,17 @@ class InstallError(RuntimeError):
 
 def repository_root() -> Path:
     return Path(__file__).resolve().parents[1]
+
+
+def project_version(root: Optional[Path] = None) -> str:
+    repo = (root or repository_root()).resolve()
+    try:
+        version = (repo / "VERSION").read_text(encoding="utf-8").strip()
+    except FileNotFoundError as exc:
+        raise InstallError("VERSION file is missing") from exc
+    if not VERSION_RE.fullmatch(version):
+        raise InstallError(f"invalid VERSION: {version!r}")
+    return version
 
 
 def default_target_root() -> Path:
@@ -115,19 +130,56 @@ def uninstall(target_root: Path, *, root: Optional[Path] = None) -> list[dict[st
     return inspect(target_root, root=root)
 
 
-def _print(rows: Iterable[dict[str, str]]) -> None:
-    print(json.dumps(list(rows), ensure_ascii=False, indent=2))
+def doctor(target_root: Path, *, root: Optional[Path] = None) -> dict[str, object]:
+    repo = (root or repository_root()).resolve()
+    version = project_version(repo)
+    rows = inspect(target_root.expanduser(), root=repo)
+    skill_checks: list[dict[str, object]] = []
+    for row in rows:
+        source = Path(row["source"])
+        metadata = source / "agents" / "openai.yaml"
+        skill_md = source / "SKILL.md"
+        check: dict[str, object] = {
+            **row,
+            "skill_md": "ok" if skill_md.is_file() else "missing",
+            "openai_metadata": "ok" if metadata.is_file() else "missing",
+        }
+        check["ok"] = (
+            row["state"] == "installed"
+            and check["skill_md"] == "ok"
+            and check["openai_metadata"] == "ok"
+        )
+        skill_checks.append(check)
+
+    python_ok = sys.version_info >= (3, 10)
+    return {
+        "name": "aiworkstation-topic-intelligence",
+        "version": version,
+        "repository_root": str(repo),
+        "target_root": str(target_root.expanduser()),
+        "python": ".".join(str(part) for part in sys.version_info[:3]),
+        "python_supported": python_ok,
+        "skills": skill_checks,
+        "ok": python_ok and all(bool(item["ok"]) for item in skill_checks),
+    }
+
+
+def _print(value: object) -> None:
+    print(json.dumps(value, ensure_ascii=False, indent=2))
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Safely symlink Topic Intelligence skills into Codex"
+        description="Safely install and diagnose Topic Intelligence Skills for Codex"
     )
-    parser.add_argument("command", choices=("install", "status", "uninstall"))
+    parser.add_argument(
+        "command",
+        choices=("install", "status", "doctor", "version", "uninstall"),
+    )
     parser.add_argument(
         "--target-root",
         default=None,
-        help="Override Codex skill root (default: $HOME/.agents/skills)",
+        help="Override Codex Skill root (default: $HOME/.agents/skills)",
     )
     return parser
 
@@ -140,16 +192,25 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     try:
         if args.command == "install":
-            rows = install(target_root)
+            payload: object = install(target_root)
         elif args.command == "uninstall":
-            rows = uninstall(target_root)
+            payload = uninstall(target_root)
+        elif args.command == "doctor":
+            payload = doctor(target_root)
+        elif args.command == "version":
+            payload = {
+                "name": "aiworkstation-topic-intelligence",
+                "version": project_version(),
+            }
         else:
-            rows = inspect(target_root)
+            payload = inspect(target_root)
     except InstallError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
-    _print(rows)
+    _print(payload)
+    if args.command == "doctor" and isinstance(payload, dict) and not payload.get("ok"):
+        return 1
     return 0
 
 
