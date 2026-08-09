@@ -13,7 +13,7 @@ from zipfile import ZIP_STORED, ZipFile, ZipInfo
 
 
 SKILL_NAMES = (
-    "cross-market-trend-research",
+    "creator-topic-opportunity-research",
     "evidence-backed-content-brief",
 )
 VERSION_RE = re.compile(
