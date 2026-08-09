@@ -25,6 +25,28 @@
       ]
     },
     {
+      "id": "ai-domain-preserved-from-first-query",
+      "prompt": "从当前 AI 热点里挑一个最适合做 2–3 分钟中文解释视频的题材。",
+      "installed_skills": [
+        "creator-topic-opportunity-research",
+        "evidence-backed-content-brief"
+      ],
+      "expected_workflow": [
+        "creator-topic-opportunity-research",
+        "ati.topic-opportunity-handoff.v1",
+        "evidence-backed-content-brief"
+      ],
+      "must_show": [
+        "AI domain retained in the first bounded candidate query",
+        "one AI-relevant finalist"
+      ],
+      "must_not": [
+        "start with a generic technology feed when the user explicitly asked for AI",
+        "spend a second query only to remove generic non-AI technology candidates",
+        "drop explicit user topic/domain scope"
+      ]
+    },
+    {
       "id": "creator-host-judgment-provenance",
       "prompt": "今天有哪些 AI 题材值得中国普通科技用户继续研究？给我最值得看的三个，并说明为什么。",
       "installed_skills": [
