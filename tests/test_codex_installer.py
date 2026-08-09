@@ -15,9 +15,10 @@ from scripts.install_codex_skills import (
 
 
 SKILLS = (
-    "cross-market-trend-research",
+    "creator-topic-opportunity-research",
     "evidence-backed-content-brief",
 )
+LEGACY_SKILL = "cross-market-trend-research"
 
 
 def make_fake_repo(root: Path, *, version: str = "0.1.0") -> None:
@@ -50,6 +51,27 @@ class CodexInstallerTests(unittest.TestCase):
             for name in SKILLS:
                 self.assertTrue((target / name).is_symlink())
                 self.assertEqual((target / name).resolve(), (repo / "skills" / name).resolve())
+
+    def test_install_migrates_matching_broken_legacy_symlink(self) -> None:
+        with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as target_dir:
+            repo = Path(repo_dir)
+            target = Path(target_dir) / "skills"
+            make_fake_repo(repo)
+            target.mkdir(parents=True)
+
+            legacy_source = repo / "skills" / LEGACY_SKILL
+            legacy_link = target / LEGACY_SKILL
+            legacy_link.symlink_to(legacy_source, target_is_directory=True)
+            self.assertTrue(legacy_link.is_symlink())
+            self.assertFalse(legacy_source.exists())
+
+            rows = install(target, root=repo)
+            report = doctor(target, root=repo)
+
+            self.assertFalse(legacy_link.is_symlink())
+            self.assertEqual([row["state"] for row in rows], ["installed", "installed"])
+            self.assertTrue(report["legacy_clean"])
+            self.assertTrue(report["ok"])
 
     def test_install_refuses_conflict_before_creating_other_links(self) -> None:
         with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as target_dir:
@@ -106,6 +128,7 @@ class CodexInstallerTests(unittest.TestCase):
 
             self.assertEqual(report["version"], "0.1.0")
             self.assertTrue(report["python_supported"])
+            self.assertTrue(report["legacy_clean"])
             self.assertTrue(report["ok"])
             self.assertEqual(len(report["skills"]), 2)
             self.assertTrue(all(item["skill_md"] == "ok" for item in report["skills"]))
