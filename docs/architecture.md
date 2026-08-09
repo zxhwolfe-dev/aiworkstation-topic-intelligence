@@ -55,6 +55,11 @@ Owns the workflow/reasoning plane:
 - compare regions/platforms without inventing a propagation path;
 - turn one verified topic into a research-ready content brief.
 
+The two public-preview Skills are:
+
+- `creator-topic-opportunity-research` — compare and prioritize live topic candidates for creator/editorial decisions;
+- `evidence-backed-content-brief` — convert a live Radar topic into an evidence-aware research-ready content brief.
+
 ### Thin helper
 
 `scripts/topic_radar_client.py` is an optional transport adapter for local hosts.
@@ -89,11 +94,11 @@ The helper currently needs only Python 3.10+ standard library. If future code ad
 
 Do not import private `akaiagents` modules. The public API is the boundary.
 
-## Current M0
+## M0 foundation
 
-Included:
+The original M0 established:
 
-- `cross-market-trend-research`;
+- topic-opportunity research workflow (now published as `creator-topic-opportunity-research`);
 - `evidence-backed-content-brief`;
 - thin public API helper;
 - offline unit tests and minimal CI;
@@ -110,6 +115,6 @@ Not included:
 
 ## Future decision: Skills-only vs hosted connection
 
-M0 intentionally validates the Skills first.
+The project intentionally validates the Skills first.
 
 If a target host cannot reliably access the public API from a Skill/local helper, add a small hosted tool/MCP surface later. That is a transport/productization decision, not a reason to duplicate Topic Radar logic.
