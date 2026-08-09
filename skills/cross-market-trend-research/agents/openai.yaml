@@ -1,6 +1,6 @@
 interface:
   display_name: "Cross-Market Trend Research"
-  short_description: "Find current and rising topics from Global Topic Radar"
-  default_prompt: "Find the strongest current or rising content-topic opportunities using live AI Workstation Global Topic Radar evidence."
+  short_description: "Prioritize creator/editorial topic opportunities from live Radar"
+  default_prompt: "Compare and prioritize live topic opportunities for a content or editorial decision using AI Workstation Global Topic Radar evidence."
 policy:
   allow_implicit_invocation: true
