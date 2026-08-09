@@ -9,6 +9,16 @@ Use this Skill for **current topic discovery and trend interpretation** based on
 
 Do not use model memory as a substitute for live trend data.
 
+## Host quality contract
+
+Before mapping user constraints to Radar filters, making audience/editorial judgments, or composing into the Brief Skill, read and follow:
+
+```text
+references/quality-contract.md
+```
+
+In particular, keep content format/duration/language/audience constraints separate from Radar platform/source filters, make Radar facts distinguishable from host editorial analysis, and do not trigger a second broad candidate-selection pass after a valid current-task Opportunity handoff.
+
 ## Product boundary
 
 Global Topic Radar already owns:
