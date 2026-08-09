@@ -26,9 +26,9 @@ Topic Intelligence intentionally does not duplicate crawlers, topic clustering, 
 
 ## Skills
 
-### `cross-market-trend-research`
+### `creator-topic-opportunity-research`
 
-Use live Topic Radar data to find current topics, rising/early opportunities, platform or region differences, and evidence-aware cross-market timing hypotheses.
+Compare and prioritize live Topic Radar candidates for creator/editorial publishing decisions, including rising/early opportunities, platform or region differences, freshness, and evidence-aware cross-market timing hypotheses.
 
 Typical request:
 
@@ -69,7 +69,7 @@ Default destination:
 $HOME/.agents/skills/
 ```
 
-The installer uses safe symlinks, is idempotent, and refuses to overwrite unrelated paths.
+The installer uses safe symlinks, is idempotent, and refuses to overwrite unrelated paths. Pre-0.1.0 checkouts used the legacy name `cross-market-trend-research`; `install` safely removes that old symlink only when it points to this checkout and replaces it with `creator-topic-opportunity-research`.
 
 Useful commands:
 
@@ -80,7 +80,7 @@ python3 scripts/install_codex_skills.py doctor
 python3 scripts/install_codex_skills.py uninstall
 ```
 
-Inside interactive Codex, `/skills` can confirm discovery when available. Explicit invocation uses `$cross-market-trend-research` or `$evidence-backed-content-brief`; implicit invocation is covered by the eval suite.
+Inside interactive Codex, `/skills` can confirm discovery when available. Explicit invocation uses `$creator-topic-opportunity-research` or `$evidence-backed-content-brief`; implicit invocation is covered by the eval suite.
 
 ## Build standalone Skill archives
 
@@ -92,7 +92,7 @@ Output:
 
 ```text
 dist/
-  aiworkstation-topic-intelligence-0.1.0-cross-market-trend-research.zip
+  aiworkstation-topic-intelligence-0.1.0-creator-topic-opportunity-research.zip
   aiworkstation-topic-intelligence-0.1.0-evidence-backed-content-brief.zip
   release-manifest.json
   SHA256SUMS
