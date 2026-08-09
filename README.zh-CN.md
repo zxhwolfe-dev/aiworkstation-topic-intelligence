@@ -100,7 +100,7 @@ dist/
   SHA256SUMS
 ```
 
-每个 ZIP 只包含一个自包含 Skill。构建是确定性的；Skill 目录里如果存在 symlink，发行构建会直接拒绝，避免包意外引用外部文件。
+每个 ZIP 只包含一个自包含 Skill，并带有 `SKILL.md`、`agents/openai.yaml` 和 Apache-2.0 `LICENSE`。构建是确定性的；Skill 目录里如果存在 symlink，发行构建会直接拒绝，避免包意外引用外部文件。
 
 完整分发、升级、ChatGPT 上传、GitHub Release、未来 Plugin/Hosted MCP 边界见 [`docs/distribution.md`](docs/distribution.md)。
 
@@ -108,7 +108,7 @@ dist/
 
 当前 OpenAI 产品文档支持 ChatGPT 中的可复用 Skills，并允许符合条件的账号/工作区从本机上传 Skill。OpenAI Skills 遵循 Agent Skills 开放标准。
 
-需要安装哪个 Skill，就使用对应的独立 ZIP。具体可用性取决于当前 ChatGPT 套餐、工作区权限和使用界面。
+GitHub Release 中的 ZIP 是每个 Skill 的便携、可校验发行资产。实际安装时使用当时 ChatGPT 产品支持的 Skill 上传流程；如果界面要求上传解包后的 Skill 文件/目录而不是 ZIP 容器本身，就先解包再上传。具体可用性取决于当前 ChatGPT 套餐、工作区权限和使用界面。
 
 不要假设某一个 ChatGPT 界面安装后的 Skill 会自动覆盖或同步所有其他界面的安装。
 
@@ -178,6 +178,7 @@ M1 原始 12 条真实 Codex 验收中观察到 false positive = 0、false negat
 
 - 版本：[`VERSION`](VERSION)
 - 变更记录：[`CHANGELOG.md`](CHANGELOG.md)
+- 许可证：[`LICENSE`](LICENSE) — Apache-2.0
 - 分发说明：[`docs/distribution.md`](docs/distribution.md)
 - 发布清单：[`docs/release-checklist.md`](docs/release-checklist.md)
 
