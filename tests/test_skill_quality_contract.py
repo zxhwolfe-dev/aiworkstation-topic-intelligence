@@ -22,25 +22,39 @@ class SkillQualityContractTests(unittest.TestCase):
 
     def test_quality_contract_blocks_content_format_to_platform_mapping(self) -> None:
         content = CANONICAL.read_text(encoding="utf-8")
-        self.assertIn("User content constraints are not Radar platform filters", content)
+        self.assertIn("Separate Radar query constraints from content constraints", content)
         self.assertIn("短视频", content)
         self.assertIn("2–3 分钟", content)
         self.assertIn("Chinese-language", content)
-        self.assertIn("Never map a content-format", content)
+        self.assertIn("Never map content format", content)
+        self.assertIn("Preserve explicit topic/domain scope", content)
 
-    def test_quality_contract_preserves_three_provenance_layers(self) -> None:
+    def test_quality_contract_enforces_zero_server_llm_public_mode(self) -> None:
+        content = CANONICAL.read_text(encoding="utf-8")
+        self.assertIn("Public Skill cost boundary", content)
+        self.assertIn("GET /feed", content)
+        self.assertIn("GET /sources", content)
+        self.assertIn("GET /history", content)
+        self.assertIn("must **not** expose or call anonymous/public `POST /insight`", content)
+        self.assertIn("current host model", content)
+        self.assertIn("shared public bearer token", content)
+        self.assertIn("paste private AI Workstation credentials", content)
+        self.assertIn("native authenticated AI Workstation connection", content)
+
+    def test_quality_contract_preserves_provenance(self) -> None:
         content = CANONICAL.read_text(encoding="utf-8")
         self.assertIn("Radar facts", content)
-        self.assertIn("Server Topic Insight", content)
         self.assertIn("Host editorial analysis", content)
+        self.assertIn("Authenticated Premium Topic Insight", content)
         self.assertIn("分析/判断", content)
-        self.assertIn("supported by current Radar evidence", content)
+        self.assertIn("verified fact", content)
 
     def test_quality_contract_blocks_duplicate_selection_after_handoff(self) -> None:
         content = CANONICAL.read_text(encoding="utf-8")
-        self.assertIn("must not re-run broad selection", content.lower())
+        self.assertIn("Composition must not re-run broad selection", content)
         self.assertIn("ati.topic-opportunity-handoff.v1", content)
         self.assertIn("do **not** run another broad/bounded candidate-selection feed pass", content)
+        self.assertIn("finalist `/history` request is normal", content)
 
     def test_skill_definitions_and_openai_metadata_point_to_quality_contract(self) -> None:
         creator_skill = (CREATOR / "SKILL.md").read_text(encoding="utf-8")
@@ -52,11 +66,10 @@ class SkillQualityContractTests(unittest.TestCase):
             self.assertIn("references/quality-contract.md", content)
 
         self.assertIn("Host quality contract", creator_skill)
-        self.assertIn("Host quality contract", brief_skill)
-        self.assertIn("content-format/language/audience", creator_yaml)
-        self.assertIn("a second broad selection pass", creator_yaml)
-        self.assertIn("duration, language, audience, or tone", brief_yaml)
-        self.assertIn("server Topic Insight", brief_yaml)
+        self.assertIn("Host quality and cost contract", brief_skill)
+        self.assertIn("server-side model quota", creator_yaml)
+        self.assertIn("must not call anonymous", brief_yaml)
+        self.assertIn("authenticated Premium", brief_yaml)
 
     def test_release_and_sync_scripts_treat_quality_contract_as_portable(self) -> None:
         release = (ROOT / "scripts" / "build_release.py").read_text(encoding="utf-8")

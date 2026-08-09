@@ -1,68 +1,89 @@
 ---
 name: evidence-backed-content-brief
-description: Turn a live AI Workstation Global Topic Radar topic into an evidence-aware content strategy and research-ready brief using the existing feed, history, and topic-insight contracts. Use when the user wants to evaluate or select a current topic and plan its angle, audience, format, hook, verification, or research handoff. Do not use when the user already supplied the complete material and only wants rewriting, scripting, summarization, translation, or generic title generation without a live-topic decision.
+description: Turn a live AI Workstation Global Topic Radar topic into an evidence-aware, research-ready content brief using public Radar feed/source/history evidence and the host model's own reasoning. Use when the user wants to evaluate or select a current topic and plan its angle, audience, format, hook, verification, or research handoff. Do not use when the user already supplied complete material and only wants rewriting, scripting, summarization, translation, or generic title generation without a live-topic decision.
 ---
 
 # Evidence-Backed Content Brief
 
 Use this Skill when the user wants to turn a **current Radar topic** into a practical content plan.
 
-This Skill does not create a second topic-analysis backend. Reuse the existing Topic Radar `/insight` output whenever a server-known topic is available.
+The distributable public Skill must not spend AI Workstation server-side model quota. Its normal workflow uses live Radar facts plus the **current host model's own reasoning**.
 
-## Host quality contract
+## Host quality and cost contract
 
-Before mapping user constraints to Radar filters, selecting a standalone topic, consuming an Opportunity handoff, or adapting server Topic Insight, read and follow:
+Before mapping user constraints to Radar filters, selecting a standalone topic, consuming an Opportunity handoff, or generating a brief, read and follow:
 
 ```text
 references/quality-contract.md
 ```
 
-In particular, content format/duration/language/audience/tone are post-query content constraints rather than Radar platform/source filters unless the user names a real supported Radar dimension; a valid current-task handoff must not trigger another broad selection pass; and Radar facts, server Insight analysis, host editorial adaptation, and must-verify unknowns must remain distinguishable.
+Important consequences:
 
-## Required live contract
+- content format/duration/language/audience/tone are post-query content constraints, not Radar platform/source filters unless the user names a supported Radar dimension;
+- preserve an explicit subject/domain such as AI in the first bounded query;
+- a valid current-task handoff must not trigger another broad selection pass;
+- Radar facts and host editorial analysis must remain distinguishable;
+- **the bundled/public Skill must not call server-side `/insight` or any other AI Workstation LLM-backed endpoint**.
 
-Use:
+## Public no-cost live contract
+
+The bundled helper exposes only:
 
 - `GET /api/v1/ai/topic-radar/feed`;
-- `GET /api/v1/ai/topic-radar/history?topic_id=...` when movement matters;
-- `POST /api/v1/ai/topic-radar/insight?locale=zh|en`.
+- `GET /api/v1/ai/topic-radar/sources` when source health matters;
+- `GET /api/v1/ai/topic-radar/history?topic_id=...` when movement matters.
 
-### Self-contained runtime
+These endpoints provide current Radar evidence without asking AI Workstation to run a model for the Skill user.
 
-This Skill package is self-contained for local/Codex execution. Resolve the bundled helper relative to this `SKILL.md`:
+### Optional future Premium transport
+
+A host may use a server-generated AI Workstation Topic Insight **only when all of the following are true**:
+
+1. the host provides a native AI Workstation connection that is explicitly authenticated to the user's AI Workstation account;
+2. the connection itself enforces the user's membership/quota/credits;
+3. the user or host intentionally chooses that Premium capability;
+4. the response is clearly treated as model-generated analysis, not independent evidence.
+
+The bundled `scripts/topic_radar_client.py` does **not** contain Premium Insight support, credentials, shared API keys, or secret-management logic.
+
+Never ask the user to paste a private AI Workstation API key into chat just to run this public Skill. Never embed a shared server key in the Skill package.
+
+## Self-contained runtime
+
+Resolve the bundled public helper relative to this `SKILL.md`:
 
 ```text
 scripts/topic_radar_client.py
 ```
 
-Do not assume a repository-root helper, sibling checkout, or `../akaiagents` exists. A native HTTP/MCP-capable host may call the same public contract directly.
+Do not assume a repository-root helper, sibling checkout, or `../akaiagents` exists. A native host connection may call the same public no-cost contract directly.
 
-The `/insight` endpoint accepts a server-known `topic_id`. Do not send arbitrary user prompts or raw copied articles to it.
+The helper is transport-only: no crawler, score, persistence, topic matching, model backend, or Premium Insight is implemented inside the Skill.
 
 ## Live topic evidence is mandatory
 
-A brief about a **current** Radar topic must be anchored to a topic resolved from live Topic Radar data during the current task, to a valid current-task Topic Opportunity handoff, or to an equivalent current Topic Radar response explicitly supplied by the user/native host connection.
+A brief about a **current** Radar topic must be anchored to one of:
 
-Do not search sibling repositories or local storage for a substitute when the live contract is unavailable. In particular, never use old Topic Radar snapshots, SQLite databases, fixtures, cached JSON exports, test captures, generated reports, logs, or other persisted local artifacts to establish that a topic is current.
+1. a topic resolved from live Topic Radar data during the current task;
+2. a valid current-task Topic Opportunity handoff; or
+3. an equivalent current Topic Radar response explicitly supplied by the user/native host connection.
 
-`../akaiagents` may contain implementation code and historical/local data. Its data files are not a fallback source for this Skill.
+Do not search sibling repositories or local storage for a substitute when the live contract is unavailable. Never use old Radar snapshots, SQLite databases, fixtures, cached JSON exports, test captures, generated reports, logs, or persisted handoffs to establish that a topic is current.
 
-If the live feed cannot be reached and the user has not supplied a current server-known topic plus current evidence:
+If live feed evidence cannot be reached:
 
-1. do not produce a current-topic verdict or evidence-backed angle;
+1. do not produce a current-topic verdict as if verified;
 2. do not recover a topic from local files or model memory;
-3. explain that live Topic Radar evidence is unavailable in this execution environment;
-4. offer a clearly labeled blank/research template or explain what fields would be filled once live evidence is available.
-
-A network-restricted sandbox is an unavailable-live-data state, not permission to use stale local evidence.
+3. explain that live Radar evidence is unavailable in this execution environment;
+4. offer a clearly labeled template/research plan instead.
 
 ## Choose the input mode
 
-Use exactly one of these entry modes before calling `/insight`.
+Use exactly one entry mode before generating the brief.
 
 ### Mode A — current-task Topic Opportunity handoff
 
-If `creator-topic-opportunity-research` has already selected the topic in the current task, accept the handoff defined by:
+If `creator-topic-opportunity-research` already selected the topic in the current task, accept the handoff defined by:
 
 ```text
 references/handoff-contract.md
@@ -77,41 +98,41 @@ ati.topic-opportunity-handoff.v1
 Accept it only when:
 
 - the handoff was produced in this current task/session workflow;
-- `topic_id` is a non-empty string and exactly equals `topic_snapshot.id`;
+- `topic_id` is non-empty and exactly equals `topic_snapshot.id`;
 - `snapshot.generated_at`, `partial`, `stale`, and other material freshness fields are visible;
 - `stale` is not true;
 - `partial=true` does not remove evidence required for the requested claim;
 - it is not a loaded cache, saved file, old log, prior-task artifact, or model-memory reconstruction.
 
-When valid, **do not re-identify the topic from its title**. Continue with the exact handed-off `topic_id`, call `/history` only when movement matters, then call `/insight` for that selected topic.
+When valid, **do not re-identify the topic from its title and do not run another candidate-selection feed pass**. Continue with the exact handed-off `topic_id`; call `/history` only when movement matters; then build the brief with the host model.
 
-Refresh live feed evidence instead of trusting the handoff when it is stale, materially partial, missing freshness/identity fields, from another task, or the user explicitly asks for a new current re-check.
+Refresh/re-resolve live evidence only when the handoff is stale, materially partial, identity-invalid, from another task, or the user explicitly asks for a fresh re-check.
 
 ### Mode B — user supplies a current topic ID or name
 
-If the user supplies a topic ID, verify that the topic still exists in live Radar data before relying on it, unless the user also supplied the current Topic Radar response containing that ID.
+If the user supplies a topic ID, verify that it still exists in live Radar data unless the user also supplied the current Radar response containing that ID.
 
 If the user supplies only a topic name:
 
 1. query `/feed` with `q`;
-2. show or choose the closest server-known topic only when identity is reasonably clear;
-3. if multiple materially different clusters match, ask the user only when the choice would change the brief; otherwise explain which one you selected.
+2. choose the closest server-known topic only when identity is reasonably clear;
+3. if materially different clusters match and the choice changes the brief, ask or explain which cluster you selected.
 
-Feed topic cards expose the stable identifier as `id`, not `topic_id`. When calling `/history` or `/insight`, pass that exact feed `id` value as the request's `topic_id`. Those endpoint responses expose the same identity under `topic_id`.
+Feed topic cards expose the stable identifier as `id`. Preserve that exact value through history and the final brief.
 
-### Mode C — user asks this Skill to pick one topic, but Opportunity Research is unavailable
+### Mode C — Brief-only bounded selection
 
-When the user asks “pick the best current topic for me”:
+When the user asks this Skill to pick the best current topic and Creator Opportunity Research is unavailable:
 
-1. if `creator-topic-opportunity-research` is installed/available, prefer that Skill to perform opportunity research and consume its formal handoff;
-2. if it is not available, this Skill may perform a **bounded standalone selection pass** so the standalone Skill remains useful;
-3. use one bounded live `/feed` query with the user's relevant constraints, a recent `max_age_hours`, and a small candidate limit (normally no more than 5);
-4. select at most one candidate using the Radar-provided `opportunity_score`, `trend_stage`, freshness, evidence breadth, and user constraints;
-5. never invent a second score or recreate a broad cross-market opportunity study;
-6. do not call `/insight` for every candidate—call it only after one topic is selected;
-7. if no candidate is useful or evidence is too weak, say so instead of forcing a selection.
+1. run one bounded live `/feed` query;
+2. preserve any explicit subject/domain constraint from the user in that first query;
+3. use a recent `max_age_hours` and normally no more than 5 candidates;
+4. select at most one candidate using Radar-provided `opportunity_score`, `trend_stage`, freshness, evidence breadth, and user constraints;
+5. never invent another ranking score;
+6. do not query history for every candidate;
+7. if no candidate is useful or evidence is too weak, say so instead of forcing a choice.
 
-If the request specifically depends on multi-market timing, saturation, or broad opportunity comparison and Opportunity Research is unavailable, state that the full opportunity-research workflow is unavailable and keep any fallback comparison narrowly scoped and explicitly limited.
+Do not map `短视频`, `2–3 分钟`, `中文`, audience, tone, or production style into Radar `platform`/`source` filters.
 
 ## Check freshness and evidence
 
@@ -126,155 +147,88 @@ Before producing the brief, inspect the parent live feed/handoff context:
 - topic `trend`;
 - `source_status` when relevant.
 
-If the snapshot is stale/partial, carry that caveat into the brief and refresh first when the limitation is material to the requested decision.
+If stale/partial is material, carry that caveat into the brief and refresh live evidence before making unsupported current-state claims.
 
-Use `/history` when “why now” depends on acceleration, persistence, or cooling.
+Use `/history` only when “why now” depends on acceleration, persistence, cooling, or recent rank/score movement.
 
-When `refreshing=true`, a subsequent history request may include a newly persisted point that was not yet represented in the parent feed's `trend.history_points`. Compare timestamps and identity; do not require exact point-count equality across sequential requests during refresh.
+When `refreshing=true`, sequential requests may see a newer history point. Compare timestamps and identity rather than treating normal refresh movement as a contradiction.
 
-A source status of `empty` means no current items were returned by that source in the snapshot; it is not automatically a connector failure. A source status that explicitly reports an error/outage is a coverage limitation and should be surfaced when relevant.
+## Build the brief with host reasoning
 
-## Reuse existing Topic Insight
+The current ChatGPT/Codex/agent model should transform the live Radar facts into an editorial plan. This is **host editorial analysis**, not server evidence.
 
-The current insight contract can provide:
+Generate/adapt as needed:
 
-- `verdict`;
-- `can_make_short_video`;
-- `content_readiness`;
-- `editorial_stage`;
-- `recommended_format`;
-- `target_audience`;
-- `audience_payoff`;
-- `why_now`;
-- `why_this_can_work`;
-- `attention_points`;
-- `recommended_angle_index`;
-- exactly three `angles`;
-- `short_video_handoff`;
-- `watchouts`;
-- `generation_quality`;
-- optional `score_breakdown`;
-- provider/model metadata.
-
-Each angle can include:
-
-- `title`;
-- `hook`;
-- `format`;
-- `angle_type`;
-- `viewer_question`;
-- `core_conflict`;
-- `promise`;
-- `narrative_beats`;
-- `opening_3_seconds`;
-- `visual_moments`;
-- `platform_fit`;
-- `research_questions`;
-- `search_queries`;
-- `preferred_source_types`;
+- recommendation: make / conditional / watch;
+- target audience and audience payoff;
+- why now;
+- one selected angle;
+- hook and opening 3 seconds;
+- viewer question, core conflict, promise;
+- narrative beats for the requested duration;
+- visual/material plan;
+- research questions and search queries;
+- preferred source types;
 - `must_verify`;
 - `avoid_claims`;
-- `fact_basis`;
-- `unsupported_assumptions`.
+- known unknowns and risks.
 
-Do not regenerate these fields just to make them sound different. Adapt and prioritize them for the user's goal.
+Do not claim these editorial fields were measured by Radar. Statements such as “受众更大”, “更适合中国用户”, “更容易传播”, or “最值得做” are analysis/judgment unless directly supported by a current Radar field.
 
-## Insight is analysis, not evidence
+If an explicitly authenticated Premium AI Workstation connection supplies Topic Insight, treat its creative fields as optional server model analysis: preserve its provenance, adapt it to the user's constraints, and do not present it as independently verified fact.
 
-The `/insight` result is model-generated analysis over a known Radar topic.
-
-Therefore:
-
-- `verdict`, `why_now`, hooks, audience, and recommended angle are **analysis/recommendations**;
-- Topic Radar evidence/timestamps/observed metrics remain the source facts;
-- `fact_basis` may point to supporting facts, but do not expand it with invented specifics;
-- `unsupported_assumptions` must remain visible when they matter.
-
-Never present an insight sentence as independently verified merely because it came from the server.
-
-## Choose the angle
-
-Default to `recommended_angle_index` only when it fits the user's platform, audience, and goal.
-
-Override it when the user has a concrete constraint, and explain why.
-
-Useful selection criteria:
-
-- strongest evidence basis;
-- clearest audience payoff;
-- platform fit;
-- feasibility of required visuals;
-- number/severity of `must_verify` items;
-- avoidable speculation;
-- differentiation from generic coverage.
-
-Do not choose the most sensational angle when its verification burden is materially worse.
-
-## Produce a research-ready brief
+## Research-ready output
 
 A strong final brief should contain:
 
-### Topic
+### Topic / Radar facts
 
 - title / stable topic ID;
 - current stage and opportunity score;
-- snapshot freshness.
+- snapshot freshness;
+- evidence breadth and source limitations;
+- history movement when relevant.
 
-### Recommendation
+### Editorial analysis
 
-- make / conditional / watch;
-- selected format;
-- target audience;
-- audience payoff.
+- recommendation;
+- target audience and audience payoff;
+- why the topic may work for the requested content goal;
+- selected angle and why it was chosen.
 
-### Why now
+### Opening and narrative
 
-Separate observed Radar facts from model/Skill interpretation.
-
-### Selected angle
-
-Include angle title, hook, opening 3 seconds, viewer question, core conflict, promise, narrative beats, and platform fit.
-
-### Visual plan
-
-Use `visual_moments` and `short_video_handoff.visual_material_needs`. Distinguish must-have factual visuals from optional illustrative B-roll.
+- hook / first 3 seconds;
+- 2–3 minute or user-requested narrative beats;
+- platform/format adaptation without pretending those are Radar filters.
 
 ### Research handoff
 
-Preserve `research_questions`, `search_queries`, `preferred_source_types`, `must_verify`, and known unknowns.
+- research questions;
+- search queries;
+- preferred source types;
+- `must_verify`;
+- known unknowns.
 
 ### Claims boundary
 
-Show `avoid_claims` explicitly. Do not hide them in a generic disclaimer.
+Show `avoid_claims` explicitly. Do not bury them in a generic disclaimer.
 
-### Alternatives
+### Visual plan
 
-Briefly show the other two existing angles when useful instead of inventing ten more.
-
-## Degraded or unavailable insight handling
-
-If `generation_quality=degraded`:
-
-1. say so;
-2. rely more heavily on live source facts;
-3. do not fill missing creative fields with confident invented detail;
-4. preserve watchouts and verification requirements.
-
-If `/insight` is unavailable **but live feed/history evidence is available**, you may provide an evidence-based skeleton, clearly labeling the creative plan as your own analysis rather than server insight.
-
-If the live feed itself is unavailable, do not use local snapshots to create a current-topic brief. Provide only a template or blocked-state explanation.
+Distinguish must-have factual visuals from optional illustrative B-roll.
 
 ## Quality rules
 
-- Never call `/insight` with arbitrary raw text.
-- Never call `/insight` across a broad candidate list before selecting one topic.
-- Never use local/sibling-repository snapshots, fixtures, databases, exports, logs, or persisted handoffs as fallback current evidence.
-- Never use insight output to overwrite contradictory source facts.
-- Never omit `must_verify` or `avoid_claims` when present.
-- Never claim a short video will perform because `can_make_short_video=yes`.
-- Never convert `editorial_stage` into a guaranteed viral stage.
-- Never confuse feed `id` with a separate topic identity; it is the value handed to `topic_id` parameters.
-- Never treat normal point-count changes during `refreshing=true` as a contradiction without checking timestamps.
-- Never invent a fallback ranking score when selecting a topic in standalone mode.
-- Never force a candidate when the live evidence does not support a useful choice.
-- Prefer one executable angle and a research handoff over a generic list of ideas.
+- Never fabricate a current topic from model memory.
+- Never use local/sibling snapshots, fixtures, databases, exports, logs, or old handoffs as current evidence.
+- **Never call anonymous/public server `/insight` from this Skill.**
+- Never embed or share a server credential in the Skill package.
+- Never ask the user to paste a private credential into chat as a workaround.
+- Never invent a fallback ranking score.
+- Never force a candidate when evidence is too weak.
+- Never reselect after a valid current-task handoff.
+- Never confuse host editorial analysis with Radar facts.
+- Never claim a video will perform because the Radar score/stage is high.
+- Preserve `must_verify`, `avoid_claims`, unknowns, and evidence limitations.
+- Prefer one executable, evidence-bounded brief over a generic brainstorm.

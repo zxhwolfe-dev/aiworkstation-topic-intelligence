@@ -2,7 +2,7 @@
 
 ## Goal
 
-Expose the existing AI Workstation Global Topic Radar as reusable, evidence-aware AI workflows without reproducing its backend.
+Expose AI Workstation Global Topic Radar as reusable, evidence-aware Skills without reproducing its backend and without making anonymous Skill users consume AI Workstation server-side LLM quota.
 
 ## Layers
 
@@ -10,26 +10,34 @@ Expose the existing AI Workstation Global Topic Radar as reusable, evidence-awar
 User / ChatGPT / Codex
           |
           v
-Topic Intelligence Skills
+Topic Intelligence public Skills
 - intent routing
 - freshness/evidence policy
 - comparison reasoning
-- content brief orchestration
-- current-task Skill handoff
+- current-task handoff
+- host-model content brief
           |
           +----------------------------------+
           |                                  |
           v                                  v
-native HTTP/MCP-capable host       Skill-local stdlib helper
+native public HTTP-capable host     Skill-local stdlib helper
           |                                  |
           +------------------+---------------+
                              v
-AI Workstation public Topic Radar API
+AI Workstation public Topic Radar read API
+- feed
+- sources
+- history
                              |
                              v
 akaiagents / ai_topic_radar
 collection, clustering, scores, history,
-source health, persistence, GPT topic insight
+source health, persistence
+
+Separate future Premium plane:
+Authenticated AI Workstation App/Plugin/OAuth
+          -> user identity / plan / quota
+          -> optional server Topic Insight
 ```
 
 ## Responsibilities
@@ -38,34 +46,34 @@ source health, persistence, GPT topic insight
 
 Owns the product/data plane:
 
-- source connectors and authorization boundaries;
-- public-data normalization;
-- clustering and topic identity;
+- source connectors;
+- normalization;
+- clustering/topic identity;
 - deterministic opportunity scoring;
-- trend/history calculations;
-- caching, partial/stale behavior and source status;
-- existing GPT topic insight.
+- trend/history;
+- caching and stale/partial state;
+- source health;
+- website authentication/membership/quota;
+- server-side model capabilities such as Premium Topic Insight.
 
-### Topic Intelligence
+### Topic Intelligence public repository
 
-Owns the workflow/reasoning plane:
+Owns the portable workflow layer:
 
-- choose the right existing endpoint and filters;
+- choose the right public Radar read filters;
 - inspect freshness before current-state claims;
-- preserve source facts separately from analysis;
-- compare regions/platforms without inventing a propagation path;
-- select a useful topic without inventing a second score;
-- preserve selected topic identity across Skill composition;
-- turn one verified topic into a research-ready content brief.
+- preserve facts separately from host analysis;
+- compare regions/platforms without inventing propagation;
+- select useful topics without inventing a second score;
+- preserve exact topic identity across composition;
+- create a research-ready brief using the current host model;
+- enforce the public Skill cost/credential boundary.
 
-The Skills are:
+It does **not** own website accounts, billing, membership, server quota, or Premium authentication.
 
-- `creator-topic-opportunity-research` — compare and prioritize live topic candidates for creator/editorial decisions;
-- `evidence-backed-content-brief` — convert a live Radar topic into an evidence-aware research-ready content brief.
+## Public Skill runtime
 
-## Standalone Skill runtime
-
-Starting with v0.2.0, each Skill directory is a complete portable runtime unit for the capabilities it claims:
+Each Skill directory is a complete portable unit:
 
 ```text
 skill-name/
@@ -73,46 +81,82 @@ skill-name/
   agents/openai.yaml
   scripts/topic_radar_client.py
   references/handoff-contract.md
-  LICENSE                 # injected into release ZIP
+  references/quality-contract.md
+  LICENSE
 ```
 
-The local helper is deliberately duplicated into each Skill package because a standalone Skill archive cannot refer to files outside its own top-level directory.
+Portable copies are synchronized from canonical sources in the repository root.
 
-The repository-root `scripts/topic_radar_client.py` remains the development/canonical copy. Tests require both bundled copies to be byte-identical to it, preventing silent runtime drift.
+## Public helper
 
-A host with a native live HTTP/MCP connection can ignore the helper and call the same public API directly.
+`topic_radar_client.py` is deliberately read-only and no-cost from the AI Workstation model-budget perspective.
 
-## Thin helper
+It exposes only:
 
-The bundled/root `topic_radar_client.py` is a transport adapter, not a provider framework. It contains only:
+- `feed`;
+- `sources`;
+- `history`.
+
+It contains only:
 
 - URL/parameter construction;
 - timeout/error normalization;
-- lightweight public-contract shape and topic-identity checks;
-- a CLI.
+- lightweight response-shape/identity checks;
+- CLI plumbing.
 
-It has no crawler, database, scoring, clustering, local model implementation, persisted cache, or topic-matching algorithm.
+It contains no:
 
-The `insight` command can trigger the **existing upstream Topic Radar GPT insight** endpoint. The helper only transports that request; it does not implement or replace the model-analysis backend.
+- crawler;
+- database;
+- score;
+- clustering;
+- local model;
+- persisted cache;
+- Premium Topic Insight command;
+- AI Workstation secret/API key.
 
-## Skill composition contract
+All bundled public helper HTTP operations are GET-only.
 
-The Opportunity Skill and Brief Skill compose through:
+## Cost boundary
+
+Normal public Skill flow:
 
 ```text
-ati.topic-opportunity-handoff.v1
+public Radar facts
+      ↓
+current ChatGPT / Codex / agent host model
+      ↓
+selection / explanation / content brief
 ```
 
-The contract is included identically in both Skill packages under:
+This means the public Skill completes normally with **zero AI Workstation server-side LLM calls**.
+
+Do not solve authentication by embedding one shared token in the ZIP or asking users to paste secrets into chat.
+
+## Optional Premium Topic Insight
+
+A server-generated Topic Insight can remain part of the broader AI Workstation product, but it sits outside the bundled public Skill transport.
+
+Acceptable future path:
 
 ```text
-references/handoff-contract.md
+host-native AI Workstation connection
+          ↓
+OAuth / account authentication
+          ↓
+user_id / plan / remaining quota
+          ↓
+optional Premium Topic Insight
 ```
 
-The handoff carries one selected live topic plus current-task snapshot context:
+The authenticated connection, not the portable Skill, must enforce usage rights and cost accounting.
+
+A Premium Insight response remains model-generated analysis, not independent evidence.
+
+## Skill composition
 
 ```text
-Opportunity Skill
+creator-topic-opportunity-research
   live feed/sources/history as needed
   -> select one finalist
   -> ati.topic-opportunity-handoff.v1
@@ -120,82 +164,68 @@ Opportunity Skill
        snapshot freshness
        observed topic fields
        selection analysis / unknowns / risks
-  -> Brief Skill
+  -> evidence-backed-content-brief
        preserve same topic_id
-       history when movement matters
-       insight for selected topic only
-       research-ready brief
+       history if movement matters
+       host-model research-ready brief
 ```
 
-The handoff is a workflow optimization, **not persistence**. It may be consumed without redundant title-based re-identification only inside the same current task when identity and freshness are intact. A handoff loaded from another task, cache, file, log, or model memory is not current evidence and requires a new live check.
+A valid current-task handoff must not trigger another broad/bounded topic-selection pass.
+
+The handoff is workflow context, not persistence. Old handoffs cannot replace a new live check.
 
 ## Brief-only fallback
 
-`evidence-backed-content-brief` remains useful when installed alone.
+If Brief is installed alone:
 
-If the user supplies a topic name/ID, the Brief Skill resolves/verifies it against live Radar normally.
+1. resolve a user-supplied topic live, or run one bounded feed selection pass;
+2. preserve explicit subject/domain scope from the first query;
+3. normally inspect no more than five candidates;
+4. select at most one using existing Radar fields;
+5. use history only when movement matters;
+6. use the host model to build the brief.
 
-If the user asks Brief alone to choose a topic and `creator-topic-opportunity-research` is unavailable, Brief may run one bounded feed selection pass (normally no more than five candidates), choose at most one using existing Radar score/stage/freshness/evidence plus user constraints, and call insight only for the selected topic.
+It must not:
 
-This fallback must **not**:
-
-- invent another opportunity score;
-- recreate a full cross-market opportunity study;
-- run insight across a broad feed;
-- force a candidate when evidence/constraints do not support one.
-
-When both Skills are available, the full Opportunity → handoff → Brief workflow is preferred.
-
-## Contract consistency
-
-The public Topic Radar API remains the source of truth.
-
-Two details are intentionally handled explicitly:
-
-1. Feed topic cards expose the stable identity as `id`; history/insight accept and return the same value under the name `topic_id`.
-2. When `refreshing=true`, sequential requests are not guaranteed to be one atomic generation. A later history request may contain an additional observation compared with the parent feed.
-
-The helper enforces identity equality for history/insight responses, while Skills use freshness and timestamps to reason about legitimate between-request refresh changes.
+- invent another score;
+- map content-format words to Radar platforms;
+- broaden `AI` into generic technology without reason;
+- call anonymous server `/insight`;
+- force a weak candidate.
 
 ## Evidence model
 
-Current-topic workflows keep these layers separate:
+Public mode separates:
 
-1. **Source facts** — live feed/source/history fields from the current task.
-2. **Analysis** — Skill interpretation of observed signals.
-3. **Recommendations** — which topic/angle to pursue.
-4. **Unknowns** — claims the contract does not establish.
-5. **Risks** — stale/partial coverage, weak evidence, source gaps, verification burden.
-6. **Insight analysis** — model-generated upstream Topic Insight, never promoted into independent verified facts.
+1. **Radar facts** — live feed/source/history data;
+2. **Host editorial analysis** — selection, audience, hook, angle, narrative, research/visual plan;
+3. **Unknowns / verification** — unsupported claims and evidence gaps.
 
-No local/sibling artifact may replace live current evidence.
+If an authenticated Premium connection explicitly supplies server Topic Insight, treat it as a fourth layer of model analysis and preserve its provenance.
 
 ## Runtime dependency policy
 
-Do not use `../akaiagents/.venv` as this repository's runtime environment.
+- Python 3.10+ standard library only for the public helper;
+- no dependency on `../akaiagents/.venv`;
+- no private `akaiagents` imports;
+- public API remains the repository boundary.
 
-The helper needs only Python 3.10+ standard library. If future code adds a real dependency, declare it here rather than depending on a sibling project's environment.
+## Validation
 
-Do not import private `akaiagents` modules. The public API is the boundary.
-
-## M3.1 quality validation
-
-v0.2.0 added quality acceptance beyond Skill triggering:
+Current validation includes:
 
 - standalone ZIP content/runtime checks;
-- extracted ZIP helper E2E against an offline local fake Radar server;
-- creator-only, brief-only, and composed installation scenarios;
-- stale/partial/source-empty/source-error/refreshing states;
-- invalid or ambiguous topic identity;
-- no-useful-candidate behavior;
-- degraded/unavailable insight behavior;
-- exact handoff identity preservation;
-- Chinese and English task completion.
+- byte-identical portable helper/reference copies;
+- extracted ZIP helper E2E;
+- handoff identity preservation;
+- Creator-only / Brief-only / composed scenarios;
+- ChatGPT-derived query/provenance rules;
+- public helper CLI contains no `insight` command;
+- public helper requests are GET-only;
+- public Brief quality eval requires host reasoning with zero AI Workstation server model spend.
 
-Machine-readable scenarios live in `evals/m3-skill-quality.json`. The final acceptance record is `docs/m3.1-final-acceptance-2026-08-09.md`.
+## Future transport decision
 
-## Future decision: Skills-only vs hosted connection
+ChatGPT v0.2.0 smoke already proved that the standalone Skill can reach public Radar data, so Hosted MCP is **not needed for public transport**.
 
-The project continues to validate Skills first.
-
-If a target host cannot reliably access the public API from a Skill/local helper, a small hosted tool/MCP surface may be considered later. That is a transport/productization decision, not a reason to duplicate Topic Radar logic.
+A future App/Plugin/MCP may still be justified as a thin **authenticated Premium account connection**. If added, it must not duplicate collection, clustering, score, history, persistence, or model logic.

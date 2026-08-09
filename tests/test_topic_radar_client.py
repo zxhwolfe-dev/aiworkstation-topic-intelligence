@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 import unittest
+from pathlib import Path
 from urllib.error import URLError
 
 from scripts.topic_radar_client import (
@@ -9,6 +12,10 @@ from scripts.topic_radar_client import (
     TopicRadarError,
     TopicRadarProtocolError,
 )
+
+
+ROOT = Path(__file__).resolve().parents[1]
+HELPER = ROOT / "scripts" / "topic_radar_client.py"
 
 
 class FakeResponse:
@@ -48,6 +55,7 @@ class TopicRadarClientTests(unittest.TestCase):
 
         client = TopicRadarClient(base_url="https://example.test", opener=opener)
         result = client.feed(
+            q="AI",
             category="technology",
             signal="early_opportunity",
             new_only=True,
@@ -59,7 +67,9 @@ class TopicRadarClientTests(unittest.TestCase):
         self.assertFalse(result["stale"])
         request, timeout = calls[0]
         self.assertEqual(request.get_method(), "GET")
+        self.assertIsNone(request.data)
         self.assertIn("/api/v1/ai/topic-radar/feed?", request.full_url)
+        self.assertIn("q=AI", request.full_url)
         self.assertIn("category=technology", request.full_url)
         self.assertIn("signal=early_opportunity", request.full_url)
         self.assertIn("new_only=true", request.full_url)
@@ -85,95 +95,89 @@ class TopicRadarClientTests(unittest.TestCase):
         with self.assertRaisesRegex(TopicRadarProtocolError, "stable string field 'id'"):
             client.feed()
 
-    def test_insight_posts_only_topic_id_and_locale(self) -> None:
-        calls = []
+    def test_history_requires_expected_contract_and_identity(self) -> None:
+        client = TopicRadarClient(
+            base_url="https://example.test",
+            opener=lambda request, timeout: FakeResponse(
+                {"topic_id": "topic-1", "points": []}
+            ),
+        )
+        self.assertEqual(client.history("topic-1")["points"], [])
 
-        payload = {
-            "topic_id": "topic-1",
-            "verdict": "值得研究",
-            "angles": [{}, {}, {}],
-            "short_video_handoff": {},
-        }
+        mismatch = TopicRadarClient(
+            base_url="https://example.test",
+            opener=lambda request, timeout: FakeResponse(
+                {"topic_id": "topic-2", "points": []}
+            ),
+        )
+        with self.assertRaisesRegex(TopicRadarProtocolError, "does not match"):
+            mismatch.history("topic-1")
 
-        def opener(request, timeout):
-            calls.append((request, timeout))
-            return FakeResponse(payload)
+    def test_public_client_exposes_no_server_model_method(self) -> None:
+        client = TopicRadarClient(
+            base_url="https://example.test",
+            opener=lambda request, timeout: FakeResponse(sample_feed()),
+        )
+        self.assertFalse(hasattr(client, "insight"))
+        self.assertFalse(hasattr(client, "insight_timeout"))
 
-        client = TopicRadarClient(base_url="https://example.test", opener=opener)
-        result = client.insight("topic-1", locale="zh")
+    def test_cli_exposes_only_feed_sources_history(self) -> None:
+        help_result = subprocess.run(
+            [sys.executable, str(HELPER), "--help"],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=10,
+        )
+        self.assertEqual(help_result.returncode, 0, help_result.stderr)
+        self.assertIn("feed", help_result.stdout)
+        self.assertIn("sources", help_result.stdout)
+        self.assertIn("history", help_result.stdout)
+        self.assertNotIn("insight", help_result.stdout.lower())
+        self.assertNotIn("insight-timeout", help_result.stdout.lower())
 
-        request, timeout = calls[0]
-        self.assertEqual(result["topic_id"], "topic-1")
-        self.assertEqual(request.get_method(), "POST")
-        self.assertTrue(request.full_url.endswith("/insight?locale=zh"))
-        self.assertEqual(json.loads(request.data.decode("utf-8")), {"topic_id": "topic-1"})
-        self.assertEqual(timeout, 90.0)
+        rejected = subprocess.run(
+            [sys.executable, str(HELPER), "insight", "topic-1"],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=10,
+        )
+        self.assertNotEqual(rejected.returncode, 0)
+        self.assertIn("invalid choice", rejected.stderr.lower())
 
-    def test_insight_timeout_is_independent_from_read_timeout(self) -> None:
+    def test_all_public_operations_are_get_without_request_body(self) -> None:
         calls = []
         responses = iter(
             [
                 sample_feed(),
-                {
-                    "topic_id": "topic-1",
-                    "verdict": "值得研究",
-                    "angles": [{}, {}, {}],
-                    "short_video_handoff": {},
-                },
+                {"generated_at": "2026-08-09T00:00:00Z", "sources": []},
+                {"topic_id": "topic-1", "points": []},
             ]
         )
 
         def opener(request, timeout):
-            calls.append(timeout)
+            calls.append(request)
             return FakeResponse(next(responses))
 
-        client = TopicRadarClient(
-            base_url="https://example.test",
-            timeout=4,
-            insight_timeout=71,
-            opener=opener,
-        )
-        client.feed()
-        client.insight("topic-1")
-
-        self.assertEqual(calls, [4.0, 71.0])
-        with self.assertRaisesRegex(ValueError, "insight_timeout"):
-            TopicRadarClient(base_url="https://example.test", insight_timeout=0)
-
-    def test_history_requires_expected_contract(self) -> None:
-        def opener(request, timeout):
-            return FakeResponse({"topic_id": "topic-1", "points": []})
-
         client = TopicRadarClient(base_url="https://example.test", opener=opener)
-        self.assertEqual(client.history("topic-1")["points"], [])
+        client.feed(limit=1)
+        client.sources()
+        client.history("topic-1")
 
-    def test_history_and_insight_reject_topic_identity_mismatch(self) -> None:
-        responses = iter(
-            [
-                {"topic_id": "topic-2", "points": []},
-                {
-                    "topic_id": "topic-2",
-                    "verdict": "x",
-                    "angles": [],
-                    "short_video_handoff": {},
-                },
-            ]
-        )
-
-        client = TopicRadarClient(
-            base_url="https://example.test",
-            opener=lambda request, timeout: FakeResponse(next(responses)),
-        )
-        with self.assertRaisesRegex(TopicRadarProtocolError, "does not match"):
-            client.history("topic-1")
-        with self.assertRaisesRegex(TopicRadarProtocolError, "does not match"):
-            client.insight("topic-1")
+        self.assertEqual(len(calls), 3)
+        for request in calls:
+            self.assertEqual(request.get_method(), "GET")
+            self.assertIsNone(request.data)
+            self.assertNotIn("/insight", request.full_url)
 
     def test_feed_rejects_malformed_payload(self) -> None:
-        def opener(request, timeout):
-            return FakeResponse({"items": []})
-
-        client = TopicRadarClient(base_url="https://example.test", opener=opener)
+        client = TopicRadarClient(
+            base_url="https://example.test",
+            opener=lambda request, timeout: FakeResponse({"items": []}),
+        )
         with self.assertRaises(TopicRadarProtocolError):
             client.feed()
 
@@ -185,15 +189,13 @@ class TopicRadarClientTests(unittest.TestCase):
         with self.assertRaisesRegex(TopicRadarError, "offline"):
             client.sources()
 
-    def test_rejects_invalid_signal_and_locale(self) -> None:
+    def test_rejects_invalid_signal(self) -> None:
         client = TopicRadarClient(
             base_url="https://example.test",
             opener=lambda request, timeout: FakeResponse(sample_feed()),
         )
         with self.assertRaises(ValueError):
             client.feed(signal="invented")
-        with self.assertRaises(ValueError):
-            client.insight("topic-1", locale="fr")
 
 
 if __name__ == "__main__":

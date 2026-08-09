@@ -2,15 +2,39 @@
 
 AI Workstation Topic Intelligence is distributed as two reusable Skills over the existing AI Workstation Global Topic Radar.
 
-Latest public release: **v0.2.0**.
+Latest public release: **v0.2.0**.  
+Current source line: **v0.2.1 Unreleased**.
 
-The repository development line may become newer than the latest public release. A `VERSION` change does not publish anything by itself; only a matching pushed `v*` tag can start the release workflow.
+A `VERSION` change does not publish anything by itself; only a matching pushed `v*` tag can start the release workflow.
+
+## Public distribution principle
+
+The public Skill archives must be safe to distribute widely without giving anonymous users access to AI Workstation's server-side model budget.
+
+The bundled runtime therefore exposes only public read operations:
+
+```text
+feed
+sources
+history
+```
+
+It intentionally does **not** expose a bundled `insight` command.
+
+Normal public Brief generation uses live Radar facts plus the current host model. Premium server-generated Topic Insight is a separate future account-bound capability and requires a native authenticated AI Workstation connection that enforces membership/quota/credits.
+
+Never distribute:
+
+- an embedded AI Workstation API key;
+- a shared public bearer token;
+- a Skill that asks users to paste private credentials into chat;
+- a bundled anonymous path that spends server-side model quota.
 
 ## Release channels
 
 ### 1. Codex checkout + symlink
 
-Best for development, evaluation, and users who want to track the GitHub repository.
+Best for development/evaluation:
 
 ```bash
 git clone <repository>
@@ -21,21 +45,23 @@ python3 scripts/install_codex_skills.py doctor
 
 The installer links the two Skill directories into `$HOME/.agents/skills` and refuses to overwrite unrelated paths.
 
-Because installation uses symlinks, updating the checked-out repository updates the installed Skill source immediately. After changing versions or branches, run `install` and then `doctor`; `install` is idempotent and also performs safe pre-release name migration when needed.
+`doctor` validates:
 
-The final public Skill name is `creator-topic-opportunity-research`. Internal pre-0.1.0 checkouts used `cross-market-trend-research`; the installer removes that legacy symlink only when it points to this checkout's old Skill path. Unrelated paths are never removed automatically.
-
-In v0.2.0, `doctor` also requires each installed Skill to contain its standalone runtime helper and Topic Opportunity handoff contract.
+- `SKILL.md`;
+- `agents/openai.yaml`;
+- `scripts/topic_radar_client.py`;
+- `references/handoff-contract.md`;
+- `references/quality-contract.md`.
 
 ### 2. Standalone Skill archives
 
-Build portable/self-contained release archives with:
+Build portable/self-contained archives with:
 
 ```bash
 python3 scripts/build_release.py --output dist
 ```
 
-The builder produces:
+Output:
 
 ```text
 dist/
@@ -52,43 +78,57 @@ SKILL.md
 agents/openai.yaml
 scripts/topic_radar_client.py
 references/handoff-contract.md
+references/quality-contract.md
 LICENSE
 ```
 
-The bundled `scripts/topic_radar_client.py` is the Skill-local standard-library transport adapter. A user who downloads or uploads only one Skill archive does not need a repository-root helper or a sibling `akaiagents` checkout.
+The bundled helper is the Skill-local standard-library **public read transport**. It does not require a repository-root helper or sibling `akaiagents` checkout.
 
-The two Skill-local helper copies are kept byte-identical to the repository development helper by tests. The copies exist because a portable Skill archive cannot depend on files outside its own top-level Skill directory.
+Portable copies are byte-checked against canonical sources:
 
-`references/handoff-contract.md` defines `ati.topic-opportunity-handoff.v1`. It allows the two Skills to preserve a selected live Topic Radar identity and current-task evidence context when composed, while explicitly forbidding persisted handoffs from becoming replacement current evidence later.
+```text
+scripts/topic_radar_client.py
+references/topic-opportunity-handoff.md
+references/topic-intelligence-quality-contract.md
+```
 
-The embedded license is Apache-2.0 and matches the repository root `LICENSE`. The release manifest also records `license: Apache-2.0`.
+The builder rejects:
 
-The archives are deterministic: file order, metadata timestamps, and ZIP format are fixed so identical source at the same version produces identical artifact hashes.
+- missing required files;
+- portable-copy drift;
+- symlinks inside a Skill archive.
 
-The builder rejects symlinks inside a Skill package and refuses to build a Skill missing any required runtime/handoff file.
+Archives are deterministic: identical source/version produces identical ZIP hashes.
 
-Published v0.2.0 artifact hashes:
+Published v0.2.0 hashes remain:
 
 ```text
 7d7ca0266abd55df374e4ca37ff5affadf9eabffe694474d18be96c5402dc897  aiworkstation-topic-intelligence-0.2.0-creator-topic-opportunity-research.zip
 9c90adccd61966321201c8c05b0fad963e18ea412bd3112c694a4fe0cea9dab8  aiworkstation-topic-intelligence-0.2.0-evidence-backed-content-brief.zip
 ```
 
-Consumers should still verify downloaded assets against the release `SHA256SUMS` or `release-manifest.json` rather than relying only on documentation text.
+Consumers should verify release assets against `SHA256SUMS` / `release-manifest.json`.
 
 ### 3. ChatGPT Skill upload
 
-Current OpenAI product documentation supports creating/installing Skills in ChatGPT, including upload from a computer, subject to plan/workspace availability and permissions. OpenAI Skills follow the Agent Skills open standard and can be used across supported OpenAI surfaces.
+The published v0.2.0 archives were manually tested in ChatGPT web. Upload/discovery/bundled runtime/live Radar access passed.
 
-The GitHub Release ZIP is the portable distribution artifact. Use the current ChatGPT product's supported Skill-upload flow; if that flow expects an unpacked Skill file/folder rather than the ZIP itself, unpack the archive and upload the contained Skill directory/files. Do not assume a particular upload container format until the product UI/documentation specifies it.
+For v0.2.1, the intended public ChatGPT path is:
 
-Treat ChatGPT installation as a separate distribution surface from the local Codex symlink installation; do not assume installed personal Skills automatically sync between every surface.
+```text
+ChatGPT host model
+  + public Skill
+  + live feed/sources/history
+  -> research-ready result
+```
 
-Because each v0.2.0 Skill package contains its own helper and references, uploading one Skill does not require uploading the whole repository. Whether the host permits that helper to reach the live public Topic Radar endpoint remains a host/network capability question; live-evidence rules still apply when network access is unavailable.
+The uploaded public Skill should not depend on a server-side AI Workstation model call.
+
+If a future ChatGPT App/Plugin/OAuth integration provides an authenticated AI Workstation account connection, that native connection may expose separate Premium capabilities. Do not put that authentication responsibility inside the portable Skill ZIP.
 
 ### 4. GitHub Release
 
-Public releases use a Semantic Version in `VERSION` and a matching Git tag:
+Public releases use a Semantic Version in `VERSION` and a matching tag:
 
 ```text
 vX.Y.Z
@@ -96,64 +136,66 @@ vX.Y.Z
 
 Pushing a matching tag triggers `.github/workflows/release.yml`, which:
 
-1. verifies that the tag matches `VERSION`;
-2. runs the full offline test suite;
-3. builds deterministic Skill archives;
-4. publishes the ZIPs, `release-manifest.json`, and `SHA256SUMS` to a GitHub Release.
+1. verifies tag == `VERSION`;
+2. runs the offline suite;
+3. builds deterministic archives;
+4. publishes ZIPs, manifest, and checksums.
 
-Changing `VERSION` on a normal branch does **not** publish a release. Existing public tags such as `v0.1.0` and `v0.2.0` must never be moved to newer code.
+Existing tags such as `v0.1.0` and `v0.2.0` are immutable.
 
 ## Standalone acceptance
 
-Before a new public Skill release, acceptance must prove more than archive presence:
+Before a new public release, acceptance should prove:
 
-1. each ZIP contains every required Skill/runtime/reference file;
-2. two builds from identical source have identical SHA256 values;
-3. each ZIP can be extracted to a temporary directory outside the repository;
-4. the extracted `scripts/topic_radar_client.py` can execute independently of repository-root files;
-5. Codex fresh-session validation covers creator-only, brief-only, and both-Skills installs;
-6. the composed workflow preserves the exact selected topic identity through `ati.topic-opportunity-handoff.v1`;
-7. no release tag is created until live/fresh-session acceptance is complete.
-
-v0.2.0 completed these gates before its immutable tag was pushed. The detailed evidence is recorded in [`m3.1-final-acceptance-2026-08-09.md`](m3.1-final-acceptance-2026-08-09.md) and [`release-v0.2.0-decision.md`](release-v0.2.0-decision.md).
-
-Offline tests use a local fake Topic Radar HTTP server so portable helper execution is tested without relying on production network availability.
+1. each ZIP contains all required files;
+2. portable helper/reference copies match canonical sources;
+3. two identical builds have identical hashes;
+4. extracted helpers work outside the repository;
+5. the helper CLI exposes `feed`, `sources`, `history` and **no anonymous `insight` command**;
+6. public helper HTTP operations are GET-only;
+7. creator-only, brief-only, and both-Skills host behavior remains correct;
+8. composed workflows preserve the selected topic identity;
+9. public Brief can complete using host reasoning without AI Workstation server-side LLM spend;
+10. no tag is created until acceptance is complete.
 
 ## Integrity verification
 
-Consumers can verify downloaded archives against `SHA256SUMS` or `release-manifest.json`.
-
-The manifest schema is:
+Manifest schema:
 
 ```text
 ati.release.v1
 ```
 
-It records the package name, release version, license identifier, Skill name, file name, SHA256 digest, and byte size for each archive.
+It records package/version/license/Skill/file/hash/size.
 
 ## Upgrade behavior
 
 ### Codex symlink install
 
-1. switch to the desired release/main branch;
-2. `git pull --ff-only` or checkout a release tag;
-3. run `python3 scripts/install_codex_skills.py install`;
-4. run `python3 scripts/install_codex_skills.py doctor`.
+```bash
+git pull --ff-only
+python3 scripts/install_codex_skills.py install
+python3 scripts/install_codex_skills.py doctor
+```
 
-No manual reinstall/copy is needed. The idempotent installer keeps matching current links and performs safe legacy-name migration when necessary.
+### Standalone / ChatGPT
 
-### Standalone/ChatGPT install
+Download/build the newer archive and install/upload it using the supported host flow. Do not assume an older uploaded Skill is auto-replaced.
 
-Build or download the newer Skill archive and install/upload that version using the currently supported product flow. Do not assume an uploaded Skill is automatically replaced by a newer GitHub release.
+## Premium / Plugin direction
 
-## Plugin direction
+A future AI Workstation Plugin/App may be useful for **authenticated account-bound capabilities**, not because public Skills need help reaching Radar.
 
-OpenAI currently positions Plugins as a higher-level package that can contain Skills and can optionally include Apps or app templates. Topic Intelligence may eventually use that path if a stable app-backed live Topic Radar connection becomes part of the product.
+A suitable future boundary is:
 
-Do not add Plugin packaging merely to solve a Skill package problem. v0.2.0 first makes the individual Skills genuinely portable and validates their runtime/task quality.
+```text
+public Skill
+  -> public feed/sources/history
+  -> host reasoning
 
-## Hosted MCP direction
+AI Workstation authenticated App/Plugin
+  -> user identity / plan / quota
+  -> optional Premium Topic Insight
+```
 
-Hosted MCP remains a separate transport decision. It should be introduced only if supported hosts cannot reliably reach the existing Topic Radar contract through an approved network path.
-
-If added later, it must remain thin: transport/auth/tool exposure only, without duplicating Topic Radar collection, clustering, scoring, history, persistence, or GPT insight logic.
+Do not add a Hosted MCP/Plugin merely to duplicate the already-working public Radar transport. If one is added for Premium auth/tooling, keep it thin and do not duplicate collection, clustering, score, history, persistence, or model logic.

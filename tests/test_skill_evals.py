@@ -11,7 +11,7 @@ class SkillEvalTests(unittest.TestCase):
         "creator-topic-opportunity-research",
         "evidence-backed-content-brief",
     }
-    CALLS = {"feed", "sources", "history", "insight"}
+    PUBLIC_CALLS = {"feed", "sources", "history"}
 
     @classmethod
     def _cases(cls):
@@ -51,18 +51,20 @@ class SkillEvalTests(unittest.TestCase):
         }
         self.assertLessEqual(required_boundary_ids, {case["id"] for case in cases})
 
-    def test_eval_calls_use_only_existing_topic_radar_contract(self) -> None:
+    def test_public_eval_calls_use_only_read_contract(self) -> None:
         _, cases = self._cases()
         for case in cases:
             expected = set(case["expected_calls"])
             optional = set(case["optional_calls"])
-            self.assertLessEqual(expected | optional, self.CALLS, case["id"])
+            self.assertLessEqual(expected | optional, self.PUBLIC_CALLS, case["id"])
+            self.assertNotIn("insight", expected | optional, case["id"])
+
             if case["expected_skill"] == "creator-topic-opportunity-research":
                 self.assertIn("feed", expected, case["id"])
-                self.assertNotIn("insight", expected, case["id"])
             if case["expected_skill"] == "evidence-backed-content-brief":
                 self.assertIn("feed", expected, case["id"])
-                self.assertIn("insight", expected, case["id"])
+                combined = " ".join(case["must_not"]).lower()
+                self.assertIn("anonymous server insight", combined, case["id"])
             if case["expected_skill"] is None:
                 self.assertEqual(expected, set(), case["id"])
                 self.assertEqual(optional, set(), case["id"])
@@ -73,7 +75,8 @@ class SkillEvalTests(unittest.TestCase):
         for case in positive:
             combined = " ".join(case["must_not"]).lower()
             self.assertTrue(
-                any(token in combined for token in ("local", "sibling", "snapshot", "cached")),
+                any(token in combined for token in ("local", "sibling", "snapshot", "cached"))
+                or "model memory" in combined,
                 case["id"],
             )
 
@@ -105,7 +108,7 @@ class SkillEvalTests(unittest.TestCase):
         self.assertNotIn("find current and rising topics", trend_metadata)
 
         self.assertIn("evaluate or select a current topic", brief)
-        self.assertIn("do not use when the user already supplied the complete material", brief)
+        self.assertIn("do not use when the user already supplied complete material", brief)
         self.assertIn("only wants rewriting, scripting", brief)
         self.assertIn("without a live-topic decision", brief)
 

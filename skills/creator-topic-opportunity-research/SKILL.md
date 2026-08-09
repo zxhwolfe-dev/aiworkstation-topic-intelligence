@@ -11,13 +11,19 @@ Do not use model memory as a substitute for live trend data.
 
 ## Host quality contract
 
-Before mapping user constraints to Radar filters, making audience/editorial judgments, or composing into the Brief Skill, read and follow:
+Before mapping user constraints to Radar filters, making audience/editorial judgments, or composing into Brief, read and follow:
 
 ```text
 references/quality-contract.md
 ```
 
-In particular, keep content format/duration/language/audience constraints separate from Radar platform/source filters, make Radar facts distinguishable from host editorial analysis, and do not trigger a second broad candidate-selection pass after a valid current-task Opportunity handoff.
+The public Skill cost boundary is strict:
+
+- bundled/public runtime may use only `feed`, `sources`, and `history`;
+- do not call anonymous/public AI Workstation model-backed `/insight`;
+- use the **current host model** for comparison and editorial reasoning;
+- do not embed/share a server credential or ask the user to paste one into chat;
+- server Topic Insight is optional Premium analysis only when a native authenticated AI Workstation connection explicitly provides it and enforces the user's membership/quota.
 
 ## Product boundary
 
@@ -30,21 +36,15 @@ Global Topic Radar already owns:
 - trend/history calculations;
 - source health and stale-data handling.
 
-This Skill owns only:
+This Skill owns intent interpretation, efficient querying, freshness/evidence checks, comparison, cross-market reasoning, and creator/editorial recommendations.
 
-- intent interpretation;
-- efficient querying;
-- evidence/freshness checks;
-- comparison and cross-market reasoning;
-- user-specific recommendations.
-
-Never recreate a score from raw fields when the Radar already supplies it.
+Never recreate a score from raw fields when Radar already supplies it.
 
 ## Live-data gate
 
 Before claiming that a topic is current, rising, accelerating, new, or region/platform-specific, obtain a live Topic Radar response.
 
-The public contract is:
+The public no-cost contract is:
 
 - `GET /api/v1/ai/topic-radar/feed`
 - `GET /api/v1/ai/topic-radar/sources`
@@ -52,41 +52,31 @@ The public contract is:
 
 ### Self-contained runtime
 
-This Skill package is self-contained for local/Codex execution. Resolve the bundled helper relative to this `SKILL.md`:
+Resolve the bundled helper relative to this `SKILL.md`:
 
 ```text
 scripts/topic_radar_client.py
 ```
 
-Do not assume a repository-root `scripts/topic_radar_client.py`, sibling checkout, or `../akaiagents` exists. A host with a native HTTP/MCP connection may call the same public contract directly instead of using the bundled helper.
-
-The bundled helper is transport-only: no crawler, score, persistence, topic matching, or model backend is implemented inside the Skill.
+Do not assume a repository-root helper, sibling checkout, or `../akaiagents` exists. The helper is read-only transport only: no crawler, score, persistence, topic matching, model backend, Premium Insight, or credential storage.
 
 ### Live evidence is exclusive
 
 For current-state claims, accepted evidence is limited to:
 
-1. a response obtained from the configured live Topic Radar API during the current task; or
-2. equivalent live Topic Radar data supplied by a native host connection during the current task; or
-3. a current API response explicitly supplied by the user, with freshness fields visible.
+1. a live Topic Radar response obtained during the current task;
+2. equivalent current Radar data supplied by a native host connection; or
+3. a current Radar response explicitly supplied by the user with freshness fields visible.
 
-**Do not search local files for a substitute when live access fails.** In particular, do not use sibling repositories, old Topic Radar snapshots, SQLite databases, fixtures, cached JSON exports, logs, test captures, generated reports, or previously persisted local data as evidence that a topic is current.
+**Do not search local files for a substitute** when live access fails. Do not use sibling repositories, old Radar snapshots, SQLite databases, fixtures, cached JSON, logs, reports, test captures, or old handoffs as current evidence.
 
-`../akaiagents` and this repository may be inspected for code/contracts during development, but their local data artifacts are never a fallback live source for this Skill.
+A network-restricted sandbox is an unavailable-live-data state, not permission to use stale nearby data or model memory.
 
-If live data cannot be reached:
-
-1. stop the current-topic workflow;
-2. do not invent or recover a current shortlist from model memory or local artifacts;
-3. say that current Topic Radar evidence is unavailable in this execution environment;
-4. offer only a research plan, filter strategy, evaluation framework, or clearly labeled template;
-5. label user-supplied topic examples as unverified unless the user also supplied current evidence.
-
-A network-restricted sandbox is an unavailable-live-data state, not permission to search nearby files for stale evidence.
+If live data cannot be reached, stop the current-topic workflow, state that current Radar evidence is unavailable, and offer only a research/filter framework or clearly labeled template.
 
 ## Read freshness before interpretation
 
-For every live feed response, inspect:
+Inspect:
 
 - `generated_at`;
 - `partial`;
@@ -96,56 +86,39 @@ For every live feed response, inspect:
 - `source_status`;
 - `history_available`.
 
-If `partial=true`, describe material source gaps before making a broad-market claim.
+If `partial=true`, surface material coverage gaps. If `stale=true`, do not call the snapshot newly observed. When `refreshing=true`, sequential feed/history/source reads may legitimately observe different generations.
 
-If `stale=true`, do not describe the snapshot as newly observed. State the age/freshness caveat.
-
-A healthy aggregate does not mean every source is healthy; inspect `source_status` when the answer depends on a particular platform or region.
-
-A source status of `empty` means the source returned no current items in that snapshot. Do not automatically describe `empty` as a connector failure; use its status/note and surrounding coverage to explain the limitation.
-
-When `refreshing=true`, sequential feed/history/source reads may legitimately observe different generations. Do not treat a newly added history point or changed count as a contract violation merely because two requests were made during refresh.
+A source status of `empty` is not automatically a connector failure; explain it from the actual status/note.
 
 ## Route the request
 
 ### Broad current scan
 
-For requests such as “what is worth watching today?”:
+For “what is worth watching today?” use a bounded recent window and a compact candidate set. Rank discussion with existing `opportunity_score`, `trend_stage`, freshness, evidence breadth, and trend fields rather than inventing another score.
 
-1. choose a bounded window with `max_age_hours`;
-2. use relevant `category`, `region`, or `platform` filters only when the user supplied them;
-3. prefer a compact candidate set;
-4. rank discussion by the existing `opportunity_score`, `trend_stage`, freshness, evidence breadth, and trend fields rather than inventing a new score.
+### Preserve explicit topic/domain scope
+
+If the user explicitly asks for `AI`, robotics, semiconductors, or another subject domain, preserve that subject in the **first** bounded query using `q`, `keywords`, `category`, or another supported Radar field.
+
+Do not start an explicit `AI` request with generic technology merely for convenience. Broaden only when the narrow query produces too few useful candidates or the user asks for broader exploration.
+
+Content-format constraints such as `短视频`, `2–3 分钟`, `中文`, audience, or tone are **not** Radar platform/source filters.
 
 ### Early-opportunity scan
 
-Use available `stage`, `signal`, `new_only`, and `min_score` filters to find candidates such as early opportunities or multi-source signals.
-
-Treat `opportunity_score` as a Radar-produced deterministic score, not as proof that content will perform.
+Use supported `stage`, `signal`, `new_only`, and `min_score` filters when helpful. `opportunity_score` is a Radar-produced deterministic score, not proof content will perform.
 
 ### Platform or region comparison
 
-Run comparable feed queries for the requested markets/platforms.
-
-Preserve the same time window and other filters so the comparison is meaningful.
-
-Do not infer a propagation path merely because two unrelated titles look similar.
+Use comparable time windows/filters. Do not infer a propagation path merely because unrelated titles look similar.
 
 ### Cross-market timing hypothesis
 
-A claim such as “US is leading and Chinese-language coverage may follow” requires stronger evidence than a normal shortlist.
-
-Prefer, in order:
-
-1. the same stable feed `id` observed through comparable region/platform queries;
-2. direct evidence timestamps and source spread for one clustered topic;
-3. history that supports sequential expansion.
-
-If the live contract does not establish this, say **cross-market hypothesis**, not verified fact.
+A claim such as “US is leading and Chinese-language coverage may follow” needs direct evidence. Prefer the same stable feed `id` across comparable queries, direct evidence timestamps/source spread, and history showing sequential expansion. Otherwise label it **cross-market hypothesis**, not verified fact.
 
 ## Inspect candidate fields
 
-For each serious candidate, pay attention to:
+Useful fields include:
 
 - `id`;
 - `title` / `title_en`;
@@ -164,102 +137,89 @@ For each serious candidate, pay attention to:
 - `trend`;
 - `score_breakdown`.
 
-The stable topic identifier is named `id` on feed items. Pass that exact value as the `topic_id` query/body field for `/history` or `/insight`; those endpoint responses identify it as `topic_id`. Do not search for a nonexistent feed `topic_id` alias.
+The stable identity on feed cards is feed `id`. Use that exact value as `topic_id` for public `/history`. Do not search for a nonexistent feed `topic_id` alias.
 
-Useful trend fields can include:
-
-- `score_change_24h`;
-- `score_change_7d`;
-- `velocity_1h`;
-- `velocity_6h`;
-- `velocity_24h`;
-- `source_count`;
-- `source_spread_hours`;
-- `is_new_24h`.
-
-Do not require every field to be present. Missing data is an unknown, not zero.
+Useful trend fields can include `score_change_24h`, `score_change_7d`, `velocity_1h`, `velocity_6h`, `velocity_24h`, `source_count`, `source_spread_hours`, and `is_new_24h`. Missing data is unknown, not zero.
 
 ## Use history selectively
 
-Call `/history` for finalists when the user's decision depends on movement over time.
+Call `/history` for finalists only when the decision depends on movement over time. Do not call history for every broad-feed item.
 
-Do not call history for every item in a broad feed unless necessary.
-
-History can help distinguish a new spike, sustained momentum, cooling, or a one-source anomaly. Do not extrapolate beyond the observed series.
-
-When a refresh is in progress, history can gain a point after the parent feed was generated. Compare timestamps and snapshot state rather than requiring `trend.history_points` to equal the later history response length exactly.
+History can help distinguish a new spike, sustained momentum, cooling, or a one-source anomaly. Do not extrapolate beyond observed points.
 
 ## Compose with Evidence-Backed Content Brief
 
-When the user wants to continue one selected candidate into a content brief, prefer the installed `evidence-backed-content-brief` Skill when available.
+When the user continues a selected candidate into Brief, prefer the installed `evidence-backed-content-brief` Skill.
 
-Do not make the Brief Skill rediscover the same topic from its title. For the **single selected finalist**, produce the structured handoff defined in:
+Do not make Brief rediscover the same topic from its title. For the **single selected finalist**, produce the structured handoff defined in:
 
 ```text
 references/handoff-contract.md
 ```
 
-The schema is:
+Schema:
 
 ```text
 ati.topic-opportunity-handoff.v1
 ```
 
-The handoff must preserve:
+Preserve:
 
 - exact feed `id` as `topic_id`;
-- parent snapshot freshness fields;
-- the selected topic fields actually observed on that feed item;
-- the user's relevant platform/format/audience constraints;
-- selection reason, observed signals, unknowns, and risks clearly as analysis.
+- parent snapshot freshness;
+- only observed topic fields;
+- relevant user content constraints;
+- selection reason, observed signals, unknowns, and risks as analysis.
 
 Do not serialize the whole feed. Do not put invented fields into `topic_snapshot`.
 
-A handoff is valid only for the current task/session workflow. Never save or reload an old handoff as replacement current evidence on a later task.
+A handoff is **valid only for the current task/session workflow**. Never persist/reload an old handoff as replacement current evidence.
 
-If `evidence-backed-content-brief` is not installed/available, finish the opportunity decision normally and expose the selected candidate plus handoff-ready facts. Do not pretend the full brief workflow ran.
+After a valid handoff, Brief must not run another broad/bounded topic-selection pass. It may read finalist history when needed, then use host reasoning to produce the public brief.
+
+If Brief is not installed, finish the opportunity decision and expose handoff-ready facts without pretending the full Brief ran.
 
 ## Evidence boundary
 
-Keep five layers explicit:
+Keep these layers explicit:
 
 ### Source facts
 
-Facts returned by the live Topic Radar contract in the current task, including score, stage, timestamps, evidence entries, and trend metrics.
+Live Radar score/stage/timestamps/evidence/trend fields from the current task.
 
 ### Analysis
 
-Your interpretation of what the observed signals may mean.
+The current host model's interpretation of observed signals.
 
 ### Recommendations
 
-What the user should consider researching or publishing first.
+What the user should consider researching/publishing first.
 
 ### Unknowns
 
-Anything the current contract does not establish, including audience saturation, future virality, or a cross-market lead/lag without direct evidence.
+Anything the current contract does not establish, including audience saturation, future virality, or unverified cross-market lead/lag.
 
 ### Risks
 
-Partial/stale coverage, source outages, weak evidence breadth, one-platform concentration, or excessive dependence on a single observed metric.
+Partial/stale coverage, source gaps, weak evidence breadth, one-platform concentration, or verification burden.
+
+If an authenticated Premium AI Workstation connection explicitly supplies Topic Insight, treat it as additional model analysis—not independent evidence.
 
 ## Output
 
-Adapt the answer to the user, but for a shortlist usually include:
+For a shortlist usually include:
 
 ### Radar status
 
-- snapshot time/freshness;
-- partial/stale/refreshing state when material;
-- important source coverage issues.
+Snapshot freshness, partial/stale/refreshing state, and important source gaps.
 
 ### Best candidates
 
-For each candidate include current Radar stage and opportunity score, observed momentum/evidence, why it matters, what is fact versus inference, and the next verification step.
+For each candidate: current Radar stage/score, observed momentum/evidence, why it matters, fact vs inference, and next verification step.
 
 ### Cross-market interpretation
 
-State verified differences first. Put timing-gap or propagation claims in a separate **hypotheses** section unless directly evidenced.
+Verified differences first; timing/propagation claims in a separate hypothesis layer unless directly evidenced.
 
 ### Unknowns and risks
 
@@ -267,17 +227,18 @@ Do not bury them.
 
 ### Selected-topic handoff
 
-When the user is continuing directly into the Brief Skill, keep the machine/workflow handoff concise and scoped to the selected finalist; the user-facing answer does not need to dump raw JSON unless useful.
+When continuing into Brief, keep the handoff concise and scoped to the one finalist; raw JSON need not be dumped unless useful/auditing is requested.
 
 ## Quality rules
 
 - Never fabricate a current topic from memory.
-- Never use local/sibling-repository snapshots, fixtures, databases, exports, or logs as fallback current evidence.
-- Never turn `target_platforms` into proof of actual platform performance.
+- Never use local/sibling snapshots, fixtures, databases, exports, logs, or reports as fallback current evidence.
+- Never call anonymous/public server `/insight` from the public Skill workflow.
+- Never embed a shared server credential or ask the user to paste one into chat.
+- Never turn `target_platforms` into proof of platform performance.
 - Never treat `opportunity_score` as a guaranteed outcome.
-- Never call a snapshot “live/current” without checking freshness.
+- Never call a snapshot current without checking freshness.
 - Never silently ignore `partial` or `stale`.
-- Never treat normal between-request changes during `refreshing=true` as contradictory evidence without checking timestamps.
-- Never merge different topics only because their titles are semantically similar.
-- Never persist a current-task handoff and later reuse it as current evidence.
+- Never merge different topics only because titles look similar.
+- Never persist a current-task handoff for later use as current evidence.
 - Prefer a small evidence-backed shortlist over a long generic trend list.
