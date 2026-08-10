@@ -2,8 +2,7 @@
 
 AI Workstation Topic Intelligence is distributed as two reusable Skills over the existing AI Workstation Global Topic Radar.
 
-Latest public release: **v0.2.0**.  
-Current source line: **v0.2.1 Unreleased**.
+Latest public release: **v0.2.1**.
 
 A `VERSION` change does not publish anything by itself; only a matching pushed `v*` tag can start the release workflow.
 
@@ -107,6 +106,13 @@ Published v0.2.0 hashes remain:
 9c90adccd61966321201c8c05b0fad963e18ea412bd3112c694a4fe0cea9dab8  aiworkstation-topic-intelligence-0.2.0-evidence-backed-content-brief.zip
 ```
 
+Published v0.2.1 hashes:
+
+```text
+3381d798c29cc8f67b1bca3f1f6da8a34a34ab78e64b6af7bd48aff95b663bb6  aiworkstation-topic-intelligence-0.2.1-creator-topic-opportunity-research.zip
+81d6aac45b42c27b8f24c27ac18b6a268509fb9a8a88a0813b96feab8f034d5e  aiworkstation-topic-intelligence-0.2.1-evidence-backed-content-brief.zip
+```
+
 Consumers should verify release assets against `SHA256SUMS` / `release-manifest.json`.
 
 ### 3. ChatGPT Skill upload
@@ -123,6 +129,8 @@ ChatGPT host model
 ```
 
 The uploaded public Skill should not depend on a server-side AI Workstation model call.
+
+The v0.2.1 release candidate passed isolated non-UI host/runtime acceptance. The ChatGPT v0.2.1 upload UI was not re-tested; the last manual web-upload evidence remains the separately recorded v0.2.0 smoke.
 
 If a future ChatGPT App/Plugin/OAuth integration provides an authenticated AI Workstation account connection, that native connection may expose separate Premium capabilities. Do not put that authentication responsibility inside the portable Skill ZIP.
 
