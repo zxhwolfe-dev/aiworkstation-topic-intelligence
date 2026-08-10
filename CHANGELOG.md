@@ -4,7 +4,7 @@ All notable public changes to AI Workstation Topic Intelligence are recorded her
 
 The project follows Semantic Versioning for distributable Skill releases.
 
-## [0.2.1] - Unreleased
+## [0.2.1] - 2026-08-10
 
 ### Changed
 
@@ -31,10 +31,12 @@ The project follows Semantic Versioning for distributable Skill releases.
 - Recorded real ChatGPT web smoke evidence for Creator-only, Brief-only, and both-Skills v0.2.0 installs.
 - ChatGPT standalone package upload, Skill discovery, bundled runtime execution, live Topic Radar access, selected-topic Insight access under v0.2.0, and behavioral multi-Skill composition all passed.
 - The ChatGPT UI did not expose the raw internal handoff payload, so exact internal handoff serialization is not overclaimed as directly observed.
+- Validated the v0.2.1 release candidate without a ChatGPT login through three isolated fresh-agent runs, live public `feed`/`sources`/`history`, extracted-package execution, deterministic double-builds, and blocked-network/no-local-fallback checks.
+- The v0.2.1 ChatGPT ZIP upload UI was not re-tested; the release does not claim otherwise and carries forward only the separately recorded v0.2.0 UI evidence.
 
 ### Distribution
 
-- `v0.2.0` remains the latest public immutable release until the 0.2.1 quality/cost patch is fully tested and explicitly released.
+- `v0.2.1` is the current public immutable release; `v0.2.0` remains immutable and retains the last manual ChatGPT web-upload evidence.
 - No Hosted MCP transport is required for public Radar connectivity because standalone ChatGPT Skills already reach the live public read endpoints.
 - A future authenticated App/Plugin/OAuth transport may be introduced only for Premium account-bound capabilities such as server Topic Insight.
 
