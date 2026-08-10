@@ -247,10 +247,13 @@ Completed:
 3. Codex collector + conservative evidence grader made repeatable and validated;
 4. Skills-only determined sufficient for current ChatGPT transport.
 
-Current next step:
+Also completed for v0.2.1:
 
-5. improve Skill quality from real host findings on the unreleased 0.2.1 patch line;
-6. re-run a focused ChatGPT smoke with the 0.2.1 release candidate before publishing it.
+5. improved Skill quality from the real v0.2.0 host findings;
+6. ran isolated Creator-only, Brief-only, and both-Skills v0.2.1 acceptance without a ChatGPT login;
+7. recorded that this is host/runtime evidence and does not claim the v0.2.1 ChatGPT upload UI was re-tested.
+
+See `docs/v0.2.1-non-ui-host-acceptance-2026-08-10.md`.
 
 Hosted MCP/App transport should be reconsidered only if a future host demonstrates a concrete live-connectivity limitation.
 

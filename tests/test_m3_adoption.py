@@ -46,7 +46,7 @@ class M3AdoptionTests(unittest.TestCase):
         self.assertIn("不会用模型记忆或本地旧数据冒充", content)
         self.assertNotIn("保证抓住热点", content.split("## 首页不应该承诺的内容", 1)[0])
 
-    def test_v0_2_release_history_is_preserved_on_v0_2_1_development_line(self) -> None:
+    def test_v0_2_release_history_is_preserved_on_v0_2_1_release_line(self) -> None:
         version = (self.ROOT / "VERSION").read_text(encoding="utf-8").strip()
         changelog = (self.ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         acceptance = (
@@ -55,13 +55,22 @@ class M3AdoptionTests(unittest.TestCase):
         decision = (self.ROOT / "docs" / "release-v0.2.0-decision.md").read_text(
             encoding="utf-8"
         )
+        v021_decision = (
+            self.ROOT / "docs" / "release-v0.2.1-decision.md"
+        ).read_text(encoding="utf-8")
+        v021_acceptance = (
+            self.ROOT / "docs" / "v0.2.1-non-ui-host-acceptance-2026-08-10.md"
+        ).read_text(encoding="utf-8")
 
         self.assertEqual(version, "0.2.1")
-        self.assertIn("## [0.2.1] - Unreleased", changelog)
+        self.assertIn("## [0.2.1] - 2026-08-10", changelog)
         self.assertIn("## [0.2.0] - 2026-08-09", changelog)
         self.assertIn("## [0.1.0] - 2026-08-09", changelog)
         self.assertIn("M3_1_SKILL_QUALITY_PASS", acceptance)
         self.assertIn("RELEASE_ELIGIBLE", decision)
+        self.assertIn("RELEASE_ELIGIBLE", v021_decision)
+        self.assertIn("NON_UI_HOST_ACCEPTANCE_PASS", v021_acceptance)
+        self.assertIn("does not claim that the v0.2.1 ZIP upload UI was tested", v021_decision)
 
 
 if __name__ == "__main__":

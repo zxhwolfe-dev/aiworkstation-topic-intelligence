@@ -4,10 +4,9 @@
 
 [简体中文](README.zh-CN.md)
 
-Latest public release: **v0.2.0**  
-Current source line: **v0.2.1 Unreleased**
+Latest public release: **v0.2.1**
 
-v0.2.0 proved that the standalone Skills can upload/run in ChatGPT, execute their bundled runtime, reach the live AI Workstation Topic Radar, and compose Creator → Brief. The unreleased v0.2.1 line keeps that workflow but adds stricter query/provenance rules and a critical cost boundary: **normal public Skill usage must not consume AI Workstation server-side LLM quota.**
+v0.2.0 proved that the standalone Skills can upload/run in ChatGPT, execute their bundled runtime, reach the live AI Workstation Topic Radar, and compose Creator → Brief. v0.2.1 keeps that workflow but adds stricter query/provenance rules and a critical cost boundary: **normal public Skill usage must not consume AI Workstation server-side LLM quota.**
 
 Topic Intelligence sits on top of the existing AI Workstation Global Topic Radar. It does not build another crawler, score, database, or persistence layer.
 
@@ -53,7 +52,7 @@ The Creator Skill selects one finalist and preserves the exact live `id`. The Br
 
 If only the Brief Skill is installed, it can run one bounded live selection pass (normally no more than 5 candidates), select at most one, optionally inspect its history, and then use the **current ChatGPT/Codex/agent model** to produce the brief.
 
-## Public Skill cost boundary — v0.2.1 source line
+## Public Skill cost boundary — v0.2.1
 
 The distributable public Skills are designed to spread without silently spending the publisher's model budget.
 
@@ -126,7 +125,7 @@ In normal public mode these editorial fields are produced by the **host model**,
 
 ## Query-quality rules
 
-The unreleased v0.2.1 line also hardens real issues found in ChatGPT smoke testing:
+v0.2.1 also hardens real issues found in ChatGPT smoke testing:
 
 - content format/duration/language/audience are **not** Radar platform/source filters;
 - explicit topic scope must be preserved from the first query (`AI` should not first expand to generic technology);
@@ -188,10 +187,13 @@ See [`docs/distribution.md`](docs/distribution.md).
 
 The published v0.2.0 ZIPs were manually tested in ChatGPT web in Creator-only, Brief-only, and both-Skills shapes. Package upload, Skill discovery, bundled runtime execution, live Radar access, and behavioral composition passed.
 
+The v0.2.1 release candidate was separately validated without a ChatGPT login through three isolated fresh-agent runs (Creator-only, Brief-only, and both-Skills), extracted-package execution, live `feed`/`sources`/`history`, blocked-network behavior, and zero-`/insight` checks. This is host/runtime acceptance, not a claim that the v0.2.1 ZIP upload UI was re-tested.
+
 See:
 
 - [`docs/chatgpt-install.md`](docs/chatgpt-install.md)
 - [`docs/chatgpt-v0.2.0-smoke-result-2026-08-09.md`](docs/chatgpt-v0.2.0-smoke-result-2026-08-09.md)
+- [`docs/v0.2.1-non-ui-host-acceptance-2026-08-10.md`](docs/v0.2.1-non-ui-host-acceptance-2026-08-10.md)
 
 ## Hard evidence boundary
 
@@ -258,6 +260,7 @@ Useful evidence:
 - [`evals/host-capabilities.json`](evals/host-capabilities.json)
 - [`docs/m3.1-final-acceptance-2026-08-09.md`](docs/m3.1-final-acceptance-2026-08-09.md)
 - [`docs/chatgpt-v0.2.0-smoke-result-2026-08-09.md`](docs/chatgpt-v0.2.0-smoke-result-2026-08-09.md)
+- [`docs/v0.2.1-non-ui-host-acceptance-2026-08-10.md`](docs/v0.2.1-non-ui-host-acceptance-2026-08-10.md)
 
 ## Environment
 
@@ -268,5 +271,5 @@ Useful evidence:
 
 ## Status
 
-- **v0.2.0:** latest immutable public release.
-- **v0.2.1:** Unreleased Skill-quality/cost-boundary line; public mode uses host reasoning and does not spend AI Workstation server-side LLM quota.
+- **v0.2.1:** latest immutable public release; public mode uses host reasoning and does not spend AI Workstation server-side LLM quota.
+- **v0.2.0:** previous immutable public release and the most recent version manually uploaded in ChatGPT web.
