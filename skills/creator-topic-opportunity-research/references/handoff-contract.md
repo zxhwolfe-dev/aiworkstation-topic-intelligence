@@ -71,7 +71,7 @@ It is not a new backend or a persisted evidence store. It only carries one selec
 - `partial` does not remove evidence needed for the requested claim;
 - the handoff is not being loaded from a previous task, cache, log, saved file, or model memory.
 
-When those conditions hold, the Brief Skill may skip a redundant topic-name/feed re-identification step and continue with `/history` when movement matters and `/insight` for the selected `topic_id`.
+When those conditions hold, the Brief Skill may skip a redundant topic-name/feed re-identification step and continue with `/history` when movement matters and host-model reasoning. Premium `/insight` is not part of the public handoff workflow and is allowed only through an explicitly authenticated native Premium connection.
 
 Refresh the live feed before relying on the handoff when:
 
@@ -88,6 +88,6 @@ The handoff does not upgrade analysis into fact. Keep separate:
 
 - `snapshot` and `topic_snapshot`: source facts copied from the current Radar response;
 - `selection`: analysis/recommendation/unknowns/risks;
-- `/insight`: model analysis over the server-known topic.
+- authenticated Premium Insight, when explicitly supplied by the native host: model analysis over the server-known topic.
 
 A persisted handoff is never a substitute for a new live response in a later current-topic task.

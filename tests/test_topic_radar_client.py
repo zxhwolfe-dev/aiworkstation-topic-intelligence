@@ -56,6 +56,8 @@ class TopicRadarClientTests(unittest.TestCase):
         client = TopicRadarClient(base_url="https://example.test", opener=opener)
         result = client.feed(
             q="AI",
+            platform="youtube",
+            target_platform="douyin",
             category="technology",
             signal="early_opportunity",
             new_only=True,
@@ -71,6 +73,8 @@ class TopicRadarClientTests(unittest.TestCase):
         self.assertIn("/api/v1/ai/topic-radar/feed?", request.full_url)
         self.assertIn("q=AI", request.full_url)
         self.assertIn("category=technology", request.full_url)
+        self.assertIn("platform=youtube", request.full_url)
+        self.assertIn("target_platform=douyin", request.full_url)
         self.assertIn("signal=early_opportunity", request.full_url)
         self.assertIn("new_only=true", request.full_url)
         self.assertIn("max_age_hours=24", request.full_url)
@@ -196,6 +200,28 @@ class TopicRadarClientTests(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             client.feed(signal="invented")
+
+    def test_rejects_relative_or_non_http_base_url(self) -> None:
+        for value in ("/local", "file:///tmp/radar.json", "javascript:alert(1)", "https://user:secret@example.test", "https://example.test/path"):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                TopicRadarClient(base_url=value)
+
+    def test_rejects_oversized_response_and_invalid_freshness_types(self) -> None:
+        oversized = TopicRadarClient(
+            base_url="https://example.test",
+            opener=lambda request, timeout: FakeResponse(b"{" + b" " * (4 * 1024 * 1024) + b"}"),
+        )
+        with self.assertRaisesRegex(TopicRadarProtocolError, "size limit"):
+            oversized.feed()
+
+        malformed = sample_feed()
+        malformed["snapshot_age_seconds"] = "recent"
+        client = TopicRadarClient(
+            base_url="https://example.test",
+            opener=lambda request, timeout: FakeResponse(malformed),
+        )
+        with self.assertRaisesRegex(TopicRadarProtocolError, "snapshot_age_seconds"):
+            client.feed()
 
 
 if __name__ == "__main__":

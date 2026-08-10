@@ -12,6 +12,7 @@ import argparse
 import json
 import os
 import sys
+from urllib.parse import urlsplit
 from typing import Any, Callable, Mapping, Optional
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
@@ -21,6 +22,7 @@ from urllib.request import Request, urlopen
 DEFAULT_BASE_URL = "https://aiworkstation.cn"
 API_PATH = "/api/v1/ai/topic-radar"
 DEFAULT_TIMEOUT = 15.0
+MAX_RESPONSE_BYTES = 4 * 1024 * 1024
 _ALLOWED_SIGNALS = {"", "all", "multi_source", "early_opportunity", "single_source"}
 
 
@@ -63,10 +65,21 @@ def _validate_payload(kind: str, payload: Any) -> dict[str, Any]:
         _require_list(obj, "items", context="feed")
         _require_list(obj, "source_status", context="feed")
         _validate_feed_items(obj["items"])
+        if not isinstance(obj.get("partial"), bool) or not isinstance(obj.get("stale"), bool):
+            raise TopicRadarProtocolError("feed: partial and stale must be boolean")
+        for key in ("refreshing", "history_available"):
+            if key in obj and not isinstance(obj[key], bool):
+                raise TopicRadarProtocolError(f"feed: {key} must be boolean")
+        if "snapshot_age_seconds" in obj and (isinstance(obj["snapshot_age_seconds"], bool) or not isinstance(obj["snapshot_age_seconds"], int) or obj["snapshot_age_seconds"] < 0):
+            raise TopicRadarProtocolError("feed: snapshot_age_seconds must be a non-negative integer")
     elif kind == "sources":
         if "generated_at" not in obj:
             raise TopicRadarProtocolError("sources: missing field 'generated_at'")
         _require_list(obj, "sources", context="sources")
+        if "snapshot_age_seconds" in obj and (isinstance(obj["snapshot_age_seconds"], bool) or not isinstance(obj["snapshot_age_seconds"], int) or obj["snapshot_age_seconds"] < 0):
+            raise TopicRadarProtocolError("sources: snapshot_age_seconds must be a non-negative integer")
+        if "refreshing" in obj and not isinstance(obj["refreshing"], bool):
+            raise TopicRadarProtocolError("sources: refreshing must be boolean")
     elif kind == "history":
         if not isinstance(obj.get("topic_id"), str):
             raise TopicRadarProtocolError("history: expected string field 'topic_id'")
@@ -90,8 +103,13 @@ class TopicRadarClient:
             or os.getenv("AIWORKSTATION_TOPIC_RADAR_BASE_URL")
             or DEFAULT_BASE_URL
         ).rstrip("/")
-        if not selected.startswith(("http://", "https://")):
-            raise ValueError("base_url must start with http:// or https://")
+        parsed = urlsplit(selected)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError("base_url must be an absolute http(s) URL")
+        if parsed.username or parsed.password or parsed.query or parsed.fragment:
+            raise ValueError("base_url must be a credential-free origin")
+        if parsed.path not in {"", "/"}:
+            raise ValueError("base_url must not include a path")
         if timeout <= 0:
             raise ValueError("timeout must be positive")
         self.base_url = selected
@@ -129,7 +147,12 @@ class TopicRadarClient:
 
         try:
             with self._opener(request, timeout=self.timeout) as response:
-                raw = response.read()
+                try:
+                    raw = response.read(MAX_RESPONSE_BYTES + 1)
+                except TypeError:  # tiny test doubles may expose read() only
+                    raw = response.read()
+                if len(raw) > MAX_RESPONSE_BYTES:
+                    raise TopicRadarProtocolError("Topic Radar response exceeded size limit")
         except HTTPError as exc:
             detail = ""
             try:
@@ -155,6 +178,7 @@ class TopicRadarClient:
         *,
         q: str = "",
         platform: str = "",
+        target_platform: str = "",
         region: str = "",
         category: str = "",
         source: str = "",
@@ -184,6 +208,7 @@ class TopicRadarClient:
             params={
                 "q": q,
                 "platform": platform,
+                "target_platform": target_platform,
                 "region": region,
                 "category": category,
                 "source": source,
@@ -257,9 +282,8 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = _build_parser().parse_args(argv)
-    client = TopicRadarClient(base_url=args.base_url, timeout=args.timeout)
-
     try:
+        client = TopicRadarClient(base_url=args.base_url, timeout=args.timeout)
         if args.command == "feed":
             payload = client.feed(
                 q=args.q,

@@ -24,7 +24,7 @@ from typing import Any, Iterable, Mapping, Sequence
 
 REPORT_SCHEMA = "ati.host-eval.v1"
 SUPPORTED_HOSTS = ("codex",)
-SUPPORTED_SUITES = ("trigger", "quality")
+SUPPORTED_SUITES = ("trigger", "quality", "v0.2.1")
 TOPIC_INTELLIGENCE_SKILLS = (
     "creator-topic-opportunity-research",
     "evidence-backed-content-brief",
@@ -97,10 +97,11 @@ def load_suite(root: Path, suite: str) -> list[EvalCase]:
             )
         return cases
 
-    if suite == "quality":
-        path = root / "evals" / "m3-skill-quality.json"
+    if suite in {"quality", "v0.2.1"}:
+        path = root / "evals" / ("v0.2.1-skill-quality.json" if suite == "v0.2.1" else "m3-skill-quality.json")
         payload = _load_json(path)
-        if payload.get("schema") != "ati.m3-skill-quality.v1":
+        expected_schema = "ati.v0.2.1-skill-quality.v1" if suite == "v0.2.1" else "ati.m3-skill-quality.v1"
+        if payload.get("schema") != expected_schema:
             raise HostEvalError(f"unexpected quality eval schema: {payload.get('schema')!r}")
         raw_cases = payload.get("cases")
         if not isinstance(raw_cases, list):
@@ -117,8 +118,8 @@ def load_suite(root: Path, suite: str) -> list[EvalCase]:
             ):
                 raise HostEvalError(f"{case_id}: expected_workflow must be a string list")
             requires_live = raw.get("requires_live_network")
-            if not isinstance(requires_live, bool):
-                raise HostEvalError(f"{case_id}: requires_live_network must be boolean")
+            if requires_live is not None and not isinstance(requires_live, bool):
+                raise HostEvalError(f"{case_id}: requires_live_network must be boolean when present")
             cases.append(
                 EvalCase(
                     suite=suite,

@@ -8,6 +8,12 @@ The project follows Semantic Versioning for distributable Skill releases.
 
 ### Changed
 
+- Hardened the public helper with absolute-origin validation, bounded response reads, strict freshness/type checks, and deterministic CLI errors.
+- Synced the self-contained helper and handoff contract into both distributable Skills; public handoffs no longer depend on anonymous server Insight.
+- Added the v0.2.1 quality suite to Host Eval selection and kept the legacy M3 suite available for historical evidence.
+- Added CI checks for runtime synchronization, Python compilation, release archive construction, and JavaScript syntax.
+- These changes form the planned v0.2.2 candidate line; the published v0.2.1 contract remains intact until an explicit release.
+
 - Added a shared per-Skill `references/quality-contract.md` derived from real ChatGPT v0.2.0 host smoke testing.
 - Content format, duration, language, audience, tone, and production constraints are explicitly kept separate from Radar `platform`/`source` filters unless the user names a real supported Radar dimension.
 - Explicit topic/domain constraints such as `AI` are preserved from the first bounded query instead of starting with a broader generic technology scan.
