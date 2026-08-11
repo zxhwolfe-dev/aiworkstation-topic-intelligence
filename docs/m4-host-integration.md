@@ -179,13 +179,14 @@ It distinguishes:
 
 - `mentioned_skills` — a Skill name appeared anywhere in the raw trace;
 - `definition_read_skills` — a `command_execution.command` directly read `SKILL.md`, `agents/openai.yaml`, or the handoff reference;
-- `runtime_use_skills` — a `command_execution.command` directly referenced the Skill-local `scripts/topic_radar_client.py` helper;
+- `runtime_use_skills` — a completed `command_execution` directly ran the Skill-local `scripts/topic_radar_client.py` helper through Python for `feed`, `sources`, or `history`, exited successfully, and emitted contract-valid Radar JSON;
 - `handoff_agent_message_observed` — the formal handoff schema appeared in an agent message.
 
 Important rules:
 
 - reading/listing a Skill definition is consultation/discovery evidence, not invocation;
 - command output that merely prints a helper path is not runtime-use evidence;
+- reading/compiling the helper, `--help`, failed requests, custom origins, pipes/redirections, and compound shell commands are not runtime-use evidence;
 - a negative trigger case fails only when unexpected Skill runtime use is actually observable;
 - a positive trigger case can pass at a weaker evidence level when the expected Skill definition is clearly consulted, because Codex currently lacks a first-class Skill-trigger event;
 - formal handoff use is not inferred merely because Codex read `handoff-contract.md`.

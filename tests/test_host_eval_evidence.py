@@ -25,6 +25,39 @@ def _event(item: dict[str, object]) -> str:
     return json.dumps({"type": "item.completed", "item": item})
 
 
+def _feed_payload() -> str:
+    return json.dumps({
+        "generated_at": "2026-08-11T00:00:00Z",
+        "status": "ok",
+        "partial": False,
+        "stale": False,
+        "items": [],
+        "source_status": [],
+    })
+
+
+def _helper_event(
+    skill: str = CREATOR,
+    *,
+    operation: str = "feed",
+    output: str | None = None,
+    exit_code: int = 0,
+    status: str = "completed",
+    arguments: str = "",
+) -> str:
+    payload = output if output is not None else _feed_payload()
+    return _event({
+        "type": "command_execution",
+        "command": (
+            f"python3 ~/.agents/skills/{skill}/scripts/topic_radar_client.py "
+            f"{operation}{arguments}"
+        ),
+        "aggregated_output": payload,
+        "exit_code": exit_code,
+        "status": status,
+    })
+
+
 def _trigger_case(expected_skill: str | None) -> dict[str, object]:
     return {
         "id": "case",
@@ -73,33 +106,17 @@ class HostEvalEvidenceTests(unittest.TestCase):
         )
 
     def test_runtime_helper_command_is_strong_use_evidence(self) -> None:
-        stdout = _event(
-            {
-                "type": "command_execution",
-                "command": (
-                    f"python3 ~/.agents/skills/{CREATOR}/scripts/"
-                    "topic_radar_client.py feed --limit 3"
-                ),
-                "aggregated_output": "network unavailable",
-            }
-        )
+        stdout = _helper_event(arguments=" --limit 3")
         evidence = observe_evidence(stdout)
         self.assertEqual(evidence["runtime_use_skills"], [CREATOR])
+        self.assertEqual(evidence["runtime_operations"], [f"{CREATOR}:feed"])
         self.assertEqual(
             classify_case(_trigger_case(CREATOR), evidence),
             "pass_expected_skill_runtime_observed",
         )
 
     def test_wrong_runtime_helper_is_a_real_negative_signal(self) -> None:
-        stdout = _event(
-            {
-                "type": "command_execution",
-                "command": (
-                    f"python3 ~/.agents/skills/{BRIEF}/scripts/"
-                    "topic_radar_client.py feed --limit 3"
-                ),
-            }
-        )
+        stdout = _helper_event(BRIEF, arguments=" --limit 3")
         evidence = observe_evidence(stdout)
         self.assertEqual(
             classify_case(_trigger_case(CREATOR), evidence),
@@ -228,10 +245,7 @@ class HostEvalEvidenceTests(unittest.TestCase):
             "schema": "ati.host-eval.v1", "host": "codex", "skill_version": "0.2.1",
             "suites": ["v0.2.1"], "cases": [{
                 "id": "v021", "suite": "v0.2.1", "expected_workflow": [CREATOR],
-                "runtime_status": "completed", "stdout": _event({
-                    "type": "command_execution",
-                    "command": f"python3 ~/.agents/skills/{CREATOR}/scripts/topic_radar_client.py feed",
-                }), "stderr": "",
+                "runtime_status": "completed", "stdout": _helper_event(), "stderr": "",
             }],
         }
         graded = grade_report(payload)
@@ -250,6 +264,105 @@ class HostEvalEvidenceTests(unittest.TestCase):
         }
         graded = grade_report(payload)
         self.assertEqual(graded["cases"][0]["evidence_grade"], "unobservable")
+
+    def test_helper_source_reads_and_help_are_not_runtime_use(self) -> None:
+        helper = f"/skills/{CREATOR}/scripts/topic_radar_client.py"
+        for command in (
+            f"cat {helper}",
+            f"sed -n '1,20p' {helper}",
+            f"rg feed {helper}",
+            f"head -20 {helper}",
+            f"tail -20 {helper}",
+            f"python3 -m py_compile {helper}",
+            f"python3 {helper} --help",
+            f"python3 {helper} feed --help",
+        ):
+            stdout = _event({
+                "type": "command_execution", "command": command,
+                "aggregated_output": _feed_payload(), "exit_code": 0, "status": "completed",
+            })
+            with self.subTest(command=command):
+                self.assertEqual(observe_evidence(stdout)["runtime_use_skills"], [])
+
+    def test_failed_or_invalid_helper_calls_are_not_runtime_use(self) -> None:
+        for stdout in (
+            _helper_event(exit_code=2, status="failed"),
+            _helper_event(output="network unavailable"),
+            _helper_event(operation="invalid", output=_feed_payload()),
+            _helper_event(output="{}"),
+            _helper_event(status="in_progress", exit_code=0),
+        ):
+            with self.subTest(stdout=stdout):
+                self.assertEqual(observe_evidence(stdout)["runtime_use_skills"], [])
+
+    def test_shell_wrapped_successful_helper_call_is_observed(self) -> None:
+        stdout = _event({
+            "type": "command_execution",
+            "command": (
+                f"/bin/bash -lc 'python3 /skills/{CREATOR}/scripts/"
+                "topic_radar_client.py --timeout 20 feed --q AI --limit 3'"
+            ),
+            "aggregated_output": _feed_payload(),
+            "exit_code": 0,
+            "status": "completed",
+        })
+        evidence = observe_evidence(stdout)
+        self.assertEqual(evidence["runtime_use_skills"], [CREATOR])
+        self.assertEqual(evidence["runtime_operations"], [f"{CREATOR}:feed"])
+
+    def test_composed_redirected_or_custom_origin_helper_calls_are_not_runtime_use(self) -> None:
+        helper = f"/skills/{CREATOR}/scripts/topic_radar_client.py"
+        for command in (
+            f"cat /tmp/file && python3 {helper} feed",
+            f"python3 {helper} feed && printf '{{}}'",
+            f"python3 {helper} feed | tee /tmp/feed.json",
+            f"python3 {helper} feed > /tmp/feed.json",
+            f"python3 {helper} feed 2>&1",
+            f"python3 {helper} feed $(printf AI)",
+            f"python3 {helper} --base-url https://example.test feed",
+        ):
+            stdout = _event({
+                "type": "command_execution", "command": command,
+                "aggregated_output": _feed_payload(), "exit_code": 0, "status": "completed",
+            })
+            with self.subTest(command=command):
+                self.assertEqual(observe_evidence(stdout)["runtime_use_skills"], [])
+
+    def test_all_allowed_operations_require_their_response_contract(self) -> None:
+        sources = json.dumps({"generated_at": "2026-08-11T00:00:00Z", "sources": []})
+        history = json.dumps({"topic_id": "topic-1", "points": []})
+        for operation, arguments, output in (("sources", "", sources), ("history", " topic-1", history)):
+            with self.subTest(operation=operation):
+                evidence = observe_evidence(_helper_event(operation=operation, arguments=arguments, output=output))
+                self.assertEqual(evidence["runtime_operations"], [f"{CREATOR}:{operation}"])
+
+        malformed = json.dumps({
+            "generated_at": "2026-08-11T00:00:00Z", "status": "ok",
+            "partial": False, "stale": False, "items": [{"title": "missing id"}],
+            "source_status": [],
+        })
+        self.assertEqual(
+            observe_evidence(_helper_event(output=malformed))["runtime_use_skills"],
+            [],
+        )
+
+    def test_invalid_operation_arguments_are_not_runtime_use(self) -> None:
+        helper = f"/skills/{CREATOR}/scripts/topic_radar_client.py"
+        for command in (
+            f"python3 {helper} invalid feed",
+            f"python3 {helper} feed invalid",
+            f"python3 {helper} sources extra",
+            f"python3 {helper} history",
+            f"python3 {helper} history --help",
+            f"python3 {helper} --timeout nope feed",
+            f"python3 {helper} --timeout=-1 feed",
+        ):
+            stdout = _event({
+                "type": "command_execution", "command": command,
+                "aggregated_output": _feed_payload(), "exit_code": 0, "status": "completed",
+            })
+            with self.subTest(command=command):
+                self.assertEqual(observe_evidence(stdout)["runtime_use_skills"], [])
 
 
 if __name__ == "__main__":

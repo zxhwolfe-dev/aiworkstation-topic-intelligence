@@ -26,6 +26,17 @@ def _event(item: dict) -> str:
     return json.dumps({"type": "item.completed", "item": item})
 
 
+def _feed_payload() -> str:
+    return json.dumps({
+        "generated_at": "2026-08-11T00:00:00Z",
+        "status": "ok",
+        "partial": False,
+        "stale": False,
+        "items": [],
+        "source_status": [],
+    })
+
+
 def _repo() -> tuple[tempfile.TemporaryDirectory, Path, str]:
     temporary = tempfile.TemporaryDirectory()
     root = Path(temporary.name)
@@ -52,6 +63,9 @@ def _write_valid_evidence(root: Path, evaluated_commit: str) -> Path:
                 commands.append(_event({
                     "type": "command_execution",
                     "command": f"python3 /skills/{skill}/scripts/topic_radar_client.py feed",
+                    "aggregated_output": _feed_payload(),
+                    "exit_code": 0,
+                    "status": "completed",
                 }))
         if HANDOFF_SCHEMA in case.expected_workflow:
             commands.append(_event({"type": "agent_message", "text": HANDOFF_SCHEMA}))
@@ -171,6 +185,39 @@ class ReleaseEvidenceTests(unittest.TestCase):
                     verify(root, "0.2.2")
             finally:
                 temporary.cleanup()
+
+    def test_complete_source_read_only_evidence_package_blocks(self) -> None:
+        temporary, root, evaluated = _repo()
+        try:
+            evidence = _write_valid_evidence(root, evaluated)
+            raw_path = evidence / "host-eval.json"
+            graded_path = evidence / "host-evidence.json"
+            raw = json.loads(raw_path.read_text())
+            for case in raw["cases"]:
+                events = []
+                for skill in ("creator-topic-opportunity-research", "evidence-backed-content-brief"):
+                    if any(
+                        token == skill or token.startswith(skill + ":")
+                        for token in case["expected_workflow"]
+                    ):
+                        events.append(_event({
+                            "type": "command_execution",
+                            "command": f"sed -n '1,20p' /skills/{skill}/scripts/topic_radar_client.py",
+                            "aggregated_output": _feed_payload(),
+                            "exit_code": 0,
+                            "status": "completed",
+                        }))
+                if HANDOFF_SCHEMA in case["expected_workflow"]:
+                    events.append(_event({"type": "agent_message", "text": HANDOFF_SCHEMA}))
+                case["stdout"] = "\n".join(events)
+            raw_path.write_text(json.dumps(raw))
+            graded_path.write_text(json.dumps(grade_report(raw)))
+            _git(root, "add", ".")
+            _git(root, "commit", "-qm", "replace execution with source reads")
+            with self.assertRaisesRegex(ReleaseEvidenceError, "not fully passing"):
+                verify(root, "0.2.2")
+        finally:
+            temporary.cleanup()
 
     def test_extra_non_object_manual_case_blocks(self) -> None:
         temporary, root, evaluated = _repo()

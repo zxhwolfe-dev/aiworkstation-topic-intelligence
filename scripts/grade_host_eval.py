@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
 import sys
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
@@ -25,6 +26,13 @@ TOPIC_INTELLIGENCE_SKILLS = (
     "creator-topic-opportunity-research",
     "evidence-backed-content-brief",
 )
+RADAR_OPERATIONS = {"feed", "sources", "history"}
+SHELL_EXECUTABLES = {"bash", "dash", "sh", "zsh"}
+FEED_VALUE_OPTIONS = {
+    "--q", "--platform", "--target-platform", "--region", "--category",
+    "--source", "--stage", "--signal", "--keywords", "--exclude-sources",
+    "--min-score", "--max-age-hours", "--offset", "--limit",
+}
 SUPPORTED_QUALITY_SUITES = {"quality", "v0.2.1"}
 PASS_GRADES = {
     "pass_no_skill_runtime_observed",
@@ -80,11 +88,162 @@ def _looks_like_definition_read(text: str, skill: str) -> bool:
     )
 
 
-def _looks_like_runtime_use(text: str, skill: str) -> bool:
-    normalized = text.replace("\\", "/")
-    if skill not in normalized:
+def _shell_tokens(text: str) -> list[str]:
+    """Return shell-aware words/operators without executing the command."""
+
+    try:
+        lexer = shlex.shlex(text, posix=True, punctuation_chars=";&|<>")
+        lexer.whitespace_split = True
+        lexer.commenters = ""
+        return list(lexer)
+    except ValueError:
+        return []
+
+
+def _command_tokens(command: str) -> list[str]:
+    """Unwrap the normal `shell -lc` trace shape and tokenize its payload."""
+
+    try:
+        outer = shlex.split(command, posix=True)
+    except ValueError:
+        return []
+    if not outer:
+        return []
+    executable = outer[0].replace("\\", "/").rsplit("/", 1)[-1]
+    if executable in SHELL_EXECUTABLES and len(outer) >= 3 and outer[1] in {"-c", "-lc"}:
+        return _shell_tokens(outer[2])
+    return _shell_tokens(command)
+
+
+def _runtime_invocation(command: str, skill: str) -> str | None:
+    """Return the allowed Radar operation for a real Python helper invocation."""
+
+    tokens = _command_tokens(command)
+    if not tokens or any(any(character in token for character in ";|&<>`$") for token in tokens):
+        return None
+    marker = f"/{skill}/scripts/topic_radar_client.py"
+    executable = tokens[0].replace("\\", "/").rsplit("/", 1)[-1]
+    if executable not in {"python", "python3"}:
+        return None
+    helper = tokens[1].replace("\\", "/") if len(tokens) > 1 else ""
+    if not helper.endswith(marker):
+        return None
+    arguments = tokens[2:]
+    if "-h" in arguments or "--help" in arguments or "--base-url" in arguments:
+        return None
+    return _validated_operation_arguments(arguments)
+
+
+def _validated_operation_arguments(arguments: Sequence[str]) -> str | None:
+    """Recognize only the helper's supported CLI grammar."""
+
+    remaining = list(arguments)
+    while remaining and remaining[0].startswith("--timeout"):
+        option = remaining.pop(0)
+        if option == "--timeout":
+            if not remaining:
+                return None
+            value = remaining.pop(0)
+        elif option.startswith("--timeout="):
+            value = option.split("=", 1)[1]
+        else:
+            return None
+        try:
+            if float(value) <= 0:
+                return None
+        except ValueError:
+            return None
+
+    if not remaining:
+        return None
+    operation = remaining.pop(0)
+    if operation not in RADAR_OPERATIONS:
+        return None
+
+    if operation == "sources":
+        return operation if not remaining else None
+    if operation == "history":
+        return operation if len(remaining) == 1 and remaining[0] and not remaining[0].startswith("-") else None
+
+    while remaining:
+        option = remaining.pop(0)
+        if option == "--new-only":
+            continue
+        if "=" in option:
+            name, value = option.split("=", 1)
+            if name not in FEED_VALUE_OPTIONS or not value:
+                return None
+            continue
+        if option not in FEED_VALUE_OPTIONS or not remaining:
+            return None
+        value = remaining.pop(0)
+        if not value or value.startswith("--"):
+            return None
+    return operation
+
+
+def _completed_successfully(item: Mapping[str, Any]) -> bool:
+    return item.get("status") == "completed" and item.get("exit_code") == 0
+
+
+def _validated_radar_response(operation: str, output: Any) -> bool:
+    """Require JSON emitted only after the bundled helper validates its response."""
+
+    if not isinstance(output, str) or not output.strip():
         return False
-    return f"/{skill}/scripts/topic_radar_client.py" in normalized
+    try:
+        payload = json.loads(output)
+    except json.JSONDecodeError:
+        return False
+    if not isinstance(payload, Mapping):
+        return False
+    if operation == "feed":
+        if not (
+            isinstance(payload.get("generated_at"), str)
+            and bool(payload["generated_at"].strip())
+            and isinstance(payload.get("status"), str)
+            and bool(payload["status"].strip())
+            and isinstance(payload.get("partial"), bool)
+            and isinstance(payload.get("stale"), bool)
+            and isinstance(payload.get("items"), list)
+            and isinstance(payload.get("source_status"), list)
+        ):
+            return False
+        return all(
+            isinstance(item, Mapping)
+            and isinstance(item.get("id"), str)
+            and bool(item["id"].strip())
+            for item in payload["items"]
+        ) and all(
+            isinstance(item, Mapping)
+            and isinstance(item.get("id"), str)
+            and bool(item["id"].strip())
+            and isinstance(item.get("status"), str)
+            and bool(item["status"].strip())
+            for item in payload["source_status"]
+        )
+    if operation == "sources":
+        return (
+            isinstance(payload.get("generated_at"), str)
+            and bool(payload["generated_at"].strip())
+            and isinstance(payload.get("sources"), list)
+        )
+    if operation == "history":
+        if not (
+            isinstance(payload.get("topic_id"), str)
+            and bool(payload["topic_id"].strip())
+            and isinstance(payload.get("points"), list)
+        ):
+            return False
+        return all(
+            isinstance(point, Mapping)
+            and isinstance(point.get("observed_at"), str)
+            and bool(point["observed_at"].strip())
+            and not isinstance(point.get("opportunity_score"), bool)
+            and isinstance(point.get("opportunity_score"), (int, float))
+            for point in payload["points"]
+        )
+    return False
 
 
 def _item(event: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -106,6 +265,7 @@ def observe_evidence(stdout: str, stderr: str = "") -> dict[str, Any]:
     mentioned: set[str] = set()
     definition_reads: set[str] = set()
     runtime_uses: set[str] = set()
+    runtime_operations: set[str] = set()
     agent_message_mentions: set[str] = set()
     handoff_agent_message = False
     command_execution_count = 0
@@ -126,8 +286,14 @@ def observe_evidence(stdout: str, stderr: str = "") -> dict[str, Any]:
             for skill in TOPIC_INTELLIGENCE_SKILLS:
                 if _looks_like_definition_read(command, skill):
                     definition_reads.add(skill)
-                if _looks_like_runtime_use(command, skill):
+                operation = _runtime_invocation(command, skill)
+                if (
+                    operation is not None
+                    and _completed_successfully(item)
+                    and _validated_radar_response(operation, item.get("aggregated_output"))
+                ):
                     runtime_uses.add(skill)
+                    runtime_operations.add(f"{skill}:{operation}")
 
         elif item_type == "agent_message":
             agent_message_count += 1
@@ -139,6 +305,7 @@ def observe_evidence(stdout: str, stderr: str = "") -> dict[str, Any]:
         "mentioned_skills": sorted(mentioned),
         "definition_read_skills": sorted(definition_reads),
         "runtime_use_skills": sorted(runtime_uses),
+        "runtime_operations": sorted(runtime_operations),
         "agent_message_skill_mentions": sorted(agent_message_mentions),
         "handoff_agent_message_observed": handoff_agent_message,
         "command_execution_count": command_execution_count,
@@ -259,8 +426,9 @@ def grade_report(payload: Mapping[str, Any]) -> dict[str, Any]:
         "cases": graded_cases,
         "grading_note": (
             "passive Skill names/file reads are discovery evidence, not invocation; "
-            "runtime use requires the Skill-local helper path in a command_execution "
-            "command, and handoff use requires the schema in an agent message"
+            "runtime use requires a successful Python invocation of a Skill-local helper "
+            "feed/sources/history operation plus validated JSON output, and handoff use "
+            "requires the schema in an agent message"
         ),
     }
 
