@@ -13,7 +13,7 @@ The project follows Semantic Versioning for distributable Skill releases.
 - Kept packaged Skill runtime copies synchronized after the nested response-contract checks.
 - Added a persistent post-v0.2.1 Host Eval evidence gate; v0.2.2 remains blocked until a completed live RC and manual semantic review are committed.
 - Hardened the release evidence verifier against fabricated grades, wrong suites/versions, incomplete or truncated runs, case-contract drift, stale code revisions, and unstructured manual attestations; fixed grading for the v0.2.1 suite.
-- Required successful, official-origin `feed`/`sources`/`history` helper execution with contract-valid Radar JSON before Host Eval records runtime workflow evidence; source reads, help, failed calls, and composed shell commands no longer qualify.
+- Required successful `feed`/`sources`/`history` helper execution without an explicit custom origin and with contract-valid Radar JSON before Host Eval records runtime workflow evidence; source reads, help, failed calls, and composed shell commands no longer qualify.
 - Synced authenticated Premium identity forwarding guidance and preserved the published v0.2.1 release record below.
 
 ## [0.2.1] - 2026-08-10
