@@ -40,6 +40,30 @@ ORIGIN_OVERRIDE_ENV_VARS = (
     "AI_WORKSTATION_API_BASE_URL",
     "TOPIC_RADAR_BASE_URL",
 )
+PASSING_TRACE_INTEGRITY_STATUSES = {
+    "complete_clean",
+    "complete_after_recovery",
+}
+TOOL_ITEM_TYPES = {
+    "command_execution",
+    "file_change",
+    "image_generation",
+    "mcp_tool_call",
+    "web_search",
+}
+STREAM_DISCONNECT_MARKERS = (
+    "responsestreamdisconnected",
+    "response_stream_disconnected",
+    "response stream disconnected",
+    "stream disconnected",
+    "stream closed before response.completed",
+)
+STREAM_DISCONNECT_CODES = {
+    "responsestreamdisconnected",
+    "responsestreamdisconnect",
+    "streamdisconnected",
+    "streamdisconnect",
+}
 
 
 class HostEvalError(RuntimeError):
@@ -303,6 +327,167 @@ def trace_text(stdout: str, stderr: str) -> str:
     return "\n".join(collected)
 
 
+def _is_stream_disconnect_event(event: Mapping[str, Any]) -> bool:
+    """Recognize Codex response-stream interruptions, not helper/network errors."""
+
+    if event.get("type") != "error":
+        return False
+
+    # Codex versions have emitted both a structured ``codexErrorInfo.code``
+    # and a human-readable reconnect message. Prefer the structured code when
+    # present, while retaining the known message forms for older launchers.
+    def codes(value: Any) -> Iterable[str]:
+        if isinstance(value, Mapping):
+            for key, nested in value.items():
+                normalized_key = str(key).lower().replace("-", "_")
+                if normalized_key in {"code", "error_code", "codex_error_code"}:
+                    if isinstance(nested, str):
+                        yield nested
+                yield from codes(nested)
+        elif isinstance(value, list):
+            for nested in value:
+                yield from codes(nested)
+
+    for code in codes(event):
+        normalized = "".join(char for char in code.lower() if char.isalnum())
+        if normalized in STREAM_DISCONNECT_CODES:
+            return True
+
+    text = "\n".join(_collect_strings(event)).lower().replace("-", "_")
+    return any(marker in text for marker in STREAM_DISCONNECT_MARKERS)
+
+
+def analyze_jsonl_trace(
+    stdout: str,
+    *,
+    exit_code: int | None,
+    runtime_status: str,
+    timed_out: bool,
+    stdout_truncated: bool,
+    stderr_truncated: bool,
+    worktree_clean_after: bool,
+) -> dict[str, Any]:
+    """Classify one Codex JSONL lifecycle from observable process evidence."""
+
+    events: list[Mapping[str, Any]] = []
+    invalid_jsonl_line_count = 0
+    for line in stdout.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        try:
+            value = json.loads(stripped)
+        except json.JSONDecodeError:
+            invalid_jsonl_line_count += 1
+            continue
+        if not isinstance(value, Mapping):
+            invalid_jsonl_line_count += 1
+            continue
+        events.append(value)
+
+    turn_started_positions: list[int] = []
+    turn_completed_positions: list[int] = []
+    turn_failed_count = 0
+    error_event_count = 0
+    stream_disconnect_event_count = 0
+    non_stream_error_event_count = 0
+    started_items: dict[str, tuple[int, str]] = {}
+    completed_item_ids: set[str] = set()
+    tool_activity_positions: list[int] = []
+    final_agent_message_position: int | None = None
+
+    for position, event in enumerate(events):
+        event_type = str(event.get("type") or "")
+        item_value = event.get("item")
+        item = item_value if isinstance(item_value, Mapping) else {}
+        item_type = str(item.get("type") or "")
+        item_id_value = item.get("id")
+        item_id = str(item_id_value) if item_id_value not in {None, ""} else ""
+
+        if event_type == "turn.started":
+            turn_started_positions.append(position)
+        elif event_type == "turn.completed":
+            turn_completed_positions.append(position)
+        elif event_type == "turn.failed":
+            turn_failed_count += 1
+        elif event_type == "error":
+            error_event_count += 1
+            if _is_stream_disconnect_event(event):
+                stream_disconnect_event_count += 1
+            else:
+                non_stream_error_event_count += 1
+
+        if event_type == "item.started":
+            key = item_id or f"<missing-id@{position}>"
+            started_items[key] = (position, item_type)
+        elif event_type == "item.completed" and item_id:
+            completed_item_ids.add(item_id)
+
+        if item_type in TOOL_ITEM_TYPES and event_type in {"item.started", "item.completed"}:
+            tool_activity_positions.append(position)
+        if event_type == "item.completed" and item_type == "agent_message":
+            final_agent_message_position = position
+
+    incomplete_item_ids = sorted(
+        item_id for item_id in started_items if item_id not in completed_item_ids
+    )
+    tool_activity_after_final_agent_message = bool(
+        final_agent_message_position is not None
+        and any(position > final_agent_message_position for position in tool_activity_positions)
+    )
+    last_event_type = str(events[-1].get("type") or "") if events else None
+    lifecycle_complete = bool(
+        exit_code == 0
+        and runtime_status == "completed"
+        and not timed_out
+        and not stdout_truncated
+        and not stderr_truncated
+        and invalid_jsonl_line_count == 0
+        and len(turn_started_positions) == 1
+        and len(turn_completed_positions) == 1
+        and turn_failed_count == 0
+        and non_stream_error_event_count == 0
+        and not incomplete_item_ids
+        and final_agent_message_position is not None
+        and not tool_activity_after_final_agent_message
+        and turn_completed_positions[0] > final_agent_message_position
+        and last_event_type == "turn.completed"
+        and worktree_clean_after
+    )
+    stream_disconnect_observed = stream_disconnect_event_count > 0
+    stream_recovered = lifecycle_complete and stream_disconnect_observed
+    stream_terminal_failure = stream_disconnect_observed and not stream_recovered
+    if lifecycle_complete:
+        trace_integrity_status = (
+            "complete_after_recovery"
+            if stream_disconnect_observed
+            else "complete_clean"
+        )
+    else:
+        trace_integrity_status = "incomplete_or_failed"
+
+    return {
+        "jsonl_event_count": len(events),
+        "invalid_jsonl_line_count": invalid_jsonl_line_count,
+        "turn_started_count": len(turn_started_positions),
+        "turn_completed_count": len(turn_completed_positions),
+        "turn_failed_count": turn_failed_count,
+        "error_event_count": error_event_count,
+        "stream_disconnect_event_count": stream_disconnect_event_count,
+        "non_stream_error_event_count": non_stream_error_event_count,
+        "final_agent_message_observed": final_agent_message_position is not None,
+        "tool_activity_after_final_agent_message": tool_activity_after_final_agent_message,
+        "incomplete_item_ids": incomplete_item_ids,
+        "last_event_type": last_event_type,
+        "trace_integrity_status": trace_integrity_status,
+        "stream_disconnect_observed": stream_disconnect_observed,
+        "stream_recovered": stream_recovered,
+        "stream_terminal_failure": stream_terminal_failure,
+        # Preserve the old diagnostic field as an observation, not a gate.
+        "stream_disconnected": stream_disconnect_observed,
+    }
+
+
 def observe_tokens(text: str, expected_workflow: Sequence[str]) -> dict[str, Any]:
     observed_skills = [
         skill for skill in TOPIC_INTELLIGENCE_SKILLS if skill in text
@@ -343,7 +528,7 @@ def classify_observation(case: EvalCase, observation: Mapping[str, Any]) -> str:
 def _result_is_gate_failure(result: Mapping[str, Any], *, strict_observation: bool = False) -> bool:
     return str(result.get("runtime_status")) != "completed" or str(result.get("route_observation")) in {
         "fail_unexpected_skill", "fail_wrong_skill_observed", "partial_workflow_observed"
-    } or bool(result.get("stream_disconnected")) or result.get("worktree_clean_after") is False or (strict_observation and str(result.get("route_observation")) in {"unobservable", "fail_unobservable"})
+    } or result.get("trace_integrity_status") not in PASSING_TRACE_INTEGRITY_STATUSES or result.get("worktree_clean_after") is not True or (strict_observation and str(result.get("route_observation")) in {"unobservable", "fail_unobservable"})
 
 
 def _truncate(text: str, limit: int) -> tuple[str, bool]:
@@ -389,6 +574,7 @@ def run_case(
             "stdout_truncated": False,
             "stderr_truncated": False,
             "worktree_clean_after": None,
+            "trace_integrity_status": "not_run",
         }
 
     start = time.monotonic()
@@ -430,15 +616,14 @@ def run_case(
     stdout, stdout_truncated = _truncate(stdout, max_output_chars)
     stderr, stderr_truncated = _truncate(stderr, max_output_chars)
     clean_after = not _clean_worktree_status(cwd)
-    lowered_trace = searchable.lower()
-    stream_disconnected = any(
-        marker in lowered_trace
-        for marker in (
-            "stream disconnected",
-            "stream disconnect",
-            "response stream disconnected",
-            "stream closed before response.completed",
-        )
+    trace_integrity = analyze_jsonl_trace(
+        stdout,
+        exit_code=exit_code,
+        runtime_status=runtime_status,
+        timed_out=timed_out,
+        stdout_truncated=stdout_truncated,
+        stderr_truncated=stderr_truncated,
+        worktree_clean_after=clean_after,
     )
 
     return {
@@ -461,7 +646,7 @@ def run_case(
         "stdout_truncated": stdout_truncated,
         "stderr_truncated": stderr_truncated,
         "worktree_clean_after": clean_after,
-        "stream_disconnected": stream_disconnected,
+        **trace_integrity,
     }
 
 

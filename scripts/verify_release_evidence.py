@@ -18,7 +18,7 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from scripts.grade_host_eval import EvidenceGradeError, PASS_GRADES, grade_report
-from scripts.run_host_evals import load_suite
+from scripts.run_host_evals import analyze_jsonl_trace, load_suite
 
 
 LIVE_RADAR_NETWORK_DOMAINS = ["aiworkstation.cn"]
@@ -27,6 +27,29 @@ LIVE_RADAR_LAUNCHER_CONFIG = [
     'network_proxy={enabled=true,allowed_domains=["aiworkstation.cn"]}',
     'approval_policy="never"',
 ]
+PASSING_TRACE_INTEGRITY_STATUSES = {
+    "complete_clean",
+    "complete_after_recovery",
+}
+TRACE_FIELDS = (
+    "jsonl_event_count",
+    "invalid_jsonl_line_count",
+    "turn_started_count",
+    "turn_completed_count",
+    "turn_failed_count",
+    "error_event_count",
+    "stream_disconnect_event_count",
+    "non_stream_error_event_count",
+    "final_agent_message_observed",
+    "tool_activity_after_final_agent_message",
+    "incomplete_item_ids",
+    "last_event_type",
+    "trace_integrity_status",
+    "stream_disconnect_observed",
+    "stream_recovered",
+    "stream_terminal_failure",
+    "stream_disconnected",
+)
 
 
 class ReleaseEvidenceError(RuntimeError):
@@ -186,6 +209,58 @@ def verify(root: Path, version: str) -> Path:
         if not isinstance(submitted, Mapping) or any(submitted.get(key) != value for key, value in required.items()):
             raise ReleaseEvidenceError(f"raw Host Eval case contract differs from eval definition: {expected.case_id}")
 
+    bad_trace = []
+    for case in raw_cases:
+        if not isinstance(case, Mapping):
+            bad_trace.append(_case_id(case))
+            continue
+        regenerated_trace = analyze_jsonl_trace(
+            str(case.get("stdout") or ""),
+            exit_code=case.get("exit_code"),
+            runtime_status=str(case.get("runtime_status") or ""),
+            timed_out=case.get("timed_out") is True,
+            stdout_truncated=case.get("stdout_truncated") is True,
+            stderr_truncated=case.get("stderr_truncated") is True,
+            worktree_clean_after=case.get("worktree_clean_after") is True,
+        )
+        if any(case.get(field) != regenerated_trace.get(field) for field in TRACE_FIELDS):
+            bad_trace.append(_case_id(case))
+    bad_trace.extend([
+        _case_id(case)
+        for case in raw_cases
+        if not isinstance(case, Mapping)
+        or case.get("trace_integrity_status") not in PASSING_TRACE_INTEGRITY_STATUSES
+        or case.get("turn_started_count") != 1
+        or case.get("turn_completed_count") != 1
+        or case.get("turn_failed_count") != 0
+        or case.get("non_stream_error_event_count") != 0
+        or case.get("final_agent_message_observed") is not True
+        or case.get("tool_activity_after_final_agent_message") is not False
+        or case.get("incomplete_item_ids") != []
+        or case.get("last_event_type") != "turn.completed"
+        or (
+            case.get("trace_integrity_status") == "complete_after_recovery"
+            and (
+                case.get("stream_disconnect_observed") is not True
+                or case.get("stream_recovered") is not True
+                or case.get("stream_terminal_failure") is not False
+            )
+        )
+        or (
+            case.get("trace_integrity_status") == "complete_clean"
+            and (
+                case.get("stream_disconnect_observed") is not False
+                or case.get("stream_recovered") is not False
+                or case.get("stream_terminal_failure") is not False
+                or case.get("error_event_count") != 0
+            )
+        )
+    ])
+    bad_trace = sorted(set(bad_trace))
+    if bad_trace:
+        raise ReleaseEvidenceError(
+            "Host Eval trace lifecycle is incomplete or invalid: " + ", ".join(bad_trace)
+        )
     bad_runtime = [
         _case_id(case)
         for case in raw_cases
@@ -197,7 +272,6 @@ def verify(root: Path, version: str) -> Path:
             or case.get("stdout_truncated") is not False
             or case.get("stderr_truncated") is not False
             or case.get("worktree_clean_after") is not True
-            or case.get("stream_disconnected") is not False
         )
     ]
     if bad_runtime:

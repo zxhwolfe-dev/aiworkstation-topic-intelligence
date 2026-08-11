@@ -17,3 +17,10 @@ clean, detached `workspace-write` worktree. The launcher records
 allowlist `['aiworkstation.cn']`. Read-only or unrestricted sandboxes, missing or
 expanded allowlists, custom Radar origins, and any Host-created worktree changes
 are invalid evidence.
+
+Raw reports also include a structured JSONL lifecycle classification. A transient
+Codex response-stream disconnect may be recorded as `complete_after_recovery`
+only when a complete, exit-zero turn still ends with `turn.completed`; it is not
+equivalent to a terminal failure. `incomplete_or_failed`, timeouts, `turn.failed`,
+non-stream errors, malformed/truncated JSONL, unfinished items, or tool activity
+after the final agent message are rejected by the verifier.

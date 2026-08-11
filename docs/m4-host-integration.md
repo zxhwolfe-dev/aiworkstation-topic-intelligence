@@ -103,6 +103,16 @@ Host-created worktree changes. Outer-shell feed checks do not establish that a
 Host sandbox can reach Radar; read-only, unrestricted, custom-origin, or
 expanded-allowlist runs are not release evidence.
 
+The runner parses the Codex JSONL lifecycle rather than treating every transient
+response-stream interruption as terminal. A run may be `complete_clean` or
+`complete_after_recovery`; the latter still records that a disconnect occurred,
+but is accepted only when the process exits zero, the final agent message follows
+all tool activity, every started item has a terminal event, and the last event is
+exactly one `turn.completed`. Missing terminal events, `turn.failed`, non-stream
+errors, invalid/truncated JSONL, unfinished items, post-final-message tool calls,
+timeouts, or a dirty worktree invalidate the entire run. This lifecycle check
+does not relax the separate semantic grader or per-case manual review.
+
 ### Stage 1 — collect fresh host traces
 
 Use:

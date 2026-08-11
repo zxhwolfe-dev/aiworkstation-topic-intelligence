@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 from scripts.grade_host_eval import HANDOFF_SCHEMA, grade_report
-from scripts.run_host_evals import load_suite
+from scripts.run_host_evals import analyze_jsonl_trace, load_suite
 from scripts.verify_release_evidence import ReleaseEvidenceError, verify
 
 
@@ -24,6 +24,10 @@ def _git(root: Path, *args: str) -> str:
 
 def _event(item: dict) -> str:
     return json.dumps({"type": "item.completed", "item": item})
+
+
+def _typed_event(event_type: str, **payload: object) -> str:
+    return json.dumps({"type": event_type, **payload})
 
 
 def _feed_payload() -> str:
@@ -57,7 +61,10 @@ def _write_valid_evidence(root: Path, evaluated_commit: str) -> Path:
     cases = load_suite(root, "v0.2.1")
     raw_cases = []
     for case in cases:
-        commands = []
+        commands = [
+            _typed_event("thread.started", thread_id="test-thread"),
+            _typed_event("turn.started"),
+        ]
         for skill in ("creator-topic-opportunity-research", "evidence-backed-content-brief"):
             if any(token == skill or token.startswith(skill + ":") for token in case.expected_workflow):
                 commands.append(_event({
@@ -69,7 +76,9 @@ def _write_valid_evidence(root: Path, evaluated_commit: str) -> Path:
                 }))
         if HANDOFF_SCHEMA in case.expected_workflow:
             commands.append(_event({"type": "agent_message", "text": HANDOFF_SCHEMA}))
-        raw_cases.append({
+        commands.append(_event({"type": "agent_message", "id": "final-agent", "text": "done"}))
+        commands.append(_typed_event("turn.completed"))
+        raw_case = {
             "id": case.case_id, "suite": "v0.2.1", "prompt": case.prompt,
             "expected_skill": case.expected_skill,
             "expected_workflow": list(case.expected_workflow),
@@ -78,8 +87,13 @@ def _write_valid_evidence(root: Path, evaluated_commit: str) -> Path:
             "exit_code": 0, "timed_out": False, "stdout": "\n".join(commands), "stderr": "",
             "stdout_truncated": False, "stderr_truncated": False,
             "worktree_clean_after": True,
-            "stream_disconnected": False,
-        })
+        }
+        raw_case.update(analyze_jsonl_trace(
+            raw_case["stdout"], exit_code=0, runtime_status="completed",
+            timed_out=False, stdout_truncated=False, stderr_truncated=False,
+            worktree_clean_after=True,
+        ))
+        raw_cases.append(raw_case)
     raw = {
         "schema": "ati.host-eval.v1", "generated_at": "2026-08-11T00:00:00+00:00",
         "host": "codex", "skill_version": "0.2.2", "commit": evaluated_commit,
@@ -247,7 +261,7 @@ class ReleaseEvidenceTests(unittest.TestCase):
                 raw_path.write_text(json.dumps(raw))
                 _git(root, "add", ".")
                 _git(root, "commit", "-qm", f"tamper execution {field}")
-                with self.subTest(field=field), self.assertRaisesRegex(ReleaseEvidenceError, "cleanly"):
+                with self.subTest(field=field), self.assertRaisesRegex(ReleaseEvidenceError, "cleanly|trace lifecycle"):
                     verify(root, "0.2.2")
             finally:
                 temporary.cleanup()
@@ -280,7 +294,46 @@ class ReleaseEvidenceTests(unittest.TestCase):
             graded_path.write_text(json.dumps(grade_report(raw)))
             _git(root, "add", ".")
             _git(root, "commit", "-qm", "replace execution with source reads")
-            with self.assertRaisesRegex(ReleaseEvidenceError, "not fully passing"):
+            with self.assertRaisesRegex(ReleaseEvidenceError, "trace lifecycle|not fully passing"):
+                verify(root, "0.2.2")
+        finally:
+            temporary.cleanup()
+
+    def test_complete_after_recovery_evidence_passes(self) -> None:
+        temporary, root, evaluated = _repo()
+        try:
+            evidence = _write_valid_evidence(root, evaluated)
+            raw_path = evidence / "host-eval.json"
+            raw = json.loads(raw_path.read_text())
+            for case in raw["cases"]:
+                trace = case["stdout"].splitlines()
+                trace.insert(2, json.dumps({"type": "error", "message": "stream disconnected before completion"}))
+                case["stdout"] = "\n".join(trace)
+                case.update(analyze_jsonl_trace(
+                    case["stdout"], exit_code=0, runtime_status="completed", timed_out=False,
+                    stdout_truncated=False, stderr_truncated=False, worktree_clean_after=True,
+                ))
+            raw_path.write_text(json.dumps(raw))
+            (evidence / "host-evidence.json").write_text(json.dumps(grade_report(raw)))
+            _git(root, "add", ".")
+            _git(root, "commit", "-qm", "recovered stream evidence")
+            self.assertEqual(verify(root, "0.2.2"), evidence)
+        finally:
+            temporary.cleanup()
+
+    def test_forged_recovery_without_lifecycle_blocks(self) -> None:
+        temporary, root, evaluated = _repo()
+        try:
+            evidence = _write_valid_evidence(root, evaluated)
+            raw_path = evidence / "host-eval.json"
+            raw = json.loads(raw_path.read_text())
+            raw["cases"][0]["trace_integrity_status"] = "complete_after_recovery"
+            raw["cases"][0]["stream_recovered"] = True
+            raw["cases"][0]["stream_disconnect_observed"] = True
+            raw_path.write_text(json.dumps(raw))
+            _git(root, "add", ".")
+            _git(root, "commit", "-qm", "forge recovered evidence")
+            with self.assertRaisesRegex(ReleaseEvidenceError, "trace lifecycle"):
                 verify(root, "0.2.2")
         finally:
             temporary.cleanup()

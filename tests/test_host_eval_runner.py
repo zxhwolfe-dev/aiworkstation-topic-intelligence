@@ -13,6 +13,7 @@ from scripts.run_host_evals import (
     EvalCase,
     HostEvalError,
     _repository_commit,
+    analyze_jsonl_trace,
     build_codex_command,
     build_report,
     classify_observation,
@@ -242,6 +243,106 @@ class HostEvalRunnerTests(unittest.TestCase):
             "stream_disconnected": True,
             "worktree_clean_after": True,
         }))
+
+    def test_recovered_stream_is_allowed_by_environment_gate(self) -> None:
+        from scripts.run_host_evals import _result_is_gate_failure
+
+        self.assertFalse(_result_is_gate_failure({
+            "runtime_status": "completed",
+            "route_observation": "pass_expected_workflow_observed",
+            "trace_integrity_status": "complete_after_recovery",
+            "worktree_clean_after": True,
+        }))
+
+    def test_recovered_disconnect_has_passing_trace_integrity(self) -> None:
+        trace = "\n".join([
+            json.dumps({"type": "thread.started"}),
+            json.dumps({"type": "turn.started"}),
+            json.dumps({"type": "error", "message": "stream disconnected before completion"}),
+            json.dumps({"type": "item.started", "item": {"id": "cmd", "type": "command_execution", "status": "in_progress"}}),
+            json.dumps({"type": "item.completed", "item": {"id": "cmd", "type": "command_execution", "status": "completed", "exit_code": 0}}),
+            json.dumps({"type": "item.completed", "item": {"id": "msg", "type": "agent_message", "text": "done"}}),
+            json.dumps({"type": "turn.completed"}),
+        ])
+        result = analyze_jsonl_trace(trace, exit_code=0, runtime_status="completed", timed_out=False, stdout_truncated=False, stderr_truncated=False, worktree_clean_after=True)
+        self.assertEqual(result["trace_integrity_status"], "complete_after_recovery")
+        self.assertTrue(result["stream_recovered"])
+
+    def test_structured_codex_disconnect_code_is_recovered(self) -> None:
+        trace = "\n".join([
+            json.dumps({"type": "turn.started"}),
+            json.dumps({
+                "type": "error",
+                "codexErrorInfo": {"code": "ResponseStreamDisconnected"},
+            }),
+            json.dumps({"type": "item.completed", "item": {"id": "msg", "type": "agent_message", "text": "done"}}),
+            json.dumps({"type": "turn.completed"}),
+        ])
+        result = analyze_jsonl_trace(trace, exit_code=0, runtime_status="completed", timed_out=False, stdout_truncated=False, stderr_truncated=False, worktree_clean_after=True)
+        self.assertEqual(result["stream_disconnect_event_count"], 1)
+        self.assertEqual(result["trace_integrity_status"], "complete_after_recovery")
+
+    def test_helper_error_is_not_misclassified_as_stream_disconnect(self) -> None:
+        trace = "\n".join([
+            json.dumps({"type": "turn.started"}),
+            json.dumps({"type": "error", "message": "Radar helper HTTP 502"}),
+            json.dumps({"type": "item.completed", "item": {"id": "msg", "type": "agent_message", "text": "done"}}),
+            json.dumps({"type": "turn.completed"}),
+        ])
+        result = analyze_jsonl_trace(trace, exit_code=0, runtime_status="completed", timed_out=False, stdout_truncated=False, stderr_truncated=False, worktree_clean_after=True)
+        self.assertEqual(result["stream_disconnect_event_count"], 0)
+        self.assertEqual(result["non_stream_error_event_count"], 1)
+        self.assertEqual(result["trace_integrity_status"], "incomplete_or_failed")
+
+    def test_missing_turn_completed_is_incomplete(self) -> None:
+        trace = "\n".join([json.dumps({"type": "turn.started"}), json.dumps({"type": "error", "message": "stream disconnected"})])
+        result = analyze_jsonl_trace(trace, exit_code=0, runtime_status="completed", timed_out=False, stdout_truncated=False, stderr_truncated=False, worktree_clean_after=True)
+        self.assertEqual(result["trace_integrity_status"], "incomplete_or_failed")
+
+    def test_non_stream_error_and_unfinished_item_fail(self) -> None:
+        trace = "\n".join([
+            json.dumps({"type": "turn.started"}),
+            json.dumps({"type": "error", "message": "provider failed"}),
+            json.dumps({"type": "item.started", "item": {"id": "cmd", "type": "command_execution"}}),
+            json.dumps({"type": "item.completed", "item": {"id": "msg", "type": "agent_message"}}),
+            json.dumps({"type": "turn.completed"}),
+        ])
+        result = analyze_jsonl_trace(trace, exit_code=0, runtime_status="completed", timed_out=False, stdout_truncated=False, stderr_truncated=False, worktree_clean_after=True)
+        self.assertEqual(result["trace_integrity_status"], "incomplete_or_failed")
+
+    def test_final_message_followed_by_tool_activity_fails(self) -> None:
+        trace = "\n".join([
+            json.dumps({"type": "turn.started"}),
+            json.dumps({"type": "item.completed", "item": {"id": "msg", "type": "agent_message"}}),
+            json.dumps({"type": "item.started", "item": {"id": "cmd", "type": "command_execution"}}),
+            json.dumps({"type": "item.completed", "item": {"id": "cmd", "type": "command_execution", "exit_code": 0}}),
+            json.dumps({"type": "turn.completed"}),
+        ])
+        result = analyze_jsonl_trace(trace, exit_code=0, runtime_status="completed", timed_out=False, stdout_truncated=False, stderr_truncated=False, worktree_clean_after=True)
+        self.assertTrue(result["tool_activity_after_final_agent_message"])
+        self.assertEqual(result["trace_integrity_status"], "incomplete_or_failed")
+
+    def test_turn_failed_invalid_json_and_truncation_fail(self) -> None:
+        trace = "\n".join([
+            json.dumps({"type": "turn.started"}),
+            "not-json",
+            json.dumps({"type": "item.completed", "item": {"id": "msg", "type": "agent_message"}}),
+            json.dumps({"type": "turn.failed"}),
+        ])
+        result = analyze_jsonl_trace(trace, exit_code=1, runtime_status="nonzero_exit", timed_out=False, stdout_truncated=True, stderr_truncated=False, worktree_clean_after=True)
+        self.assertEqual(result["turn_failed_count"], 1)
+        self.assertEqual(result["invalid_jsonl_line_count"], 1)
+        self.assertEqual(result["trace_integrity_status"], "incomplete_or_failed")
+
+    def test_clean_completion_has_passing_trace_integrity(self) -> None:
+        trace = "\n".join([
+            json.dumps({"type": "turn.started"}),
+            json.dumps({"type": "item.completed", "item": {"id": "msg", "type": "agent_message", "text": "done"}}),
+            json.dumps({"type": "turn.completed"}),
+        ])
+        result = analyze_jsonl_trace(trace, exit_code=0, runtime_status="completed", timed_out=False, stdout_truncated=False, stderr_truncated=False, worktree_clean_after=True)
+        self.assertEqual(result["trace_integrity_status"], "complete_clean")
+        self.assertFalse(result["stream_disconnect_observed"])
 
     def test_report_schema_and_summary_are_stable(self) -> None:
         results = [
