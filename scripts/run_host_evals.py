@@ -211,7 +211,7 @@ def build_codex_command(
                 "-c",
                 "sandbox_workspace_write.network_access=true",
                 "-c",
-                'network_proxy.domains=["aiworkstation.cn"]',
+                'network_proxy={enabled=true,allowed_domains=["aiworkstation.cn"]}',
                 "--enable",
                 "network_proxy",
                 "-c",
@@ -505,6 +505,7 @@ def build_report(
     live_radar_network: bool = False,
     network_allowed_domains: Sequence[str] | None = None,
     worktree: Mapping[str, Any] | None = None,
+    launcher_config: Sequence[str] | None = None,
 ) -> dict[str, Any]:
     version_path = root / "VERSION"
     version = version_path.read_text(encoding="utf-8").strip() if version_path.is_file() else None
@@ -518,6 +519,7 @@ def build_report(
         "sandbox": sandbox,
         "timeout_seconds": timeout_seconds,
         "launcher": list(launcher),
+        "launcher_config": list(launcher_config or []),
         "dry_run": dry_run,
         "strict_observation": strict_observation,
         "live_radar_network": live_radar_network,
@@ -710,6 +712,15 @@ def main(argv: Sequence[str] | None = None) -> int:
             live_radar_network=args.live_radar_network,
             network_allowed_domains=(LIVE_RADAR_NETWORK_DOMAINS if args.live_radar_network else []),
             worktree=worktree,
+            launcher_config=(
+                [
+                    "sandbox_workspace_write.network_access=true",
+                    'network_proxy={enabled=true,allowed_domains=["aiworkstation.cn"]}',
+                    "features.network_proxy=true",
+                    'approval_policy="never"',
+                ]
+                if args.live_radar_network else []
+            ),
         )
     except HostEvalError as exc:
         print(f"error: {exc}", file=sys.stderr)

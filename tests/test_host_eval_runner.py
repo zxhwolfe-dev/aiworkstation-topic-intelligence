@@ -79,7 +79,7 @@ class HostEvalRunnerTests(unittest.TestCase):
             live_radar_network=True,
         )
         self.assertIn("sandbox_workspace_write.network_access=true", command)
-        self.assertIn('network_proxy.domains=["aiworkstation.cn"]', command)
+        self.assertIn('network_proxy={enabled=true,allowed_domains=["aiworkstation.cn"]}', command)
         self.assertNotIn("danger-full-access", command)
         self.assertNotIn("--yolo", command)
     def test_trace_parser_observes_nested_jsonl_skill_and_handoff_tokens(self) -> None:

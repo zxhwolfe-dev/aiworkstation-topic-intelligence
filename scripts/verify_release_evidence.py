@@ -22,6 +22,12 @@ from scripts.run_host_evals import load_suite
 
 
 LIVE_RADAR_NETWORK_DOMAINS = ["aiworkstation.cn"]
+LIVE_RADAR_LAUNCHER_CONFIG = [
+    "sandbox_workspace_write.network_access=true",
+    'network_proxy={enabled=true,allowed_domains=["aiworkstation.cn"]}',
+    "features.network_proxy=true",
+    'approval_policy="never"',
+]
 
 
 class ReleaseEvidenceError(RuntimeError):
@@ -137,6 +143,8 @@ def verify(root: Path, version: str) -> Path:
         raise ReleaseEvidenceError(
             "live Host Eval network allowlist must be exactly ['aiworkstation.cn']"
         )
+    if raw.get("launcher_config") != LIVE_RADAR_LAUNCHER_CONFIG:
+        raise ReleaseEvidenceError("live Host Eval launcher config is not the approved restricted policy")
     if _contains_forbidden_origin(raw):
         raise ReleaseEvidenceError("live Host Eval evidence contains a custom Radar origin override")
     worktree = raw.get("worktree")
