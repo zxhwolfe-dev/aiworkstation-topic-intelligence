@@ -48,11 +48,17 @@ For example, a title containing the letters `ai` only as part of an unrelated wo
 
 Resolve `scripts/topic_radar_client.py` relative to the current Skill's `SKILL.md`; never hard-code an installation directory. `python3` is the only supported interpreter entry point. Do not use `python`, `python2`, or execute the helper directly without an interpreter.
 
-Place helper-wide arguments before the subcommand. The canonical shortlist form is:
+Place helper-wide arguments before the subcommand. Use these canonical forms:
 
 ```text
 python3 <skill-local-helper> --timeout 30 feed --q AI --limit 12
+python3 <skill-local-helper> --timeout 30 sources
+python3 <skill-local-helper> --timeout 30 history <exact-feed-id>
 ```
+
+For `history`, pass the exact feed `id` as its sole positional argument. Never use `history --topic-id <id>`.
+
+Run every helper call as one standalone, direct command. Do not combine it with another command using `|`, `&&`, `;`, output redirection, command substitution, backticks, a here-doc, `jq`, or another Python process. Read the JSON directly from the helper's own stdout. Do not guess or repeatedly probe helper syntax. Use `/history` only for a finalist whose decision genuinely depends on trend movement, not for every candidate.
 
 For a normal shortlist or topic-selection task, the initial candidate set defaults to 12 and should not exceed 24. Do not fetch 100 candidates merely to select three topics. Exceed 24 only when the user explicitly asks for a large list, export, or larger sample.
 
@@ -102,6 +108,8 @@ Direct live fields from the current task such as title, evidence, source, timest
 The current host/model's own comparison, recommendation, target-audience judgment, hook, angle, narrative, `must_verify`, `avoid_claims`, and visual/research plan when running in normal public mode.
 
 Do not phrase judgments such as “更适合中国用户”, “受众更大”, “更容易传播”, “可能爆”, “监管更难”, or “最值得做” as though Radar directly measured them. Mark them as **分析/判断**, **编辑判断**, **假设**, or equivalent wording when the distinction matters.
+
+When the final answer discusses audience, ordinary technology users, China-market fit, or distribution potential, explicitly state that Radar does not measure actual audience size, content/topic saturation, or future reach/virality. Label “适合中国用户”, “受众可能更广”, and equivalent conclusions as host editorial judgment rather than Radar fact. A generic warning that risks may exist does not satisfy this disclosure.
 
 ### Authenticated Premium Topic Insight, when explicitly available
 

@@ -60,11 +60,17 @@ scripts/topic_radar_client.py
 
 Invoke that Skill-local helper only with `python3`. Do not use `python`, `python2`, or execute the helper directly without an interpreter. Place helper-wide arguments such as `--timeout` before the `feed`, `sources`, or `history` subcommand. Resolve the helper relative to this `SKILL.md`; do not hard-code an installation directory.
 
-Use this canonical shortlist form:
+Use these canonical forms:
 
 ```text
 python3 <skill-local-helper> --timeout 30 feed --q AI --limit 12
+python3 <skill-local-helper> --timeout 30 sources
+python3 <skill-local-helper> --timeout 30 history <exact-feed-id>
 ```
+
+For `history`, pass the exact feed `id` as its sole positional argument. Never use `history --topic-id <id>`.
+
+Run every helper call as one standalone, direct command. Do not combine it with another command using `|`, `&&`, `;`, output redirection, command substitution, backticks, a here-doc, `jq`, or another Python process. Read the JSON directly from the helper's own stdout. Do not guess or repeatedly probe helper syntax; follow the forms above.
 
 For a normal shortlist or topic-selection task, prefer an initial `feed --limit 12` and do not exceed 24 candidates. Exceed 24 only when the user explicitly asks for a large list, export, or larger sample.
 
@@ -162,7 +168,7 @@ Before producing the brief, inspect the parent live feed/handoff context:
 
 If stale/partial is material, carry that caveat into the brief and refresh live evidence before making unsupported current-state claims.
 
-Use `/history` only when “why now” depends on acceleration, persistence, cooling, or recent rank/score movement.
+Use `/history` only for a finalist when “why now” depends on acceleration, persistence, cooling, or recent rank/score movement. Do not call it for every candidate.
 
 When `refreshing=true`, sequential requests may see a newer history point. Compare timestamps and identity rather than treating normal refresh movement as a contradiction.
 
@@ -187,6 +193,8 @@ Generate/adapt as needed:
 - known unknowns and risks.
 
 Do not claim these editorial fields were measured by Radar. Statements such as “受众更大”, “更适合中国用户”, “更容易传播”, or “最值得做” are analysis/judgment unless directly supported by a current Radar field.
+
+When the brief discusses audience, ordinary technology users, China-market fit, or distribution potential, state these unknowns explicitly in the final answer: Radar does not measure actual audience size, content/topic saturation, or future reach/virality. Label claims such as “适合中国用户” or “受众可能更广” as host editorial judgment, not Radar fact. Do not replace this disclosure with a generic statement that risks may exist.
 
 If an explicitly authenticated Premium AI Workstation connection supplies Topic Insight, treat its creative fields as optional server model analysis: preserve its provenance, adapt it to the user's constraints, and do not present it as independently verified fact.
 

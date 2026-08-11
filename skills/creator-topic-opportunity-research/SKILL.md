@@ -62,11 +62,17 @@ scripts/topic_radar_client.py
 
 Invoke that Skill-local helper only with `python3`. Do not use `python`, `python2`, or execute the helper directly without an interpreter. Place helper-wide arguments such as `--timeout` before the `feed`, `sources`, or `history` subcommand. Resolve the helper relative to this `SKILL.md`; do not hard-code an installation directory.
 
-Use this canonical shortlist form:
+Use these canonical forms:
 
 ```text
 python3 <skill-local-helper> --timeout 30 feed --q AI --limit 12
+python3 <skill-local-helper> --timeout 30 sources
+python3 <skill-local-helper> --timeout 30 history <exact-feed-id>
 ```
+
+For `history`, pass the exact feed `id` as its sole positional argument. Never use `history --topic-id <id>`.
+
+Run every helper call as one standalone, direct command. Do not combine it with another command using `|`, `&&`, `;`, output redirection, command substitution, backticks, a here-doc, `jq`, or another Python process. Read the JSON directly from the helper's own stdout. Do not guess or repeatedly probe helper syntax; follow the forms above.
 
 For a normal shortlist or topic-selection task, prefer an initial `feed --limit 12` and do not exceed 24 candidates. Exceed 24 only when the user explicitly asks for a large list, export, or larger sample.
 
@@ -157,7 +163,7 @@ Useful trend fields can include `score_change_24h`, `score_change_7d`, `velocity
 
 ## Use history selectively
 
-Call `/history` for finalists only when the decision depends on movement over time. Do not call history for every broad-feed item.
+Call `/history` only for a finalist whose decision depends on movement over time. Do not call history for every broad-feed item.
 
 History can help distinguish a new spike, sustained momentum, cooling, or a one-source anomaly. Do not extrapolate beyond observed points.
 
@@ -212,6 +218,8 @@ What the user should consider researching/publishing first.
 ### Unknowns
 
 Anything the current contract does not establish, including audience saturation, future virality, or unverified cross-market lead/lag.
+
+When the recommendation discusses audience, ordinary technology users, China-market fit, or distribution potential, state these unknowns explicitly in the final answer: Radar does not measure actual audience size, content/topic saturation, or future reach/virality. Label claims such as “适合中国用户” or “受众可能更广” as host editorial judgment, not Radar fact. Do not replace this disclosure with a generic statement that risks may exist.
 
 ### Risks
 

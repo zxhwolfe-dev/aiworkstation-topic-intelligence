@@ -19,6 +19,7 @@ Release candidate prepared for validation. This version is not tagged or publish
 - Synced authenticated Premium identity forwarding guidance and preserved the published v0.2.1 release record below.
 - Made live Host Eval networking an explicit, single-domain, workspace-write opt-in executed only in a clean temporary detached worktree; release evidence now binds and verifies that network/sandbox policy.
 - Fixed portable Radar helper invocation to require `python3`, global options before the subcommand, and compact shortlist scans that default to 12 and normally cap at 24 candidates.
+- Defined standalone `feed`/`sources`/positional-`history` command forms, required explicit audience/saturation/virality unknowns, and made any noncompliant or unsuccessful helper attempt fail Host evidence grading.
 
 ## [Unreleased]
 

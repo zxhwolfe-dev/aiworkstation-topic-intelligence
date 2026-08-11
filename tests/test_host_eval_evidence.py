@@ -36,6 +36,14 @@ def _feed_payload() -> str:
     })
 
 
+def _sources_payload() -> str:
+    return json.dumps({"generated_at": "2026-08-11T00:00:00Z", "sources": []})
+
+
+def _history_payload() -> str:
+    return json.dumps({"topic_id": "topic-1", "points": []})
+
+
 def _helper_event(
     skill: str = CREATOR,
     *,
@@ -120,6 +128,9 @@ class HostEvalEvidenceTests(unittest.TestCase):
         evidence = observe_evidence(stdout)
         self.assertEqual(evidence["runtime_use_skills"], [CREATOR])
         self.assertEqual(evidence["runtime_operations"], [f"{CREATOR}:feed"])
+        self.assertEqual(evidence["runtime_attempt_count"], 1)
+        self.assertEqual(evidence["invalid_runtime_attempts"], [])
+        self.assertEqual(evidence["failed_runtime_attempts"], [])
         self.assertEqual(
             classify_case(_trigger_case(CREATOR), evidence),
             "pass_expected_skill_runtime_observed",
@@ -140,6 +151,13 @@ class HostEvalEvidenceTests(unittest.TestCase):
             with self.subTest(command=command):
                 evidence = observe_evidence(_helper_command_event(command))
                 self.assertEqual(evidence["runtime_use_skills"], [])
+                self.assertEqual(evidence["runtime_attempt_count"], 1)
+                reason = (
+                    "unsupported_interpreter"
+                    if command.startswith("python")
+                    else "missing_python3_interpreter"
+                )
+                self.assertIn(reason, evidence["runtime_violation_reasons"])
 
     def test_wrong_runtime_helper_is_a_real_negative_signal(self) -> None:
         stdout = _helper_event(BRIEF, arguments=" --limit 3")
@@ -308,7 +326,10 @@ class HostEvalEvidenceTests(unittest.TestCase):
                 "aggregated_output": _feed_payload(), "exit_code": 0, "status": "completed",
             })
             with self.subTest(command=command):
-                self.assertEqual(observe_evidence(stdout)["runtime_use_skills"], [])
+                evidence = observe_evidence(stdout)
+                self.assertEqual(evidence["runtime_use_skills"], [])
+                self.assertEqual(evidence["runtime_attempt_count"], 0)
+                self.assertEqual(evidence["invalid_runtime_attempts"], [])
 
     def test_failed_or_invalid_helper_calls_are_not_runtime_use(self) -> None:
         for stdout in (
@@ -352,7 +373,141 @@ class HostEvalEvidenceTests(unittest.TestCase):
                 "aggregated_output": _feed_payload(), "exit_code": 0, "status": "completed",
             })
             with self.subTest(command=command):
-                self.assertEqual(observe_evidence(stdout)["runtime_use_skills"], [])
+                evidence = observe_evidence(stdout)
+                self.assertEqual(evidence["runtime_use_skills"], [])
+                self.assertEqual(evidence["runtime_attempt_count"], 1)
+                self.assertTrue(evidence["invalid_runtime_attempts"])
+
+    def test_standalone_feed_sources_and_positional_history_are_compliant(self) -> None:
+        helper = f"/skills/{CREATOR}/scripts/topic_radar_client.py"
+        rows = (
+            (
+                f"python3 {helper} --timeout 30 feed --q AI --limit 12",
+                "feed",
+                _feed_payload(),
+            ),
+            (
+                f"python3 {helper} --timeout 30 sources",
+                "sources",
+                _sources_payload(),
+            ),
+            (
+                f"python3 {helper} --timeout 30 history topic-1",
+                "history",
+                _history_payload(),
+            ),
+        )
+        for command, operation, output in rows:
+            with self.subTest(operation=operation):
+                stdout = _event({
+                    "type": "command_execution", "command": command,
+                    "aggregated_output": output, "exit_code": 0, "status": "completed",
+                })
+                evidence = observe_evidence(stdout)
+                self.assertEqual(evidence["runtime_operations"], [f"{CREATOR}:{operation}"])
+                self.assertEqual(evidence["runtime_attempt_count"], 1)
+                self.assertEqual(evidence["invalid_runtime_attempts"], [])
+                self.assertEqual(evidence["failed_runtime_attempts"], [])
+
+    def test_history_topic_id_option_is_a_noncompliant_attempt(self) -> None:
+        helper = f"/skills/{CREATOR}/scripts/topic_radar_client.py"
+        stdout = _helper_command_event(
+            f"python3 {helper} --timeout 30 history --topic-id topic-1"
+        )
+        evidence = observe_evidence(stdout)
+        self.assertEqual(evidence["runtime_attempt_count"], 1)
+        self.assertIn("invalid_cli_arguments", evidence["runtime_violation_reasons"])
+        self.assertEqual(
+            classify_case({"suite": "v0.2.1", "expected_workflow": [CREATOR]}, evidence),
+            "fail_noncompliant_skill_runtime_attempt_observed",
+        )
+
+    def test_shell_composition_forms_are_noncompliant_attempts(self) -> None:
+        helper = f"/skills/{CREATOR}/scripts/topic_radar_client.py"
+        for command in (
+            f"python3 {helper} feed | jq .",
+            f"python3 {helper} feed > /tmp/feed.json",
+            f"python3 {helper} feed && printf done",
+            f"python3 {helper} feed ; printf done",
+            f"python3 {helper} feed $(printf AI)",
+            f"python3 {helper} feed `printf AI`",
+        ):
+            with self.subTest(command=command):
+                evidence = observe_evidence(_helper_command_event(command))
+                self.assertIn("composed_or_redirected_command", evidence["runtime_violation_reasons"])
+                self.assertTrue(evidence["invalid_runtime_attempts"])
+
+    def test_valid_feed_does_not_hide_later_invalid_history(self) -> None:
+        helper = f"/skills/{CREATOR}/scripts/topic_radar_client.py"
+        stdout = "\n".join((
+            _helper_command_event(f"python3 {helper} --timeout 30 feed --q AI --limit 12"),
+            _helper_command_event(f"python3 {helper} --timeout 30 history --topic-id topic-1"),
+        ))
+        evidence = observe_evidence(stdout)
+        self.assertEqual(evidence["runtime_operations"], [f"{CREATOR}:feed"])
+        self.assertEqual(evidence["runtime_attempt_count"], 2)
+        self.assertEqual(
+            classify_case({"suite": "v0.2.1", "expected_workflow": [CREATOR]}, evidence),
+            "fail_noncompliant_skill_runtime_attempt_observed",
+        )
+
+    def test_valid_feed_does_not_hide_later_piped_attempt(self) -> None:
+        helper = f"/skills/{CREATOR}/scripts/topic_radar_client.py"
+        stdout = "\n".join((
+            _helper_command_event(f"python3 {helper} --timeout 30 feed --q AI --limit 12"),
+            _helper_command_event(f"python3 {helper} feed | jq ."),
+        ))
+        evidence = observe_evidence(stdout)
+        self.assertEqual(evidence["runtime_attempt_count"], 2)
+        self.assertEqual(
+            classify_case({"suite": "v0.2.1", "expected_workflow": [CREATOR]}, evidence),
+            "fail_noncompliant_skill_runtime_attempt_observed",
+        )
+
+    def test_compliant_nonzero_helper_attempt_fails_case(self) -> None:
+        evidence = observe_evidence(_helper_event(exit_code=127, status="failed"))
+        self.assertEqual(evidence["runtime_attempt_count"], 1)
+        self.assertIn("nonzero_exit", evidence["runtime_violation_reasons"])
+        self.assertTrue(evidence["failed_runtime_attempts"])
+        self.assertEqual(
+            classify_case({"suite": "v0.2.1", "expected_workflow": [CREATOR]}, evidence),
+            "fail_unsuccessful_skill_runtime_attempt_observed",
+        )
+
+    def test_valid_feed_does_not_hide_later_nonzero_helper_attempt(self) -> None:
+        stdout = "\n".join((
+            _helper_event(),
+            _helper_event(
+                operation="history",
+                arguments=" topic-1",
+                output=_history_payload(),
+                exit_code=2,
+                status="failed",
+            ),
+        ))
+        evidence = observe_evidence(stdout)
+        self.assertEqual(evidence["runtime_operations"], [f"{CREATOR}:feed"])
+        self.assertEqual(evidence["runtime_attempt_count"], 2)
+        self.assertEqual(
+            classify_case({"suite": "v0.2.1", "expected_workflow": [CREATOR]}, evidence),
+            "fail_unsuccessful_skill_runtime_attempt_observed",
+        )
+
+    def test_started_and_completed_events_count_as_one_runtime_attempt(self) -> None:
+        helper = f"/skills/{CREATOR}/scripts/topic_radar_client.py"
+        command = f"python3 {helper} --timeout 30 feed --q AI --limit 12"
+        started = json.dumps({"type": "item.started", "item": {
+            "id": "item-1", "type": "command_execution", "command": command,
+            "status": "in_progress", "exit_code": None,
+        }})
+        completed = json.dumps({"type": "item.completed", "item": {
+            "id": "item-1", "type": "command_execution", "command": command,
+            "status": "completed", "exit_code": 0, "aggregated_output": _feed_payload(),
+        }})
+        evidence = observe_evidence(f"{started}\n{completed}")
+        self.assertEqual(evidence["runtime_attempt_count"], 1)
+        self.assertEqual(evidence["runtime_operations"], [f"{CREATOR}:feed"])
+        self.assertEqual(evidence["failed_runtime_attempts"], [])
 
     def test_all_allowed_operations_require_their_response_contract(self) -> None:
         sources = json.dumps({"generated_at": "2026-08-11T00:00:00Z", "sources": []})

@@ -65,6 +65,13 @@ class SkillQualityContractTests(unittest.TestCase):
         self.assertIn("Do not use `python`, `python2`", canonical)
         self.assertIn("helper-wide arguments before the subcommand", canonical)
         self.assertIn("--timeout 30 feed --q AI --limit 12", canonical)
+        self.assertIn("--timeout 30 sources", canonical)
+        self.assertIn("--timeout 30 history <exact-feed-id>", canonical)
+        self.assertIn("sole positional argument", canonical)
+        self.assertIn("Never use `history --topic-id <id>`", canonical)
+        self.assertIn("one standalone, direct command", canonical)
+        self.assertIn("another Python process", canonical)
+        self.assertIn("helper's own stdout", canonical)
         self.assertIn("defaults to 12", canonical)
         self.assertIn("should not exceed 24", canonical)
         self.assertIn("Do not fetch 100 candidates", canonical)
@@ -75,8 +82,29 @@ class SkillQualityContractTests(unittest.TestCase):
             self.assertIn("Do not use `python`, `python2`", content)
             self.assertIn("helper-wide arguments", content)
             self.assertIn("--timeout 30 feed --q AI --limit 12", content)
+            self.assertIn("--timeout 30 sources", content)
+            self.assertIn("--timeout 30 history <exact-feed-id>", content)
+            self.assertIn("sole positional argument", content)
+            self.assertIn("Never use `history --topic-id <id>`", content)
+            self.assertIn("one standalone, direct command", content)
+            self.assertIn("another Python process", content)
+            self.assertIn("helper's own stdout", content)
             self.assertIn("initial `feed --limit 12`", content)
             self.assertIn("do not exceed 24 candidates", content)
+
+    def test_skill_contracts_require_explicit_unmeasured_disclosures(self) -> None:
+        for path in (
+            CANONICAL,
+            CREATOR / "SKILL.md",
+            BRIEF / "SKILL.md",
+        ):
+            content = path.read_text(encoding="utf-8")
+            with self.subTest(path=path):
+                self.assertIn("actual audience size", content)
+                self.assertIn("content/topic saturation", content)
+                self.assertIn("future reach/virality", content)
+                self.assertIn("host editorial judgment", content)
+                self.assertIn("not Radar fact", content)
 
     def test_skill_definitions_and_openai_metadata_point_to_quality_contract(self) -> None:
         creator_skill = (CREATOR / "SKILL.md").read_text(encoding="utf-8")

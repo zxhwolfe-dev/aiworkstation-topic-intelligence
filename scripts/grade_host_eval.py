@@ -115,23 +115,57 @@ def _command_tokens(command: str) -> list[str]:
     return _shell_tokens(command)
 
 
-def _runtime_invocation(command: str, skill: str) -> str | None:
-    """Return the allowed Radar operation for a real Python helper invocation."""
+def _runtime_attempt(command: str, skill: str) -> dict[str, Any] | None:
+    """Describe an attempted Skill-local helper execution without running it."""
 
     tokens = _command_tokens(command)
-    if not tokens or any(any(character in token for character in ";|&<>`$") for token in tokens):
+    if not tokens:
         return None
     marker = f"/{skill}/scripts/topic_radar_client.py"
-    executable = tokens[0].replace("\\", "/").rsplit("/", 1)[-1]
-    if executable != "python3":
+    helper_indexes = [
+        index
+        for index, token in enumerate(tokens)
+        if token.replace("\\", "/").endswith(marker)
+    ]
+    if not helper_indexes:
         return None
-    helper = tokens[1].replace("\\", "/") if len(tokens) > 1 else ""
-    if not helper.endswith(marker):
+
+    helper_index = helper_indexes[0]
+    arguments = tokens[helper_index + 1:]
+    # Reading source, compiling it, and asking argparse for help are inspection,
+    # not attempts to obtain live Radar evidence.
+    if "-h" in arguments or "--help" in arguments:
         return None
-    arguments = tokens[2:]
-    if "-h" in arguments or "--help" in arguments or "--base-url" in arguments:
-        return None
-    return _validated_operation_arguments(arguments)
+
+    if helper_index == 0:
+        executable = ""
+    else:
+        executable = tokens[helper_index - 1].replace("\\", "/").rsplit("/", 1)[-1]
+        if not executable.startswith("python"):
+            return None
+
+    violations: list[str] = []
+    if helper_index == 0:
+        violations.append("missing_python3_interpreter")
+    elif executable != "python3":
+        violations.append("unsupported_interpreter")
+    if helper_index not in {0, 1}:
+        violations.append("non_standalone_helper_command")
+    if any(any(character in token for character in ";|&<>`$") for token in tokens):
+        violations.append("composed_or_redirected_command")
+    if any(token == "--base-url" or token.startswith("--base-url=") for token in arguments):
+        violations.append("custom_radar_origin")
+
+    operation = _validated_operation_arguments(arguments)
+    if operation is None:
+        violations.append("invalid_cli_arguments")
+
+    return {
+        "skill": skill,
+        "command": command,
+        "operation": operation,
+        "violation_reasons": sorted(set(violations)),
+    }
 
 
 def _validated_operation_arguments(arguments: Sequence[str]) -> str | None:
@@ -180,10 +214,6 @@ def _validated_operation_arguments(arguments: Sequence[str]) -> str | None:
         if not value or value.startswith("--"):
             return None
     return operation
-
-
-def _completed_successfully(item: Mapping[str, Any]) -> bool:
-    return item.get("status") == "completed" and item.get("exit_code") == 0
 
 
 def _validated_radar_response(operation: str, output: Any) -> bool:
@@ -270,6 +300,8 @@ def observe_evidence(stdout: str, stderr: str = "") -> dict[str, Any]:
     handoff_agent_message = False
     command_execution_count = 0
     agent_message_count = 0
+    command_items_by_id: dict[str, Mapping[str, Any]] = {}
+    anonymous_command_items: list[Mapping[str, Any]] = []
 
     mentioned.update(_skills_in_text(stdout))
     mentioned.update(_skills_in_text(stderr))
@@ -286,14 +318,11 @@ def observe_evidence(stdout: str, stderr: str = "") -> dict[str, Any]:
             for skill in TOPIC_INTELLIGENCE_SKILLS:
                 if _looks_like_definition_read(command, skill):
                     definition_reads.add(skill)
-                operation = _runtime_invocation(command, skill)
-                if (
-                    operation is not None
-                    and _completed_successfully(item)
-                    and _validated_radar_response(operation, item.get("aggregated_output"))
-                ):
-                    runtime_uses.add(skill)
-                    runtime_operations.add(f"{skill}:{operation}")
+            item_id = item.get("id")
+            if isinstance(item_id, str) and item_id:
+                command_items_by_id[item_id] = item
+            else:
+                anonymous_command_items.append(item)
 
         elif item_type == "agent_message":
             agent_message_count += 1
@@ -301,11 +330,61 @@ def observe_evidence(stdout: str, stderr: str = "") -> dict[str, Any]:
             if HANDOFF_SCHEMA in joined:
                 handoff_agent_message = True
 
+    runtime_attempt_count = 0
+    invalid_runtime_attempts: list[dict[str, Any]] = []
+    failed_runtime_attempts: list[dict[str, Any]] = []
+    runtime_violation_reasons: set[str] = set()
+    command_items = [*command_items_by_id.values(), *anonymous_command_items]
+    for item in command_items:
+        command = _command_text(item)
+        for skill in TOPIC_INTELLIGENCE_SKILLS:
+            attempt = _runtime_attempt(command, skill)
+            if attempt is None:
+                continue
+            runtime_attempt_count += 1
+            violations = list(attempt["violation_reasons"])
+            if violations:
+                invalid_runtime_attempts.append({
+                    **attempt,
+                    "status": item.get("status"),
+                    "exit_code": item.get("exit_code"),
+                })
+                runtime_violation_reasons.update(violations)
+                continue
+
+            operation = str(attempt["operation"])
+            failure_reasons: list[str] = []
+            if item.get("status") != "completed":
+                failure_reasons.append("command_not_completed")
+            if item.get("exit_code") != 0:
+                failure_reasons.append("nonzero_exit")
+            if not failure_reasons and not _validated_radar_response(
+                operation, item.get("aggregated_output")
+            ):
+                failure_reasons.append("invalid_radar_json")
+            if failure_reasons:
+                failed = {
+                    **attempt,
+                    "status": item.get("status"),
+                    "exit_code": item.get("exit_code"),
+                    "violation_reasons": sorted(set(failure_reasons)),
+                }
+                failed_runtime_attempts.append(failed)
+                runtime_violation_reasons.update(failure_reasons)
+                continue
+
+            runtime_uses.add(skill)
+            runtime_operations.add(f"{skill}:{operation}")
+
     return {
         "mentioned_skills": sorted(mentioned),
         "definition_read_skills": sorted(definition_reads),
         "runtime_use_skills": sorted(runtime_uses),
         "runtime_operations": sorted(runtime_operations),
+        "runtime_attempt_count": runtime_attempt_count,
+        "invalid_runtime_attempts": invalid_runtime_attempts,
+        "failed_runtime_attempts": failed_runtime_attempts,
+        "runtime_violation_reasons": sorted(runtime_violation_reasons),
         "agent_message_skill_mentions": sorted(agent_message_mentions),
         "handoff_agent_message_observed": handoff_agent_message,
         "command_execution_count": command_execution_count,
@@ -321,6 +400,11 @@ def _expected_workflow(case: Mapping[str, Any]) -> tuple[str, ...]:
 
 
 def classify_case(case: Mapping[str, Any], evidence: Mapping[str, Any]) -> str:
+    if evidence.get("invalid_runtime_attempts"):
+        return "fail_noncompliant_skill_runtime_attempt_observed"
+    if evidence.get("failed_runtime_attempts"):
+        return "fail_unsuccessful_skill_runtime_attempt_observed"
+
     suite = str(case.get("suite") or "")
     runtime = set(evidence.get("runtime_use_skills") or [])
     definitions = set(evidence.get("definition_read_skills") or [])
@@ -426,9 +510,10 @@ def grade_report(payload: Mapping[str, Any]) -> dict[str, Any]:
         "cases": graded_cases,
         "grading_note": (
             "passive Skill names/file reads are discovery evidence, not invocation; "
-            "runtime use requires a successful python3 invocation of a Skill-local helper "
-            "feed/sources/history operation plus validated JSON output, and handoff use "
-            "requires the schema in an agent message"
+            "every attempted Skill-local helper call must be a standalone, compliant "
+            "python3 feed/sources/history invocation that completes successfully with "
+            "validated Radar JSON; any noncompliant or unsuccessful attempt fails the "
+            "case, and handoff use requires the schema in an agent message"
         ),
     }
 
