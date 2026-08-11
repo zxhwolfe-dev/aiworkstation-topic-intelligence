@@ -118,11 +118,8 @@ class TopicRadarClient:
         timeout: float = DEFAULT_TIMEOUT,
         opener: Optional[Callable[..., Any]] = None,
     ) -> None:
-        selected = (
-            base_url
-            or os.getenv("AIWORKSTATION_TOPIC_RADAR_BASE_URL")
-            or DEFAULT_BASE_URL
-        ).rstrip("/")
+        configured_env = os.getenv("AIWORKSTATION_TOPIC_RADAR_BASE_URL", "").strip()
+        selected = (base_url or configured_env or DEFAULT_BASE_URL).rstrip("/")
         parsed = urlsplit(selected)
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
             raise ValueError("base_url must be an absolute http(s) URL")
@@ -134,6 +131,13 @@ class TopicRadarClient:
             raise ValueError("timeout must be positive")
         self.base_url = selected
         self.uses_official_origin = selected == DEFAULT_BASE_URL
+        self.origin_source = "explicit" if base_url else ("environment" if configured_env else "default")
+        if configured_env and not base_url and selected != DEFAULT_BASE_URL:
+            print(
+                f"warning: using non-official Topic Radar origin {selected} from AIWORKSTATION_TOPIC_RADAR_BASE_URL; "
+                "use only for explicitly requested development/self-hosted testing",
+                file=sys.stderr,
+            )
         self.timeout = float(timeout)
         self._opener = opener or urlopen
 

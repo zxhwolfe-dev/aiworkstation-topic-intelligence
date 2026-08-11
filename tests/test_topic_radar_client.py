@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import contextlib
 import json
+import io
+import os
 import subprocess
 import sys
 import unittest
@@ -214,6 +217,22 @@ class TopicRadarClientTests(unittest.TestCase):
         for value in ("/local", "file:///tmp/radar.json", "javascript:alert(1)", "https://user:secret@example.test", "https://example.test/path"):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 TopicRadarClient(base_url=value)
+
+    def test_environment_origin_is_explicitly_reported(self) -> None:
+        previous = os.environ.get("AIWORKSTATION_TOPIC_RADAR_BASE_URL")
+        stream = io.StringIO()
+        try:
+            os.environ["AIWORKSTATION_TOPIC_RADAR_BASE_URL"] = "http://radar.dev.test"
+            with contextlib.redirect_stderr(stream):
+                client = TopicRadarClient()
+        finally:
+            if previous is None:
+                os.environ.pop("AIWORKSTATION_TOPIC_RADAR_BASE_URL", None)
+            else:
+                os.environ["AIWORKSTATION_TOPIC_RADAR_BASE_URL"] = previous
+        self.assertFalse(client.uses_official_origin)
+        self.assertEqual(client.origin_source, "environment")
+        self.assertIn("non-official Topic Radar origin http://radar.dev.test", stream.getvalue())
 
     def test_rejects_oversized_response_and_invalid_freshness_types(self) -> None:
         oversized = TopicRadarClient(
