@@ -31,9 +31,7 @@
         "evidence-backed-content-brief"
       ],
       "expected_workflow": [
-        "creator-topic-opportunity-research",
-        "ati.topic-opportunity-handoff.v1",
-        "evidence-backed-content-brief:host-reasoning"
+        "creator-topic-opportunity-research"
       ],
       "must_show": [
         "AI domain retained in the first bounded candidate query",

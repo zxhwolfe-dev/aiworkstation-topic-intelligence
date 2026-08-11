@@ -42,6 +42,7 @@ class V021SkillQualityTests(unittest.TestCase):
 
     def test_ai_domain_is_preserved_from_first_bounded_query(self) -> None:
         case = self.cases["ai-domain-preserved-from-first-query"]
+        self.assertEqual(case["expected_workflow"], ["creator-topic-opportunity-research"])
         self.assertIn(
             "AI domain retained in the first bounded candidate query",
             case["must_show"],

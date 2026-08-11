@@ -62,6 +62,14 @@ Run every helper call as one standalone, direct command. Do not combine it with 
 
 For a normal shortlist or topic-selection task, the initial candidate set defaults to 12 and should not exceed 24. Do not fetch 100 candidates merely to select three topics. Exceed 24 only when the user explicitly asks for a large list, export, or larger sample.
 
+The executed helper must come from the currently loaded, installed Skill root.
+Before the first helper call, resolve the directory containing that Skill's
+`SKILL.md` and invoke `<skill-root>/scripts/topic_radar_client.py`. Even when
+the current directory is this repository, reject `python3 scripts/topic_radar_client.py`,
+repository-root helpers, sibling-repository helpers, and any other same-named
+copy. The helper path must unambiguously belong to one of the two installed
+Skills.
+
 ## 2. Public Skill cost boundary: no AI Workstation model spend
 
 The downloadable/public Topic Intelligence Skills are intended to spread widely without consuming the publisher's server-side LLM quota for anonymous users.
@@ -130,6 +138,20 @@ When both Skills are installed:
 A finalist `/history` request is normal and is not duplicate selection.
 
 In normal public mode, continue from the handed-off Radar evidence with host reasoning. A selected-topic Premium Insight request is allowed only when an explicitly authenticated Premium AI Workstation transport is available and quota enforcement is outside the Skill package.
+
+When one request asks for selection and an immediately research-ready brief, and
+both Skills are installed, the required observable sequence is:
+
+`Creator selection → current-task handoff → Brief host reasoning`
+
+After the sole finalist is selected, emit one current-turn agent-message
+checkpoint containing `ati.topic-opportunity-handoff.v1`, the exact `topic_id`,
+`topic_snapshot.id == topic_id`, freshness fields `generated_at`, `partial`, and
+`stale`, plus `evidence-backed-content-brief:host-reasoning`. The Brief then
+produces the terminal answer from that handoff. This checkpoint is current-task
+workflow evidence only; it must not be persisted as future current evidence.
+Brief must not repeat feed/history calls merely to make its workflow observable;
+it may reuse the Creator finalist history.
 
 ## 5. Public Brief uses host reasoning
 

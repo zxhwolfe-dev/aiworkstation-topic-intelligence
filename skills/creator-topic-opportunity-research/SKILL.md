@@ -78,6 +78,14 @@ For a normal shortlist or topic-selection task, prefer an initial `feed --limit 
 
 Do not assume a repository-root helper, sibling checkout, or `../akaiagents` exists. The helper is read-only transport only: no crawler, score, persistence, topic matching, model backend, Premium Insight, or credential storage.
 
+The helper must come from the currently loaded, installed Skill root. Before the
+first helper command, resolve the directory containing this `SKILL.md` and use
+`<skill-root>/scripts/topic_radar_client.py`. Even when the current working
+directory is this repository, never run `python3 scripts/topic_radar_client.py`,
+a repository-root or absolute checkout helper, a sibling-repository helper, or
+any other same-named copy. Every runtime command must make its Skill ownership
+unambiguous from the path.
+
 ### Live evidence is exclusive
 
 For current-state claims, accepted evidence is limited to:
@@ -170,6 +178,18 @@ History can help distinguish a new spike, sustained momentum, cooling, or a one-
 ## Compose with Evidence-Backed Content Brief
 
 When the user continues a selected candidate into Brief, prefer the installed `evidence-backed-content-brief` Skill.
+
+When one request asks for both a current selection and a research-ready brief,
+and both Skills are installed, the observable sequence is:
+
+`Creator selection → current-task handoff → Brief host reasoning`
+
+After selecting the sole finalist, emit one current-turn checkpoint agent
+message containing `ati.topic-opportunity-handoff.v1`, the exact `topic_id`,
+`topic_snapshot.id == topic_id`, freshness fields (`generated_at`, `partial`,
+`stale`), and `evidence-backed-content-brief:host-reasoning`. Brief then
+produces the terminal brief from that handoff. Do not use a missing handoff to
+claim that Brief completed the workflow.
 
 Do not make Brief rediscover the same topic from its title. For the **single selected finalist**, produce the structured handoff defined in:
 

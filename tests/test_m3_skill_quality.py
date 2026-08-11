@@ -91,6 +91,9 @@ class M3SkillQualityTests(unittest.TestCase):
         self.assertIn("topic_id == topic_snapshot.id", creator)
         self.assertIn("current task/session workflow", creator)
         self.assertIn("persisted handoff is never a substitute", creator)
+        self.assertIn("evidence-backed-content-brief:host-reasoning", creator)
+        self.assertIn("topic_snapshot.id == topic_id", creator)
+        self.assertIn("current-turn checkpoint", creator)
 
     def test_creator_skill_produces_current_task_handoff(self) -> None:
         source = (ROOT / "skills" / SKILLS[0] / "SKILL.md").read_text(encoding="utf-8")

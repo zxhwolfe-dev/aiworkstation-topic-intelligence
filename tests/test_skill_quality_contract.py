@@ -58,6 +58,9 @@ class SkillQualityContractTests(unittest.TestCase):
         self.assertIn("ati.topic-opportunity-handoff.v1", content)
         self.assertIn("do **not** run another broad/bounded candidate-selection feed pass", content)
         self.assertIn("finalist `/history` request is normal", content)
+        self.assertIn("Creator selection → current-task handoff → Brief host reasoning", content)
+        self.assertIn("evidence-backed-content-brief:host-reasoning", content)
+        self.assertIn("topic_snapshot.id == topic_id", content)
 
     def test_portable_helper_invocation_is_deterministic(self) -> None:
         canonical = CANONICAL.read_text(encoding="utf-8")
@@ -91,6 +94,11 @@ class SkillQualityContractTests(unittest.TestCase):
             self.assertIn("helper's own stdout", content)
             self.assertIn("initial `feed --limit 12`", content)
             self.assertIn("do not exceed 24 candidates", content)
+            self.assertIn("currently loaded, installed Skill root", content)
+            self.assertIn("never run `python3 scripts/topic_radar_client.py`", content)
+
+        self.assertIn("currently loaded, installed Skill root", canonical)
+        self.assertIn("reject `python3 scripts/topic_radar_client.py`", canonical)
 
     def test_skill_contracts_require_explicit_unmeasured_disclosures(self) -> None:
         for path in (

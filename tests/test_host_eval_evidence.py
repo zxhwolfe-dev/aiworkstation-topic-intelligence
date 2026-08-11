@@ -76,6 +76,22 @@ def _helper_command_event(command: str) -> str:
     })
 
 
+def _agent_message(text: str) -> str:
+    return _event({"type": "agent_message", "text": text})
+
+
+def _composite_checkpoint(topic_id: str = "topic:abc123") -> str:
+    return _agent_message(
+        "ati.topic-opportunity-handoff.v1\n"
+        f"topic_id: {topic_id}\n"
+        f"topic_snapshot.id: {topic_id}\n"
+        "snapshot.generated_at: 2026-08-11T00:00:00Z\n"
+        "snapshot.partial: false\n"
+        "snapshot.stale: false\n"
+        "evidence-backed-content-brief:host-reasoning"
+    )
+
+
 def _trigger_case(expected_skill: str | None) -> dict[str, object]:
     return {
         "id": "case",
@@ -330,6 +346,76 @@ class HostEvalEvidenceTests(unittest.TestCase):
                 self.assertEqual(evidence["runtime_use_skills"], [])
                 self.assertEqual(evidence["runtime_attempt_count"], 0)
                 self.assertEqual(evidence["invalid_runtime_attempts"], [])
+
+    def test_non_skill_local_helper_attempts_are_explicitly_rejected(self) -> None:
+        for command in (
+            "python3 scripts/topic_radar_client.py --timeout 30 feed --q AI --limit 12",
+            "python3 /work/aiworkstation-topic-intelligence/scripts/topic_radar_client.py feed",
+            f"python3 /work/aiworkstation-topic-intelligence/skills/{CREATOR}/scripts/topic_radar_client.py feed",
+            f"python3 /work/sibling/skills/{CREATOR}/scripts/topic_radar_client.py feed",
+        ):
+            with self.subTest(command=command):
+                evidence = observe_evidence(_helper_command_event(command))
+                self.assertEqual(evidence["runtime_attempt_count"], 1)
+                self.assertEqual(evidence["runtime_use_skills"], [])
+                self.assertIn("non_skill_local_helper", evidence["runtime_violation_reasons"])
+                self.assertEqual(
+                    classify_case({"suite": "v0.2.1", "expected_workflow": [CREATOR]}, evidence),
+                    "fail_noncompliant_skill_runtime_attempt_observed",
+                )
+
+    def test_composite_creator_checkpoint_proves_brief_without_duplicate_radar(self) -> None:
+        stdout = "\n".join((
+            _helper_event(CREATOR),
+            _composite_checkpoint(),
+            _agent_message("Terminal research-ready brief"),
+        ))
+        evidence = observe_evidence(stdout)
+        self.assertTrue(evidence["handoff_agent_message_observed"])
+        self.assertTrue(evidence["brief_host_reasoning_checkpoint_observed"])
+        self.assertTrue(evidence["post_handoff_agent_message_observed"])
+        self.assertEqual(evidence["handoff_checkpoint_topic_id"], "topic:abc123")
+        self.assertEqual(evidence["runtime_attempt_count"], 1)
+        self.assertEqual(
+            classify_case({
+                "suite": "v0.2.1",
+                "expected_workflow": [CREATOR, HANDOFF_SCHEMA, f"{BRIEF}:host-reasoning"],
+            }, evidence),
+            "pass_expected_workflow_evidence_observed",
+        )
+
+    def test_incomplete_composite_checkpoint_paths_do_not_pass(self) -> None:
+        rows = (
+            (_helper_event(CREATOR), "missing_handoff"),
+            ("\n".join((_helper_event(CREATOR), _agent_message(HANDOFF_SCHEMA), _agent_message("final"))), "missing_checkpoint"),
+            ("\n".join((_helper_event(CREATOR), _composite_checkpoint())), "missing_terminal"),
+        )
+        case = {
+            "suite": "v0.2.1",
+            "expected_workflow": [CREATOR, HANDOFF_SCHEMA, f"{BRIEF}:host-reasoning"],
+        }
+        for stdout, label in rows:
+            with self.subTest(label=label):
+                self.assertNotEqual(
+                    classify_case(case, observe_evidence(stdout)),
+                    "pass_expected_workflow_evidence_observed",
+                )
+
+    def test_checkpoint_does_not_override_failed_runtime_attempt(self) -> None:
+        stdout = "\n".join((
+            _helper_event(CREATOR),
+            _composite_checkpoint(),
+            _helper_event(CREATOR, operation="history", arguments=" topic-1", output=_history_payload(), exit_code=2, status="failed"),
+            _agent_message("Terminal research-ready brief"),
+        ))
+        evidence = observe_evidence(stdout)
+        self.assertEqual(
+            classify_case({
+                "suite": "v0.2.1",
+                "expected_workflow": [CREATOR, HANDOFF_SCHEMA, f"{BRIEF}:host-reasoning"],
+            }, evidence),
+            "fail_unsuccessful_skill_runtime_attempt_observed",
+        )
 
     def test_failed_or_invalid_helper_calls_are_not_runtime_use(self) -> None:
         for stdout in (

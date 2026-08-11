@@ -58,6 +58,12 @@ It is not a new backend or a persisted evidence store. It only carries one selec
 5. `evidence` and `trend` may be bounded to what is useful for the selected candidate, but copied values must remain faithful to the live response.
 6. `selection.reason`, `observed_signals`, `unknowns`, and `risks` are Skill analysis, not source facts.
 7. Produce a handoff for the selected finalist only; do not serialize an entire broad feed.
+8. When the same request also asks for a research-ready brief and the Brief Skill
+   is installed, emit a current-turn checkpoint agent message containing this
+   schema, the exact `topic_id`, `topic_snapshot.id == topic_id`,
+   `snapshot.generated_at`, `snapshot.partial`, `snapshot.stale`, and the literal
+   marker `evidence-backed-content-brief:host-reasoning`. The receiving Brief
+   must then produce the terminal answer from that checkpoint.
 
 ## Consumer rules
 
@@ -72,6 +78,10 @@ It is not a new backend or a persisted evidence store. It only carries one selec
 - the handoff is not being loaded from a previous task, cache, log, saved file, or model memory.
 
 When those conditions hold, the Brief Skill may skip a redundant topic-name/feed re-identification step and continue with `/history` when movement matters and host-model reasoning. Premium `/insight` is not part of the public handoff workflow and is allowed only through an explicitly authenticated native Premium connection.
+
+The checkpoint is not persisted evidence and need not be repeated in the final
+user-facing answer. A valid handoff must not trigger duplicate feed/history calls
+solely to satisfy observability.
 
 Refresh the live feed before relying on the handoff when:
 

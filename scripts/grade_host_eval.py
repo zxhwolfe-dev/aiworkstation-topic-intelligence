@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shlex
 import sys
 from pathlib import Path
@@ -26,8 +27,15 @@ TOPIC_INTELLIGENCE_SKILLS = (
     "creator-topic-opportunity-research",
     "evidence-backed-content-brief",
 )
+CREATOR_SKILL = TOPIC_INTELLIGENCE_SKILLS[0]
+BRIEF_SKILL = TOPIC_INTELLIGENCE_SKILLS[1]
+HELPER_BASENAME = "topic_radar_client.py"
 RADAR_OPERATIONS = {"feed", "sources", "history"}
 SHELL_EXECUTABLES = {"bash", "dash", "sh", "zsh"}
+INSPECTION_EXECUTABLES = {
+    "cat", "sed", "rg", "head", "tail", "less", "more", "grep",
+    "py_compile", "compileall",
+}
 FEED_VALUE_OPTIONS = {
     "--q", "--platform", "--target-platform", "--region", "--category",
     "--source", "--stage", "--signal", "--keywords", "--exclude-sources",
@@ -115,25 +123,73 @@ def _command_tokens(command: str) -> list[str]:
     return _shell_tokens(command)
 
 
-def _runtime_attempt(command: str, skill: str) -> dict[str, Any] | None:
-    """Describe an attempted Skill-local helper execution without running it."""
+def _helper_path_info(command: str) -> tuple[list[str], int, str] | None:
+    """Return command tokens, helper token index, and normalized helper path."""
 
     tokens = _command_tokens(command)
     if not tokens:
         return None
-    marker = f"/{skill}/scripts/topic_radar_client.py"
     helper_indexes = [
         index
         for index, token in enumerate(tokens)
-        if token.replace("\\", "/").endswith(marker)
+        if (
+            token.replace("\\", "/").rstrip("/") == HELPER_BASENAME
+            or token.replace("\\", "/").rstrip("/").endswith(f"scripts/{HELPER_BASENAME}")
+        )
     ]
     if not helper_indexes:
         return None
+    index = helper_indexes[0]
+    return tokens, index, tokens[index].replace("\\", "/")
 
-    helper_index = helper_indexes[0]
+
+def _skill_for_helper_path(path: str) -> str | None:
+    """Recognize only helpers under an installed Skill root.
+
+    `/skills/<name>/scripts/...` is the deterministic fixture form used by the
+    tests; real installs use `~/.agents/skills/<name>/scripts/...`. Repository
+    checkouts and sibling repositories are deliberately excluded.
+    """
+
+    normalized = path.rstrip("/")
+    match = re.search(
+        r"/(creator-topic-opportunity-research|evidence-backed-content-brief)/scripts/"
+        + re.escape(HELPER_BASENAME)
+        + r"$",
+        normalized,
+    )
+    if not match:
+        return None
+    skill = match.group(1)
+    prefix = normalized[: match.start()]
+    if "aiworkstation-topic-intelligence" in prefix or "akaiagents" in prefix:
+        return None
+    if "/.agents/skills" in prefix or prefix in {"", "/", "/skills"}:
+        return skill
+    return None
+
+
+def _runtime_attempt(command: str) -> dict[str, Any] | None:
+    """Describe any attempted helper execution, including non-Skill helpers."""
+
+    info = _helper_path_info(command)
+    if info is None:
+        return None
+    tokens, helper_index, helper_path = info
+
     arguments = tokens[helper_index + 1:]
     # Reading source, compiling it, and asking argparse for help are inspection,
     # not attempts to obtain live Radar evidence.
+    command_executable = tokens[0].replace("\\", "/").rsplit("/", 1)[-1]
+    shell_operators = {";", ";;", "&", "&&", "|", "||", ">", ">>", "<", "<<"}
+    if command_executable in INSPECTION_EXECUTABLES and not any(
+        token in shell_operators for token in tokens
+    ):
+        return None
+    if command_executable.startswith("python") and "-m" in tokens[:helper_index]:
+        module_index = tokens.index("-m") + 1
+        if module_index < len(tokens) and tokens[module_index] in {"py_compile", "compileall"}:
+            return None
     if "-h" in arguments or "--help" in arguments:
         return None
 
@@ -141,10 +197,13 @@ def _runtime_attempt(command: str, skill: str) -> dict[str, Any] | None:
         executable = ""
     else:
         executable = tokens[helper_index - 1].replace("\\", "/").rsplit("/", 1)[-1]
-        if not executable.startswith("python"):
+        if executable in INSPECTION_EXECUTABLES:
             return None
 
+    skill = _skill_for_helper_path(helper_path)
     violations: list[str] = []
+    if skill is None:
+        violations.append("non_skill_local_helper")
     if helper_index == 0:
         violations.append("missing_python3_interpreter")
     elif executable != "python3":
@@ -162,6 +221,7 @@ def _runtime_attempt(command: str, skill: str) -> dict[str, Any] | None:
 
     return {
         "skill": skill,
+        "helper_path": helper_path,
         "command": command,
         "operation": operation,
         "violation_reasons": sorted(set(violations)),
@@ -281,6 +341,28 @@ def _item(event: Mapping[str, Any]) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
 
 
+def _checkpoint_topic_ids(text: str) -> list[str]:
+    return re.findall(r"topic:[A-Za-z0-9_-]+", text)
+
+
+def _is_brief_checkpoint(text: str) -> tuple[bool, str | None]:
+    """Validate the explicit Creator→Brief checkpoint marker in an agent message."""
+
+    if HANDOFF_SCHEMA not in text or "evidence-backed-content-brief:host-reasoning" not in text:
+        return False, None
+    if not all(field in text for field in ("topic_id", "topic_snapshot", "generated_at", "partial", "stale")):
+        return False, None
+    ids = _checkpoint_topic_ids(text)
+    if not ids:
+        return False, None
+    # The checkpoint must expose the same exact topic identity for the handoff
+    # and topic snapshot. Two identical visible IDs are the trace-level proof.
+    for topic_id in sorted(set(ids)):
+        if ids.count(topic_id) >= 2:
+            return True, topic_id
+    return False, None
+
+
 def _command_text(item: Mapping[str, Any]) -> str:
     for key in ("command", "cmd"):
         value = item.get(key)
@@ -298,6 +380,10 @@ def observe_evidence(stdout: str, stderr: str = "") -> dict[str, Any]:
     runtime_operations: set[str] = set()
     agent_message_mentions: set[str] = set()
     handoff_agent_message = False
+    brief_checkpoint = False
+    post_handoff_agent_message = False
+    checkpoint_topic_ids: list[str] = []
+    checkpoint_seen = False
     command_execution_count = 0
     agent_message_count = 0
     command_items_by_id: dict[str, Mapping[str, Any]] = {}
@@ -329,6 +415,14 @@ def observe_evidence(stdout: str, stderr: str = "") -> dict[str, Any]:
             agent_message_mentions.update(_skills_in_text(joined))
             if HANDOFF_SCHEMA in joined:
                 handoff_agent_message = True
+            is_checkpoint, topic_id = _is_brief_checkpoint(joined)
+            if is_checkpoint:
+                brief_checkpoint = True
+                checkpoint_seen = True
+                if topic_id:
+                    checkpoint_topic_ids.append(topic_id)
+            elif checkpoint_seen:
+                post_handoff_agent_message = True
 
     runtime_attempt_count = 0
     invalid_runtime_attempts: list[dict[str, Any]] = []
@@ -337,42 +431,43 @@ def observe_evidence(stdout: str, stderr: str = "") -> dict[str, Any]:
     command_items = [*command_items_by_id.values(), *anonymous_command_items]
     for item in command_items:
         command = _command_text(item)
-        for skill in TOPIC_INTELLIGENCE_SKILLS:
-            attempt = _runtime_attempt(command, skill)
-            if attempt is None:
-                continue
-            runtime_attempt_count += 1
-            violations = list(attempt["violation_reasons"])
-            if violations:
-                invalid_runtime_attempts.append({
-                    **attempt,
-                    "status": item.get("status"),
-                    "exit_code": item.get("exit_code"),
-                })
-                runtime_violation_reasons.update(violations)
-                continue
+        attempt = _runtime_attempt(command)
+        if attempt is None:
+            continue
+        runtime_attempt_count += 1
+        violations = list(attempt["violation_reasons"])
+        if violations:
+            invalid_runtime_attempts.append({
+                **attempt,
+                "status": item.get("status"),
+                "exit_code": item.get("exit_code"),
+            })
+            runtime_violation_reasons.update(violations)
+            continue
 
-            operation = str(attempt["operation"])
-            failure_reasons: list[str] = []
-            if item.get("status") != "completed":
-                failure_reasons.append("command_not_completed")
-            if item.get("exit_code") != 0:
-                failure_reasons.append("nonzero_exit")
-            if not failure_reasons and not _validated_radar_response(
-                operation, item.get("aggregated_output")
-            ):
-                failure_reasons.append("invalid_radar_json")
-            if failure_reasons:
-                failed = {
-                    **attempt,
-                    "status": item.get("status"),
-                    "exit_code": item.get("exit_code"),
-                    "violation_reasons": sorted(set(failure_reasons)),
-                }
-                failed_runtime_attempts.append(failed)
-                runtime_violation_reasons.update(failure_reasons)
-                continue
+        skill = attempt.get("skill")
+        operation = str(attempt["operation"])
+        failure_reasons: list[str] = []
+        if item.get("status") != "completed":
+            failure_reasons.append("command_not_completed")
+        if item.get("exit_code") != 0:
+            failure_reasons.append("nonzero_exit")
+        if not failure_reasons and not _validated_radar_response(
+            operation, item.get("aggregated_output")
+        ):
+            failure_reasons.append("invalid_radar_json")
+        if failure_reasons:
+            failed = {
+                **attempt,
+                "status": item.get("status"),
+                "exit_code": item.get("exit_code"),
+                "violation_reasons": sorted(set(failure_reasons)),
+            }
+            failed_runtime_attempts.append(failed)
+            runtime_violation_reasons.update(failure_reasons)
+            continue
 
+        if isinstance(skill, str):
             runtime_uses.add(skill)
             runtime_operations.add(f"{skill}:{operation}")
 
@@ -387,6 +482,14 @@ def observe_evidence(stdout: str, stderr: str = "") -> dict[str, Any]:
         "runtime_violation_reasons": sorted(runtime_violation_reasons),
         "agent_message_skill_mentions": sorted(agent_message_mentions),
         "handoff_agent_message_observed": handoff_agent_message,
+        "brief_host_reasoning_checkpoint_observed": brief_checkpoint,
+        "post_handoff_agent_message_observed": post_handoff_agent_message,
+        "handoff_checkpoint_topic_id": (
+            checkpoint_topic_ids[0]
+            if len(set(checkpoint_topic_ids)) == 1
+            else None
+        ),
+        "handoff_checkpoint_topic_ids": sorted(set(checkpoint_topic_ids)),
         "command_execution_count": command_execution_count,
         "agent_message_count": agent_message_count,
     }
@@ -445,6 +548,13 @@ def classify_case(case: Mapping[str, Any], evidence: Mapping[str, Any]) -> str:
             elif any(token.startswith(f"{skill}:") for skill in TOPIC_INTELLIGENCE_SKILLS):
                 skill = token.split(":", 1)[0]
                 if skill in runtime:
+                    observed_tokens.add(token)
+                elif (
+                    token == f"{BRIEF_SKILL}:host-reasoning"
+                    and CREATOR_SKILL in runtime
+                    and evidence.get("brief_host_reasoning_checkpoint_observed") is True
+                    and evidence.get("post_handoff_agent_message_observed") is True
+                ):
                     observed_tokens.add(token)
             elif token == HANDOFF_SCHEMA:
                 if evidence.get("handoff_agent_message_observed") is True:

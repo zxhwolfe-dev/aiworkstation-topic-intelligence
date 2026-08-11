@@ -78,6 +78,14 @@ Do not assume a repository-root helper, sibling checkout, or `../akaiagents` exi
 
 The helper is transport-only: no crawler, score, persistence, topic matching, model backend, or Premium Insight is implemented inside the Skill.
 
+The helper must come from the currently loaded, installed Skill root. Before the
+first helper command, resolve the directory containing this `SKILL.md` and use
+`<skill-root>/scripts/topic_radar_client.py`. Even when the current working
+directory is this repository, never run `python3 scripts/topic_radar_client.py`,
+a repository-root or absolute checkout helper, a sibling-repository helper, or
+any other same-named copy. Every runtime command must make its Skill ownership
+unambiguous from the path.
+
 ## Live topic evidence is mandatory
 
 A brief about a **current** Radar topic must be anchored to one of:
@@ -123,6 +131,14 @@ Accept it only when:
 - it is not a loaded cache, saved file, old log, prior-task artifact, or model-memory reconstruction.
 
 When valid, **do not re-identify the topic from its title and do not run another candidate-selection feed pass**. Continue with the exact handed-off `topic_id`; call `/history` only when movement matters; then build the brief with the host model.
+
+When a request combines Creator selection and Brief generation with both Skills
+installed, consume the Creator checkpoint before reasoning. The checkpoint must
+contain `ati.topic-opportunity-handoff.v1`, the exact `topic_id`,
+`topic_snapshot.id == topic_id`, freshness fields, and
+`evidence-backed-content-brief:host-reasoning`. Then emit the terminal research
+brief. Do not repeat `feed` or another selection query merely to make Brief
+runtime visible; the Creator's finalist evidence and history may be reused.
 
 Refresh/re-resolve live evidence only when the handoff is stale, materially partial, identity-invalid, from another task, or the user explicitly asks for a fresh re-check.
 
