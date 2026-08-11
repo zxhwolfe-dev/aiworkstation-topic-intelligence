@@ -44,6 +44,18 @@ After the first domain-preserving bounded query:
 
 For example, a title containing the letters `ai` only as part of an unrelated word must not become an AI finalist merely because `/feed?q=AI` returned it.
 
+### Use the portable helper deterministically
+
+Resolve `scripts/topic_radar_client.py` relative to the current Skill's `SKILL.md`; never hard-code an installation directory. `python3` is the only supported interpreter entry point. Do not use `python`, `python2`, or execute the helper directly without an interpreter.
+
+Place helper-wide arguments before the subcommand. The canonical shortlist form is:
+
+```text
+python3 <skill-local-helper> --timeout 30 feed --q AI --limit 12
+```
+
+For a normal shortlist or topic-selection task, the initial candidate set defaults to 12 and should not exceed 24. Do not fetch 100 candidates merely to select three topics. Exceed 24 only when the user explicitly asks for a large list, export, or larger sample.
+
 ## 2. Public Skill cost boundary: no AI Workstation model spend
 
 The downloadable/public Topic Intelligence Skills are intended to spread widely without consuming the publisher's server-side LLM quota for anonymous users.

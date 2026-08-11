@@ -59,6 +59,25 @@ class SkillQualityContractTests(unittest.TestCase):
         self.assertIn("do **not** run another broad/bounded candidate-selection feed pass", content)
         self.assertIn("finalist `/history` request is normal", content)
 
+    def test_portable_helper_invocation_is_deterministic(self) -> None:
+        canonical = CANONICAL.read_text(encoding="utf-8")
+        self.assertIn("`python3` is the only supported interpreter entry point", canonical)
+        self.assertIn("Do not use `python`, `python2`", canonical)
+        self.assertIn("helper-wide arguments before the subcommand", canonical)
+        self.assertIn("--timeout 30 feed --q AI --limit 12", canonical)
+        self.assertIn("defaults to 12", canonical)
+        self.assertIn("should not exceed 24", canonical)
+        self.assertIn("Do not fetch 100 candidates", canonical)
+
+        for skill in (CREATOR, BRIEF):
+            content = (skill / "SKILL.md").read_text(encoding="utf-8")
+            self.assertIn("only with `python3`", content)
+            self.assertIn("Do not use `python`, `python2`", content)
+            self.assertIn("helper-wide arguments", content)
+            self.assertIn("--timeout 30 feed --q AI --limit 12", content)
+            self.assertIn("initial `feed --limit 12`", content)
+            self.assertIn("do not exceed 24 candidates", content)
+
     def test_skill_definitions_and_openai_metadata_point_to_quality_contract(self) -> None:
         creator_skill = (CREATOR / "SKILL.md").read_text(encoding="utf-8")
         brief_skill = (BRIEF / "SKILL.md").read_text(encoding="utf-8")

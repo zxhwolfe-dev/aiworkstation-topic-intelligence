@@ -18,6 +18,7 @@ Release candidate prepared for validation. This version is not tagged or publish
 - Required successful `feed`/`sources`/`history` helper execution without an explicit custom origin and with contract-valid Radar JSON before Host Eval records runtime workflow evidence; source reads, help, failed calls, and composed shell commands no longer qualify.
 - Synced authenticated Premium identity forwarding guidance and preserved the published v0.2.1 release record below.
 - Made live Host Eval networking an explicit, single-domain, workspace-write opt-in executed only in a clean temporary detached worktree; release evidence now binds and verifies that network/sandbox policy.
+- Fixed portable Radar helper invocation to require `python3`, global options before the subcommand, and compact shortlist scans that default to 12 and normally cap at 24 candidates.
 
 ## [Unreleased]
 

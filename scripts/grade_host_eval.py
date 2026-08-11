@@ -123,7 +123,7 @@ def _runtime_invocation(command: str, skill: str) -> str | None:
         return None
     marker = f"/{skill}/scripts/topic_radar_client.py"
     executable = tokens[0].replace("\\", "/").rsplit("/", 1)[-1]
-    if executable not in {"python", "python3"}:
+    if executable != "python3":
         return None
     helper = tokens[1].replace("\\", "/") if len(tokens) > 1 else ""
     if not helper.endswith(marker):
@@ -426,7 +426,7 @@ def grade_report(payload: Mapping[str, Any]) -> dict[str, Any]:
         "cases": graded_cases,
         "grading_note": (
             "passive Skill names/file reads are discovery evidence, not invocation; "
-            "runtime use requires a successful Python invocation of a Skill-local helper "
+            "runtime use requires a successful python3 invocation of a Skill-local helper "
             "feed/sources/history operation plus validated JSON output, and handoff use "
             "requires the schema in an agent message"
         ),

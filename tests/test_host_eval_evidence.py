@@ -58,6 +58,16 @@ def _helper_event(
     })
 
 
+def _helper_command_event(command: str) -> str:
+    return _event({
+        "type": "command_execution",
+        "command": command,
+        "aggregated_output": _feed_payload(),
+        "exit_code": 0,
+        "status": "completed",
+    })
+
+
 def _trigger_case(expected_skill: str | None) -> dict[str, object]:
     return {
         "id": "case",
@@ -114,6 +124,22 @@ class HostEvalEvidenceTests(unittest.TestCase):
             classify_case(_trigger_case(CREATOR), evidence),
             "pass_expected_skill_runtime_observed",
         )
+
+    def test_only_python3_is_runtime_evidence(self) -> None:
+        helper = f"/skills/{CREATOR}/scripts/topic_radar_client.py"
+        valid = observe_evidence(_helper_command_event(
+            f"python3 {helper} --timeout 30 feed --q AI --limit 12"
+        ))
+        self.assertEqual(valid["runtime_operations"], [f"{CREATOR}:feed"])
+
+        for command in (
+            f"python {helper} --timeout 30 feed --q AI --limit 12",
+            f"python2 {helper} --timeout 30 feed --q AI --limit 12",
+            f"{helper} --timeout 30 feed --q AI --limit 12",
+        ):
+            with self.subTest(command=command):
+                evidence = observe_evidence(_helper_command_event(command))
+                self.assertEqual(evidence["runtime_use_skills"], [])
 
     def test_wrong_runtime_helper_is_a_real_negative_signal(self) -> None:
         stdout = _helper_event(BRIEF, arguments=" --limit 3")

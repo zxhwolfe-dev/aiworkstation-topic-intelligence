@@ -58,6 +58,16 @@ Resolve the bundled public helper relative to this `SKILL.md`:
 scripts/topic_radar_client.py
 ```
 
+Invoke that Skill-local helper only with `python3`. Do not use `python`, `python2`, or execute the helper directly without an interpreter. Place helper-wide arguments such as `--timeout` before the `feed`, `sources`, or `history` subcommand. Resolve the helper relative to this `SKILL.md`; do not hard-code an installation directory.
+
+Use this canonical shortlist form:
+
+```text
+python3 <skill-local-helper> --timeout 30 feed --q AI --limit 12
+```
+
+For a normal shortlist or topic-selection task, prefer an initial `feed --limit 12` and do not exceed 24 candidates. Exceed 24 only when the user explicitly asks for a large list, export, or larger sample.
+
 Do not assume a repository-root helper, sibling checkout, or `../akaiagents` exists. A native host connection may call the same public no-cost contract directly.
 
 The helper is transport-only: no crawler, score, persistence, topic matching, model backend, or Premium Insight is implemented inside the Skill.
