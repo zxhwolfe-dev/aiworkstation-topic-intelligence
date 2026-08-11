@@ -62,6 +62,10 @@ def _validate_payload(kind: str, payload: Any) -> dict[str, Any]:
         for key in ("generated_at", "status", "partial", "stale"):
             if key not in obj:
                 raise TopicRadarProtocolError(f"feed: missing field {key!r}")
+        if not isinstance(obj["generated_at"], str) or not obj["generated_at"].strip():
+            raise TopicRadarProtocolError("feed: generated_at must be a non-empty string")
+        if not isinstance(obj["status"], str) or not obj["status"].strip():
+            raise TopicRadarProtocolError("feed: status must be a non-empty string")
         _require_list(obj, "items", context="feed")
         _require_list(obj, "source_status", context="feed")
         _validate_feed_items(obj["items"])
@@ -75,6 +79,8 @@ def _validate_payload(kind: str, payload: Any) -> dict[str, Any]:
     elif kind == "sources":
         if "generated_at" not in obj:
             raise TopicRadarProtocolError("sources: missing field 'generated_at'")
+        if not isinstance(obj["generated_at"], str) or not obj["generated_at"].strip():
+            raise TopicRadarProtocolError("sources: generated_at must be a non-empty string")
         _require_list(obj, "sources", context="sources")
         if "snapshot_age_seconds" in obj and (isinstance(obj["snapshot_age_seconds"], bool) or not isinstance(obj["snapshot_age_seconds"], int) or obj["snapshot_age_seconds"] < 0):
             raise TopicRadarProtocolError("sources: snapshot_age_seconds must be a non-negative integer")
@@ -274,6 +280,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("sources", help="Read source health")
 
+    feed.add_argument("--target-platform", default="")
     history = sub.add_parser("history", help="Read one topic's trend history")
     history.add_argument("topic_id")
 
@@ -288,6 +295,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             payload = client.feed(
                 q=args.q,
                 platform=args.platform,
+                target_platform=args.target_platform,
                 region=args.region,
                 category=args.category,
                 source=args.source,

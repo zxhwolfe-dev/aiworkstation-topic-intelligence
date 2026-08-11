@@ -259,6 +259,12 @@ def classify_observation(case: EvalCase, observation: Mapping[str, Any]) -> str:
     return "unobservable"
 
 
+def _result_is_gate_failure(result: Mapping[str, Any]) -> bool:
+    return str(result.get("runtime_status")) != "completed" or str(result.get("route_observation")) in {
+        "fail_unexpected_skill", "fail_wrong_skill_observed", "partial_workflow_observed"
+    }
+
+
 def _truncate(text: str, limit: int) -> tuple[str, bool]:
     if len(text) <= limit:
         return text, False
@@ -535,7 +541,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     else:
         print(rendered, end="")
-    return 0
+    return 0 if args.dry_run else (1 if any(_result_is_gate_failure(result) for result in results) else 0)
 
 
 if __name__ == "__main__":

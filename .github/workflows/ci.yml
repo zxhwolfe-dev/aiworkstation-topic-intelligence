@@ -27,5 +27,7 @@ jobs:
         run: python -m compileall -q scripts skills
       - name: Validate Host Eval suites
         run: python scripts/run_host_evals.py --suite v0.2.1 --dry-run
+      - name: Validate real Host Eval gate implementation
+        run: python -m unittest tests.test_host_eval_runner tests.test_topic_radar_client -q
       - name: Build release archives
         run: python scripts/build_release.py --output /tmp/ati-dist
