@@ -93,6 +93,8 @@ The ChatGPT smoke also surfaced Skill-quality improvements now tracked on the 0.
 
 M4 deliberately uses two stages.
 
+This tooling is a strict observability check, not a complete semantic Host behavior gate. Codex JSON traces do not expose every Skill decision or HTTP request as a stable first-class event. Before a release candidate, run the live collector with `--strict-observation`, retain the raw and graded reports, then manually verify every selected eval case's `must_show` and `must_not` fields—including zero public `/insight` calls and no reselection after a valid handoff.
+
 ### Stage 1 — collect fresh host traces
 
 Use:

@@ -133,6 +133,7 @@ class TopicRadarClient:
         if timeout <= 0:
             raise ValueError("timeout must be positive")
         self.base_url = selected
+        self.uses_official_origin = selected == DEFAULT_BASE_URL
         self.timeout = float(timeout)
         self._opener = opener or urlopen
 
@@ -272,7 +273,14 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Read public no-cost AI Workstation Global Topic Radar data"
     )
-    parser.add_argument("--base-url", default=None)
+    parser.add_argument(
+        "--base-url",
+        default=None,
+        help=(
+            "Explicit custom Radar origin for development/self-hosted testing; "
+            f"normal public Skill workflows use {DEFAULT_BASE_URL}"
+        ),
+    )
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT)
     sub = parser.add_subparsers(dest="command", required=True)
 

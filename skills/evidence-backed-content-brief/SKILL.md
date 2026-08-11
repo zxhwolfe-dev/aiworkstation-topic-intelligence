@@ -35,6 +35,8 @@ The bundled helper exposes only:
 
 These endpoints provide current Radar evidence without asking AI Workstation to run a model for the Skill user.
 
+Use the official `https://aiworkstation.cn` origin in the normal public Skill workflow. Use a custom `--base-url` or `AIWORKSTATION_TOPIC_RADAR_BASE_URL` only when the user explicitly asks to test a self-hosted/development Radar origin; identify that origin as non-official evidence in the result.
+
 ### Optional future Premium transport
 
 A host may use a server-generated AI Workstation Topic Insight **only when all of the following are true**:

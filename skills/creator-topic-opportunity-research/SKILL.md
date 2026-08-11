@@ -50,6 +50,8 @@ The public no-cost contract is:
 - `GET /api/v1/ai/topic-radar/sources`
 - `GET /api/v1/ai/topic-radar/history?topic_id=...`
 
+Use the official `https://aiworkstation.cn` origin in the normal public Skill workflow. Use a custom `--base-url` or `AIWORKSTATION_TOPIC_RADAR_BASE_URL` only when the user explicitly asks to test a self-hosted/development Radar origin; identify that origin as non-official evidence in the result.
+
 ### Self-contained runtime
 
 Resolve the bundled helper relative to this `SKILL.md`:

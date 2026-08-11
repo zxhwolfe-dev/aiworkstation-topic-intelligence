@@ -182,6 +182,8 @@ creator-topic-opportunity-research
 
 Require exact finalist identity preservation and host-generated Brief completion without anonymous server model calls.
 
+Run the v0.2.1 release-candidate suite live with `--strict-observation`. Save both the raw `ati.host-eval.v1` report and the `ati.host-evidence.v1` graded report. This is an observability gate only: manually review the raw traces/output against each case's `must_show` and `must_not` before approval.
+
 If ChatGPT is a target surface, use a fresh uploaded release-candidate package; do not assume Codex proves ChatGPT behavior.
 
 ## 10. Tag
