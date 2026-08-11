@@ -30,6 +30,7 @@ TOPIC_INTELLIGENCE_SKILLS = (
 CREATOR_SKILL = TOPIC_INTELLIGENCE_SKILLS[0]
 BRIEF_SKILL = TOPIC_INTELLIGENCE_SKILLS[1]
 HELPER_BASENAME = "topic_radar_client.py"
+COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 RADAR_OPERATIONS = {"feed", "sources", "history"}
 SHELL_EXECUTABLES = {"bash", "dash", "sh", "zsh"}
 INSPECTION_EXECUTABLES = {
@@ -341,26 +342,56 @@ def _item(event: Mapping[str, Any]) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
 
 
-def _checkpoint_topic_ids(text: str) -> list[str]:
-    return re.findall(r"topic:[A-Za-z0-9_-]+", text)
+def _json_objects_in_text(text: str) -> Iterable[Mapping[str, Any]]:
+    """Decode embedded JSON objects without treating surrounding prose as data."""
+
+    decoder = json.JSONDecoder()
+    for index, character in enumerate(text):
+        if character != "{":
+            continue
+        try:
+            value, _ = decoder.raw_decode(text[index:])
+        except json.JSONDecodeError:
+            continue
+        if isinstance(value, Mapping):
+            yield value
+
+
+def _valid_handoff_checkpoint(text: str) -> tuple[bool, str | None]:
+    """Validate handoff identity and freshness in one agent message."""
+
+    if HANDOFF_SCHEMA not in text:
+        return False, None
+    for value in _json_objects_in_text(text):
+        if value.get("schema") != HANDOFF_SCHEMA:
+            continue
+        topic_id = value.get("topic_id")
+        snapshot = value.get("snapshot")
+        topic_snapshot = value.get("topic_snapshot")
+        if not (
+            isinstance(topic_id, str)
+            and topic_id.strip()
+            and isinstance(snapshot, Mapping)
+            and isinstance(topic_snapshot, Mapping)
+            and topic_snapshot.get("id") == topic_id
+            and isinstance(snapshot.get("generated_at"), str)
+            and bool(str(snapshot["generated_at"]).strip())
+            and isinstance(snapshot.get("partial"), bool)
+            and isinstance(snapshot.get("stale"), bool)
+        ):
+            continue
+        return True, topic_id
+    return False, None
 
 
 def _is_brief_checkpoint(text: str) -> tuple[bool, str | None]:
     """Validate the explicit Creator→Brief checkpoint marker in an agent message."""
 
-    if HANDOFF_SCHEMA not in text or "evidence-backed-content-brief:host-reasoning" not in text:
-        return False, None
-    if not all(field in text for field in ("topic_id", "topic_snapshot", "generated_at", "partial", "stale")):
-        return False, None
-    ids = _checkpoint_topic_ids(text)
-    if not ids:
-        return False, None
-    # The checkpoint must expose the same exact topic identity for the handoff
-    # and topic snapshot. Two identical visible IDs are the trace-level proof.
-    for topic_id in sorted(set(ids)):
-        if ids.count(topic_id) >= 2:
-            return True, topic_id
-    return False, None
+    valid, topic_id = _valid_handoff_checkpoint(text)
+    return (
+        valid and "evidence-backed-content-brief:host-reasoning" in text,
+        topic_id,
+    )
 
 
 def _command_text(item: Mapping[str, Any]) -> str:
@@ -379,6 +410,7 @@ def observe_evidence(stdout: str, stderr: str = "") -> dict[str, Any]:
     runtime_uses: set[str] = set()
     runtime_operations: set[str] = set()
     agent_message_mentions: set[str] = set()
+    handoff_schema_mention = False
     handoff_agent_message = False
     brief_checkpoint = False
     post_handoff_agent_message = False
@@ -386,13 +418,15 @@ def observe_evidence(stdout: str, stderr: str = "") -> dict[str, Any]:
     checkpoint_seen = False
     command_execution_count = 0
     agent_message_count = 0
-    command_items_by_id: dict[str, Mapping[str, Any]] = {}
-    anonymous_command_items: list[Mapping[str, Any]] = []
+    command_items_by_id: dict[str, tuple[int, Mapping[str, Any]]] = {}
+    anonymous_command_items: list[tuple[int, Mapping[str, Any]]] = []
+    agent_message_positions: list[int] = []
+    checkpoint_positions: list[int] = []
 
     mentioned.update(_skills_in_text(stdout))
     mentioned.update(_skills_in_text(stderr))
 
-    for event in _iter_jsonl(stdout):
+    for position, event in enumerate(_iter_jsonl(stdout)):
         item = _item(event)
         item_type = str(item.get("type") or "")
         joined = "\n".join(_collect_strings(item))
@@ -406,19 +440,24 @@ def observe_evidence(stdout: str, stderr: str = "") -> dict[str, Any]:
                     definition_reads.add(skill)
             item_id = item.get("id")
             if isinstance(item_id, str) and item_id:
-                command_items_by_id[item_id] = item
+                command_items_by_id[item_id] = (position, item)
             else:
-                anonymous_command_items.append(item)
+                anonymous_command_items.append((position, item))
 
         elif item_type == "agent_message":
             agent_message_count += 1
+            agent_message_positions.append(position)
             agent_message_mentions.update(_skills_in_text(joined))
             if HANDOFF_SCHEMA in joined:
+                handoff_schema_mention = True
+            valid_handoff, _ = _valid_handoff_checkpoint(joined)
+            if valid_handoff:
                 handoff_agent_message = True
             is_checkpoint, topic_id = _is_brief_checkpoint(joined)
             if is_checkpoint:
                 brief_checkpoint = True
                 checkpoint_seen = True
+                checkpoint_positions.append(position)
                 if topic_id:
                     checkpoint_topic_ids.append(topic_id)
             elif checkpoint_seen:
@@ -427,14 +466,22 @@ def observe_evidence(stdout: str, stderr: str = "") -> dict[str, Any]:
     runtime_attempt_count = 0
     invalid_runtime_attempts: list[dict[str, Any]] = []
     failed_runtime_attempts: list[dict[str, Any]] = []
+    successful_runtime_attempts: list[dict[str, Any]] = []
     runtime_violation_reasons: set[str] = set()
+    runtime_attempt_skills: set[str] = set()
+    runtime_positions_by_skill: dict[str, list[int]] = {
+        skill: [] for skill in TOPIC_INTELLIGENCE_SKILLS
+    }
     command_items = [*command_items_by_id.values(), *anonymous_command_items]
-    for item in command_items:
+    for position, item in command_items:
         command = _command_text(item)
         attempt = _runtime_attempt(command)
         if attempt is None:
             continue
         runtime_attempt_count += 1
+        attempted_skill = attempt.get("skill")
+        if isinstance(attempted_skill, str):
+            runtime_attempt_skills.add(attempted_skill)
         violations = list(attempt["violation_reasons"])
         if violations:
             invalid_runtime_attempts.append({
@@ -470,6 +517,27 @@ def observe_evidence(stdout: str, stderr: str = "") -> dict[str, Any]:
         if isinstance(skill, str):
             runtime_uses.add(skill)
             runtime_operations.add(f"{skill}:{operation}")
+            runtime_positions_by_skill[skill].append(position)
+            successful_runtime_attempts.append({
+                **attempt,
+                "status": item.get("status"),
+                "exit_code": item.get("exit_code"),
+                "event_position": position,
+            })
+
+    post_runtime_agent_message_skills = sorted(
+        skill
+        for skill, positions in runtime_positions_by_skill.items()
+        if positions and any(
+            message_position > max(positions)
+            for message_position in agent_message_positions
+        )
+    )
+    creator_runtime_before_checkpoint = bool(
+        runtime_positions_by_skill[CREATOR_SKILL]
+        and checkpoint_positions
+        and min(checkpoint_positions) > max(runtime_positions_by_skill[CREATOR_SKILL])
+    )
 
     return {
         "mentioned_skills": sorted(mentioned),
@@ -477,10 +545,13 @@ def observe_evidence(stdout: str, stderr: str = "") -> dict[str, Any]:
         "runtime_use_skills": sorted(runtime_uses),
         "runtime_operations": sorted(runtime_operations),
         "runtime_attempt_count": runtime_attempt_count,
+        "runtime_attempt_skills": sorted(runtime_attempt_skills),
+        "successful_runtime_attempts": successful_runtime_attempts,
         "invalid_runtime_attempts": invalid_runtime_attempts,
         "failed_runtime_attempts": failed_runtime_attempts,
         "runtime_violation_reasons": sorted(runtime_violation_reasons),
         "agent_message_skill_mentions": sorted(agent_message_mentions),
+        "handoff_schema_mention_observed": handoff_schema_mention,
         "handoff_agent_message_observed": handoff_agent_message,
         "brief_host_reasoning_checkpoint_observed": brief_checkpoint,
         "post_handoff_agent_message_observed": post_handoff_agent_message,
@@ -490,6 +561,8 @@ def observe_evidence(stdout: str, stderr: str = "") -> dict[str, Any]:
             else None
         ),
         "handoff_checkpoint_topic_ids": sorted(set(checkpoint_topic_ids)),
+        "creator_runtime_before_checkpoint": creator_runtime_before_checkpoint,
+        "post_runtime_agent_message_skills": post_runtime_agent_message_skills,
         "command_execution_count": command_execution_count,
         "agent_message_count": agent_message_count,
     }
@@ -502,13 +575,99 @@ def _expected_workflow(case: Mapping[str, Any]) -> tuple[str, ...]:
     return tuple(str(item) for item in value if isinstance(item, str) and item)
 
 
+def _skill_visibility_contract_is_valid(case: Mapping[str, Any]) -> bool:
+    installed = case.get("installed_skills")
+    if (
+        not isinstance(installed, list)
+        or not installed
+        or not all(isinstance(item, str) for item in installed)
+        or len(installed) != len(set(installed))
+        or any(item not in TOPIC_INTELLIGENCE_SKILLS for item in installed)
+    ):
+        return False
+    source_commit = case.get("skill_source_commit")
+    report_commit = case.get("_report_commit")
+    return bool(
+        case.get("skill_environment_isolated") is True
+        and case.get("codex_home_preserved") is True
+        and isinstance(source_commit, str)
+        and COMMIT_RE.fullmatch(source_commit)
+        and source_commit == report_commit
+    )
+
+
+def _complete_case_lifecycle(case: Mapping[str, Any]) -> bool:
+    return bool(
+        case.get("runtime_status") == "completed"
+        and case.get("exit_code") == 0
+        and case.get("timed_out") is False
+        and case.get("stdout_truncated") is False
+        and case.get("stderr_truncated") is False
+        and case.get("worktree_clean_after") is True
+        and case.get("trace_integrity_status") in {
+            "complete_clean", "complete_after_recovery"
+        }
+        and case.get("final_agent_message_observed") is True
+    )
+
+
+def _quality_workflow_token_observed(
+    token: str,
+    case: Mapping[str, Any],
+    evidence: Mapping[str, Any],
+) -> bool:
+    runtime = set(evidence.get("runtime_use_skills") or [])
+    operations = set(evidence.get("runtime_operations") or [])
+    installed = set(case.get("installed_skills") or [])
+    lifecycle_complete = _complete_case_lifecycle(case)
+
+    if token in TOPIC_INTELLIGENCE_SKILLS:
+        return token in runtime
+    if token == f"{BRIEF_SKILL}:bounded-selection":
+        return f"{BRIEF_SKILL}:feed" in operations
+    if token == f"{BRIEF_SKILL}:public-radar":
+        return bool({
+            f"{BRIEF_SKILL}:feed",
+            f"{BRIEF_SKILL}:history",
+            f"{BRIEF_SKILL}:sources",
+        } & operations)
+    if token == f"{BRIEF_SKILL}:host-reasoning":
+        brief_only = bool(
+            installed == {BRIEF_SKILL}
+            and BRIEF_SKILL in runtime
+            and BRIEF_SKILL in set(
+                evidence.get("post_runtime_agent_message_skills") or []
+            )
+            and lifecycle_complete
+        )
+        composite = bool(
+            CREATOR_SKILL in runtime
+            and evidence.get("brief_host_reasoning_checkpoint_observed") is True
+            and evidence.get("creator_runtime_before_checkpoint") is True
+            and evidence.get("post_handoff_agent_message_observed") is True
+            and lifecycle_complete
+        )
+        return brief_only or composite
+    if token == HANDOFF_SCHEMA:
+        return evidence.get("handoff_agent_message_observed") is True
+    return False
+
+
 def classify_case(case: Mapping[str, Any], evidence: Mapping[str, Any]) -> str:
+    suite = str(case.get("suite") or "")
+    if suite in SUPPORTED_QUALITY_SUITES:
+        if not _skill_visibility_contract_is_valid(case):
+            return "fail_missing_skill_visibility_contract"
+        unavailable = set(evidence.get("runtime_attempt_skills") or []) - set(
+            case.get("installed_skills") or []
+        )
+        if unavailable:
+            return "fail_unavailable_skill_runtime_observed"
     if evidence.get("invalid_runtime_attempts"):
         return "fail_noncompliant_skill_runtime_attempt_observed"
     if evidence.get("failed_runtime_attempts"):
         return "fail_unsuccessful_skill_runtime_attempt_observed"
 
-    suite = str(case.get("suite") or "")
     runtime = set(evidence.get("runtime_use_skills") or [])
     definitions = set(evidence.get("definition_read_skills") or [])
     mentioned = set(evidence.get("mentioned_skills") or [])
@@ -539,30 +698,8 @@ def classify_case(case: Mapping[str, Any], evidence: Mapping[str, Any]) -> str:
 
         observed_tokens: set[str] = set()
         for token in workflow:
-            if token in TOPIC_INTELLIGENCE_SKILLS:
-                # Quality/release workflows require observable helper use. A
-                # definition read is useful trigger evidence, but cannot prove
-                # that the host actually executed the live Radar workflow.
-                if token in runtime:
-                    observed_tokens.add(token)
-            elif any(token.startswith(f"{skill}:") for skill in TOPIC_INTELLIGENCE_SKILLS):
-                skill = token.split(":", 1)[0]
-                if skill in runtime:
-                    observed_tokens.add(token)
-                elif (
-                    token == f"{BRIEF_SKILL}:host-reasoning"
-                    and CREATOR_SKILL in runtime
-                    and evidence.get("brief_host_reasoning_checkpoint_observed") is True
-                    and evidence.get("post_handoff_agent_message_observed") is True
-                ):
-                    observed_tokens.add(token)
-            elif token == HANDOFF_SCHEMA:
-                if evidence.get("handoff_agent_message_observed") is True:
-                    observed_tokens.add(token)
-            else:
-                # Sub-workflow labels such as `:bounded-selection` currently have no
-                # first-class Codex event. Do not infer them from a bare Skill mention.
-                continue
+            if _quality_workflow_token_observed(token, case, evidence):
+                observed_tokens.add(token)
 
         expected = set(workflow)
         if expected <= observed_tokens:
@@ -590,7 +727,9 @@ def grade_report(payload: Mapping[str, Any]) -> dict[str, Any]:
         stdout = str(raw.get("stdout") or "")
         stderr = str(raw.get("stderr") or "")
         evidence = observe_evidence(stdout, stderr)
-        grade = classify_case(raw, evidence)
+        case_contract = dict(raw)
+        case_contract["_report_commit"] = payload.get("commit")
+        grade = classify_case(case_contract, evidence)
         counts[grade] = counts.get(grade, 0) + 1
         graded_cases.append(
             {

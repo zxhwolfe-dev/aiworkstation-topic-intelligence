@@ -21,6 +21,7 @@ Release candidate prepared for validation. This version is not tagged or publish
 - Fixed portable Radar helper invocation to require `python3`, global options before the subcommand, and compact shortlist scans that default to 12 and normally cap at 24 candidates.
 - Defined standalone `feed`/`sources`/positional-`history` command forms, required explicit audience/saturation/virality unknowns, and made any noncompliant or unsuccessful helper attempt fail Host evidence grading.
 - Rejected repository-root and other non-Skill-local Radar helper execution, aligned the selection-only AI eval with Creator-only routing, and made the Creator-to-Brief handoff observable without redundant Radar calls.
+- Isolated each Host Eval case to its declared installed Skill set and unified runner and release verification around operation-specific authoritative evidence grades instead of user-visible workflow marker text.
 
 ## [Unreleased]
 

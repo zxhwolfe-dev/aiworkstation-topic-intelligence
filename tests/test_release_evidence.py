@@ -41,6 +41,28 @@ def _feed_payload() -> str:
     })
 
 
+def _brief_checkpoint(topic_id: str = "topic:abc123") -> str:
+    handoff = {
+        "schema": HANDOFF_SCHEMA,
+        "topic_id": topic_id,
+        "snapshot": {
+            "generated_at": "2026-08-11T00:00:00Z",
+            "partial": False,
+            "stale": False,
+        },
+        "topic_snapshot": {"id": topic_id},
+    }
+    return json.dumps({
+        "type": "item.completed",
+        "item": {
+            "type": "agent_message",
+            "id": "handoff",
+            "text": json.dumps(handoff) + "\n"
+            "evidence-backed-content-brief:host-reasoning",
+        },
+    })
+
+
 def _repo() -> tuple[tempfile.TemporaryDirectory, Path, str]:
     temporary = tempfile.TemporaryDirectory()
     root = Path(temporary.name)
@@ -65,17 +87,31 @@ def _write_valid_evidence(root: Path, evaluated_commit: str) -> Path:
             _typed_event("thread.started", thread_id="test-thread"),
             _typed_event("turn.started"),
         ]
-        for skill in ("creator-topic-opportunity-research", "evidence-backed-content-brief"):
-            if any(token == skill or token.startswith(skill + ":") for token in case.expected_workflow):
-                commands.append(_event({
-                    "type": "command_execution",
-                    "command": f"python3 /skills/{skill}/scripts/topic_radar_client.py feed",
-                    "aggregated_output": _feed_payload(),
-                    "exit_code": 0,
-                    "status": "completed",
-                }))
+        runtime_skills: set[str] = set()
+        for token in case.expected_workflow:
+            if token == "creator-topic-opportunity-research":
+                runtime_skills.add("creator-topic-opportunity-research")
+            elif token == "evidence-backed-content-brief":
+                runtime_skills.add("evidence-backed-content-brief")
+            elif token in {
+                "evidence-backed-content-brief:bounded-selection",
+                "evidence-backed-content-brief:public-radar",
+                "evidence-backed-content-brief:host-reasoning",
+            } and not (
+                token == "evidence-backed-content-brief:host-reasoning"
+                and "ati.topic-opportunity-handoff.v1" in case.expected_workflow
+            ):
+                runtime_skills.add("evidence-backed-content-brief")
+        for skill in sorted(runtime_skills):
+            commands.append(_event({
+                "type": "command_execution",
+                "command": f"python3 /skills/{skill}/scripts/topic_radar_client.py --timeout 30 feed --q AI --limit 12",
+                "aggregated_output": _feed_payload(),
+                "exit_code": 0,
+                "status": "completed",
+            }))
         if HANDOFF_SCHEMA in case.expected_workflow:
-            commands.append(_event({"type": "agent_message", "text": HANDOFF_SCHEMA}))
+            commands.append(_brief_checkpoint())
         commands.append(_event({"type": "agent_message", "id": "final-agent", "text": "done"}))
         commands.append(_typed_event("turn.completed"))
         raw_case = {
@@ -87,6 +123,10 @@ def _write_valid_evidence(root: Path, evaluated_commit: str) -> Path:
             "exit_code": 0, "timed_out": False, "stdout": "\n".join(commands), "stderr": "",
             "stdout_truncated": False, "stderr_truncated": False,
             "worktree_clean_after": True,
+            "installed_skills": list(case.installed_skills),
+            "skill_environment_isolated": True,
+            "skill_source_commit": evaluated_commit,
+            "codex_home_preserved": True,
         }
         raw_case.update(analyze_jsonl_trace(
             raw_case["stdout"], exit_code=0, runtime_status="completed",
@@ -108,6 +148,10 @@ def _write_valid_evidence(root: Path, evaluated_commit: str) -> Path:
         "worktree": {"temporary": True, "detached": True, "clean_before": True, "clean_after": True},
         "cases": raw_cases,
     }
+    graded = grade_report(raw)
+    for raw_case, graded_case in zip(raw_cases, graded["cases"]):
+        raw_case["authoritative_evidence_grade"] = graded_case["evidence_grade"]
+    raw["cases"] = raw_cases
     graded = grade_report(raw)
     review = {
         "approved": True, "anonymous_server_insight_calls": 0, "handoff_reselection": "none",
@@ -223,6 +267,61 @@ class ReleaseEvidenceTests(unittest.TestCase):
             _git(root, "commit", "-qm", "tamper IDs")
             with self.assertRaisesRegex(ReleaseEvidenceError, "case IDs"):
                 verify(root, "0.2.2")
+        finally:
+            temporary.cleanup()
+
+    def test_missing_or_mismatched_skill_visibility_contract_blocks(self) -> None:
+        rows = (
+            ("installed_skills", [], "case contract"),
+            ("skill_environment_isolated", False, "visibility contract"),
+            ("codex_home_preserved", False, "visibility contract"),
+            ("skill_source_commit", "0" * 40, "visibility contract"),
+        )
+        for field, value, message in rows:
+            with self.subTest(field=field):
+                temporary, root, evaluated = _repo()
+                try:
+                    evidence = _write_valid_evidence(root, evaluated)
+                    raw_path = evidence / "host-eval.json"
+                    raw = json.loads(raw_path.read_text())
+                    raw["cases"][0][field] = value
+                    raw_path.write_text(json.dumps(raw))
+                    _git(root, "add", ".")
+                    _git(root, "commit", "-qm", f"tamper visibility {field}")
+                    with self.assertRaisesRegex(ReleaseEvidenceError, message):
+                        verify(root, "0.2.2")
+                finally:
+                    temporary.cleanup()
+
+    def test_runner_authoritative_grade_must_match_regenerated_grade(self) -> None:
+        temporary, root, evaluated = _repo()
+        try:
+            evidence = _write_valid_evidence(root, evaluated)
+            raw_path = evidence / "host-eval.json"
+            raw = json.loads(raw_path.read_text())
+            raw["cases"][0]["authoritative_evidence_grade"] = "unobservable"
+            raw_path.write_text(json.dumps(raw))
+            _git(root, "add", ".")
+            _git(root, "commit", "-qm", "tamper runner authority")
+            with self.assertRaisesRegex(ReleaseEvidenceError, "authoritative grade"):
+                verify(root, "0.2.2")
+        finally:
+            temporary.cleanup()
+
+    def test_collector_partial_does_not_override_authoritative_pass(self) -> None:
+        temporary, root, evaluated = _repo()
+        try:
+            evidence = _write_valid_evidence(root, evaluated)
+            raw_path = evidence / "host-eval.json"
+            raw = json.loads(raw_path.read_text())
+            raw["cases"][0]["route_observation"] = "partial_workflow_observed"
+            raw_path.write_text(json.dumps(raw))
+            (evidence / "host-evidence.json").write_text(
+                json.dumps(grade_report(raw))
+            )
+            _git(root, "add", ".")
+            _git(root, "commit", "-qm", "preserve collector diagnostic")
+            self.assertEqual(verify(root, "0.2.2"), evidence)
         finally:
             temporary.cleanup()
 

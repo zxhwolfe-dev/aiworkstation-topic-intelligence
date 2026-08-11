@@ -22,6 +22,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
+# Keep the direct `python scripts/run_host_evals.py` entrypoint importable.
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from scripts.grade_host_eval import PASS_GRADES, grade_report
+
 
 REPORT_SCHEMA = "ati.host-eval.v1"
 SUPPORTED_HOSTS = ("codex",)
@@ -79,6 +85,7 @@ class EvalCase:
     expected_workflow: tuple[str, ...]
     requires_live_network: bool | None
     source: Mapping[str, Any]
+    installed_skills: tuple[str, ...] = ()
 
 
 def repository_root() -> Path:
@@ -123,6 +130,9 @@ def load_suite(root: Path, suite: str) -> list[EvalCase]:
                     prompt=prompt,
                     expected_skill=expected_skill,
                     expected_workflow=workflow,
+                    installed_skills=(
+                        () if expected_skill is None else (str(expected_skill),)
+                    ),
                     requires_live_network=None,
                     source=raw,
                 )
@@ -149,6 +159,18 @@ def load_suite(root: Path, suite: str) -> list[EvalCase]:
                 isinstance(item, str) and item.strip() for item in workflow_raw
             ):
                 raise HostEvalError(f"{case_id}: expected_workflow must be a string list")
+            installed_raw = raw.get("installed_skills")
+            if (
+                not isinstance(installed_raw, list)
+                or not installed_raw
+                or not all(isinstance(item, str) for item in installed_raw)
+                or len(installed_raw) != len(set(installed_raw))
+                or any(item not in TOPIC_INTELLIGENCE_SKILLS for item in installed_raw)
+            ):
+                raise HostEvalError(
+                    f"{case_id}: installed_skills must be a non-empty unique list "
+                    "of known Topic Intelligence Skills"
+                )
             requires_live = raw.get("requires_live_network")
             if requires_live is not None and not isinstance(requires_live, bool):
                 raise HostEvalError(f"{case_id}: requires_live_network must be boolean when present")
@@ -159,6 +181,7 @@ def load_suite(root: Path, suite: str) -> list[EvalCase]:
                     prompt=prompt,
                     expected_skill=None,
                     expected_workflow=tuple(workflow_raw),
+                    installed_skills=tuple(installed_raw),
                     requires_live_network=requires_live,
                     source=raw,
                 )
@@ -220,6 +243,7 @@ def build_codex_command(
     sandbox: str,
     json_trace: bool,
     live_radar_network: bool = False,
+    disabled_skill_paths: Sequence[Path] = (),
 ) -> list[str]:
     if live_radar_network and sandbox != "workspace-write":
         raise HostEvalError(
@@ -240,10 +264,93 @@ def build_codex_command(
                 'approval_policy="never"',
             ]
         )
+    if disabled_skill_paths:
+        entries = ",".join(
+            "{path=" + json.dumps(str(path)) + ",enabled=false}"
+            for path in disabled_skill_paths
+        )
+        command.extend(["-c", f"skills.config=[{entries}]"])
     if json_trace:
         command.append("--json")
     command.append(prompt)
     return command
+
+
+def _original_codex_home() -> Path:
+    configured = os.environ.get("CODEX_HOME")
+    if configured:
+        return Path(configured).expanduser().resolve()
+    return (Path.home() / ".codex").resolve()
+
+
+def _potential_duplicate_skill_paths(
+    source_root: Path, codex_home: Path, original_home: Path
+) -> list[Path]:
+    """Find known non-fixture Topic Intelligence Skill locations.
+
+    The case HOME is fresh, so the real user's `~/.agents/skills` is normally
+    invisible. The explicit disable list still covers user, evaluated-repository,
+    Codex/plugin, and administrator locations so discovery behavior cannot widen
+    the declared fixture set.
+    """
+
+    roots = (
+        source_root / "skills",
+        original_home / ".agents" / "skills",
+        codex_home / "skills",
+        codex_home / "plugins",
+        original_home / ".codex" / "plugins",
+        Path("/etc/codex/skills"),
+        Path("/opt/codex/skills"),
+        Path("/usr/local/share/codex/skills"),
+    )
+    found: list[Path] = []
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for skill in TOPIC_INTELLIGENCE_SKILLS:
+            for candidate in root.glob(f"**/{skill}/SKILL.md"):
+                if candidate.is_file():
+                    found.append(candidate.resolve())
+    return sorted(set(found))
+
+
+def prepare_case_skill_environment(
+    case: EvalCase,
+    *,
+    source_root: Path,
+    source_commit: str,
+    home: Path,
+    codex_home: Path,
+    original_home: Path,
+) -> tuple[dict[str, str], list[Path]]:
+    """Create the exact declared Skill fixture without copying Codex auth."""
+
+    skills_root = home / ".agents" / "skills"
+    skills_root.mkdir(parents=True, exist_ok=False)
+    for skill in case.installed_skills:
+        source = source_root / "skills" / skill
+        if not (source / "SKILL.md").is_file():
+            raise HostEvalError(
+                f"{case.case_id}: missing Skill at evaluated commit: {skill}"
+            )
+        shutil.copytree(source, skills_root / skill)
+
+    visible = sorted(
+        path.parent.name for path in skills_root.glob("*/SKILL.md")
+    )
+    if visible != sorted(case.installed_skills):
+        raise HostEvalError(
+            f"{case.case_id}: isolated Skill fixture differs from installed_skills"
+        )
+
+    environment = os.environ.copy()
+    environment["HOME"] = str(home)
+    environment["CODEX_HOME"] = str(codex_home)
+    environment["ATI_HOST_EVAL_SKILL_SOURCE_COMMIT"] = source_commit
+    return environment, _potential_duplicate_skill_paths(
+        source_root, codex_home, original_home
+    )
 
 
 def _git_output(cwd: Path, *args: str) -> str:
@@ -526,9 +633,14 @@ def classify_observation(case: EvalCase, observation: Mapping[str, Any]) -> str:
 
 
 def _result_is_gate_failure(result: Mapping[str, Any], *, strict_observation: bool = False) -> bool:
-    return str(result.get("runtime_status")) != "completed" or str(result.get("route_observation")) in {
-        "fail_unexpected_skill", "fail_wrong_skill_observed", "partial_workflow_observed"
-    } or result.get("trace_integrity_status") not in PASSING_TRACE_INTEGRITY_STATUSES or result.get("worktree_clean_after") is not True or (strict_observation and str(result.get("route_observation")) in {"unobservable", "fail_unobservable"})
+    del strict_observation  # authoritative grading owns workflow pass/fail
+    return bool(
+        str(result.get("runtime_status")) != "completed"
+        or result.get("trace_integrity_status")
+        not in PASSING_TRACE_INTEGRITY_STATUSES
+        or result.get("worktree_clean_after") is not True
+        or result.get("authoritative_evidence_grade") not in PASS_GRADES
+    )
 
 
 def _truncate(text: str, limit: int) -> tuple[str, bool]:
@@ -547,6 +659,10 @@ def run_case(
     dry_run: bool,
     strict_observation: bool = False,
     worktree: Mapping[str, Any] | None = None,
+    environment: Mapping[str, str] | None = None,
+    skill_environment_isolated: bool = False,
+    skill_source_commit: str | None = None,
+    codex_home_preserved: bool = False,
 ) -> dict[str, Any]:
     started_at = datetime.now(timezone.utc).isoformat()
     if dry_run:
@@ -556,6 +672,7 @@ def run_case(
             "prompt": case.prompt,
             "expected_skill": case.expected_skill,
             "expected_workflow": list(case.expected_workflow),
+            "installed_skills": list(case.installed_skills),
             "requires_live_network": case.requires_live_network,
             "command": list(command),
             "runtime_status": "dry_run",
@@ -575,6 +692,9 @@ def run_case(
             "stderr_truncated": False,
             "worktree_clean_after": None,
             "trace_integrity_status": "not_run",
+            "skill_environment_isolated": False,
+            "skill_source_commit": skill_source_commit,
+            "codex_home_preserved": codex_home_preserved,
         }
 
     start = time.monotonic()
@@ -592,6 +712,7 @@ def run_case(
             stderr=subprocess.PIPE,
             timeout=timeout_seconds,
             check=False,
+            env=dict(environment) if environment is not None else None,
         )
         stdout = completed.stdout
         stderr = completed.stderr
@@ -632,6 +753,7 @@ def run_case(
         "prompt": case.prompt,
         "expected_skill": case.expected_skill,
         "expected_workflow": list(case.expected_workflow),
+        "installed_skills": list(case.installed_skills),
         "requires_live_network": case.requires_live_network,
         "command": list(command),
         "runtime_status": runtime_status,
@@ -646,6 +768,9 @@ def run_case(
         "stdout_truncated": stdout_truncated,
         "stderr_truncated": stderr_truncated,
         "worktree_clean_after": clean_after,
+        "skill_environment_isolated": skill_environment_isolated,
+        "skill_source_commit": skill_source_commit,
+        "codex_home_preserved": codex_home_preserved,
         **trace_integrity,
     }
 
@@ -661,15 +786,20 @@ def _coerce_subprocess_text(value: str | bytes | None) -> str:
 def summarize(results: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     route_counts: dict[str, int] = {}
     runtime_counts: dict[str, int] = {}
+    grade_counts: dict[str, int] = {}
     for result in results:
         route = str(result.get("route_observation"))
         runtime = str(result.get("runtime_status"))
+        grade = str(result.get("authoritative_evidence_grade"))
         route_counts[route] = route_counts.get(route, 0) + 1
         runtime_counts[runtime] = runtime_counts.get(runtime, 0) + 1
+        if grade != "None":
+            grade_counts[grade] = grade_counts.get(grade, 0) + 1
     return {
         "total": len(results),
         "route_observations": dict(sorted(route_counts.items())),
         "runtime_statuses": dict(sorted(runtime_counts.items())),
+        "authoritative_evidence_grades": dict(sorted(grade_counts.items())),
     }
 
 
@@ -711,10 +841,32 @@ def build_report(
         "summary": summarize(results),
         "cases": list(results),
         "grading_note": (
-            "route_observation is based only on tokens visible in the host trace; "
-            "semantic must_show/must_not grading remains a separate review step"
+            "route_observation is collector diagnostics only; authoritative_evidence_grade "
+            "is regenerated by grade_report and is the workflow gate, while semantic "
+            "must_show/must_not grading remains a separate review step"
         ),
     }
+
+
+def attach_authoritative_grades(report: dict[str, Any]) -> None:
+    """Grade the complete raw report and bind each runner result to that grade."""
+
+    if report.get("dry_run") is True:
+        for result in report.get("cases") or []:
+            if isinstance(result, dict):
+                result["authoritative_evidence_grade"] = "not_run"
+        report["summary"] = summarize(report.get("cases") or [])
+        return
+    graded = grade_report(report)
+    graded_cases = graded.get("cases") or []
+    raw_cases = report.get("cases") or []
+    if len(graded_cases) != len(raw_cases):
+        raise HostEvalError("authoritative grader returned a different case count")
+    for raw_case, graded_case in zip(raw_cases, graded_cases):
+        if not isinstance(raw_case, dict) or not isinstance(graded_case, Mapping):
+            raise HostEvalError("authoritative grader returned an invalid case record")
+        raw_case["authoritative_evidence_grade"] = graded_case.get("evidence_grade")
+    report["summary"] = summarize(raw_cases)
 
 
 def _repository_commit(root: Path) -> str | None:
@@ -822,6 +974,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         # any host process starts.  This prevents a concurrent code change from
         # silently changing the meaning of an otherwise valid-looking trace.
         commit = _repository_commit(root)
+        original_home = Path.home().resolve()
+        codex_home = _original_codex_home()
+        if not codex_home.is_dir() and not args.dry_run:
+            raise HostEvalError(f"CODEX_HOME does not exist: {codex_home}")
         if args.live_radar_network and not commit:
             raise HostEvalError("live Host Eval requires a resolvable repository commit")
         if args.live_radar_network and _git_output(root, "status", "--porcelain", "--untracked-files=all"):
@@ -843,14 +999,31 @@ def main(argv: Sequence[str] | None = None) -> int:
         results: list[dict[str, Any]] = []
         try:
             for case in cases:
-                command = build_codex_command(
-                    launcher,
-                    case.prompt,
-                    sandbox=args.sandbox,
-                    json_trace=True,
-                    live_radar_network=args.live_radar_network,
-                )
-                result = run_case(
+                environment: Mapping[str, str] | None = None
+                disabled_skill_paths: list[Path] = []
+                case_home: tempfile.TemporaryDirectory[str] | None = None
+                try:
+                    if not args.dry_run:
+                        case_home = tempfile.TemporaryDirectory(
+                            prefix="ati-host-eval-home-"
+                        )
+                        environment, disabled_skill_paths = prepare_case_skill_environment(
+                            case,
+                            source_root=cwd,
+                            source_commit=str(commit),
+                            home=Path(case_home.name),
+                            codex_home=codex_home,
+                            original_home=original_home,
+                        )
+                    command = build_codex_command(
+                        launcher,
+                        case.prompt,
+                        sandbox=args.sandbox,
+                        json_trace=True,
+                        live_radar_network=args.live_radar_network,
+                        disabled_skill_paths=disabled_skill_paths,
+                    )
+                    result = run_case(
                         case,
                         command=command,
                         cwd=cwd,
@@ -859,7 +1032,14 @@ def main(argv: Sequence[str] | None = None) -> int:
                         dry_run=args.dry_run,
                         strict_observation=args.strict_observation,
                         worktree=worktree,
+                        environment=environment,
+                        skill_environment_isolated=not args.dry_run,
+                        skill_source_commit=str(commit) if commit else None,
+                        codex_home_preserved=not args.dry_run,
                     )
+                finally:
+                    if case_home is not None:
+                        case_home.cleanup()
                 results.append(result)
                 if args.live_radar_network and result.get("worktree_clean_after") is not True:
                     raise HostEvalError(
@@ -904,6 +1084,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 if args.live_radar_network else []
             ),
         )
+        attach_authoritative_grades(report)
     except HostEvalError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -927,7 +1108,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     else:
         print(rendered, end="")
-    return 0 if args.dry_run else (1 if any(_result_is_gate_failure(result, strict_observation=args.strict_observation) for result in results) else 0)
+    return 0 if args.dry_run else (
+        1
+        if any(
+            _result_is_gate_failure(
+                result, strict_observation=args.strict_observation
+            )
+            for result in results
+        )
+        else 0
+    )
 
 
 if __name__ == "__main__":

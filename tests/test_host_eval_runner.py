@@ -12,6 +12,7 @@ from scripts.run_host_evals import (
     REPORT_SCHEMA,
     EvalCase,
     HostEvalError,
+    _result_is_gate_failure,
     _repository_commit,
     analyze_jsonl_trace,
     build_codex_command,
@@ -19,6 +20,7 @@ from scripts.run_host_evals import (
     classify_observation,
     load_suite,
     observe_tokens,
+    prepare_case_skill_environment,
     run_case,
     select_cases,
     summarize,
@@ -27,6 +29,9 @@ from scripts.run_host_evals import (
 
 
 ROOT = Path(__file__).resolve().parents[1]
+CREATOR = "creator-topic-opportunity-research"
+BRIEF = "evidence-backed-content-brief"
+TEST_COMMIT = "0" * 40
 
 
 class HostEvalRunnerTests(unittest.TestCase):
@@ -40,6 +45,113 @@ class HostEvalRunnerTests(unittest.TestCase):
         self.assertEqual(quality[0].suite, "quality")
         self.assertTrue(any(case.requires_live_network is True for case in quality))
         self.assertTrue(any(case.requires_live_network is False for case in quality))
+
+    def test_v021_cases_bind_the_declared_installed_skill_sets(self) -> None:
+        cases = load_suite(ROOT, "v0.2.1")
+        self.assertEqual(len(cases), 7)
+        self.assertTrue(all(
+            case.installed_skills == tuple(case.source["installed_skills"])
+            for case in cases
+        ))
+        self.assertEqual(cases[0].installed_skills, (BRIEF,))
+        self.assertEqual(cases[5].installed_skills, (CREATOR, BRIEF))
+
+    def test_quality_suite_rejects_duplicate_and_unknown_installed_skills(self) -> None:
+        rows = ([BRIEF, BRIEF], [BRIEF, "unknown-topic-skill"])
+        for installed_skills in rows:
+            with self.subTest(installed_skills=installed_skills):
+                with tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    evals = root / "evals"
+                    evals.mkdir()
+                    (evals / "v0.2.1-skill-quality.json").write_text(
+                        json.dumps({
+                            "schema": "ati.v0.2.1-skill-quality.v1",
+                            "cases": [{
+                                "id": "invalid-install-set",
+                                "prompt": "test",
+                                "installed_skills": installed_skills,
+                                "expected_workflow": [BRIEF],
+                            }],
+                        }),
+                        encoding="utf-8",
+                    )
+                    with self.assertRaisesRegex(HostEvalError, "installed_skills"):
+                        load_suite(root, "v0.2.1")
+
+    def test_case_skill_environment_copies_only_declared_skills(self) -> None:
+        case = EvalCase(
+            suite="v0.2.1",
+            case_id="brief-only",
+            prompt="test",
+            expected_skill=None,
+            expected_workflow=(f"{BRIEF}:bounded-selection",),
+            requires_live_network=True,
+            source={},
+            installed_skills=(BRIEF,),
+        )
+        with (
+            tempfile.TemporaryDirectory() as temporary_home,
+            tempfile.TemporaryDirectory() as temporary_codex,
+            tempfile.TemporaryDirectory() as temporary_original,
+        ):
+            home = Path(temporary_home)
+            codex_home = Path(temporary_codex)
+            original_home = Path(temporary_original)
+            auth_marker = "test-auth-content-that-must-not-be-copied"
+            (codex_home / "auth.json").write_text(auth_marker, encoding="utf-8")
+            duplicate = original_home / ".agents/skills" / CREATOR
+            duplicate.mkdir(parents=True)
+            (duplicate / "SKILL.md").write_text("duplicate", encoding="utf-8")
+
+            environment, disabled = prepare_case_skill_environment(
+                case,
+                source_root=ROOT,
+                source_commit=TEST_COMMIT,
+                home=home,
+                codex_home=codex_home,
+                original_home=original_home,
+            )
+
+            fixture_root = home / ".agents/skills"
+            self.assertEqual(
+                sorted(path.parent.name for path in fixture_root.glob("*/SKILL.md")),
+                [BRIEF],
+            )
+            self.assertFalse((fixture_root / CREATOR).exists())
+            self.assertEqual(environment["HOME"], str(home))
+            self.assertEqual(environment["CODEX_HOME"], str(codex_home))
+            self.assertEqual(
+                environment["ATI_HOST_EVAL_SKILL_SOURCE_COMMIT"], TEST_COMMIT
+            )
+            self.assertIn((duplicate / "SKILL.md").resolve(), disabled)
+            self.assertIn(
+                (ROOT / "skills" / BRIEF / "SKILL.md").resolve(), disabled
+            )
+            fixture_text = "\n".join(
+                path.read_bytes().decode("utf-8", errors="ignore")
+                for path in fixture_root.rglob("*")
+                if path.is_file()
+            )
+            self.assertNotIn(auth_marker, fixture_text)
+            self.assertFalse((home / ".codex").exists())
+
+    def test_disabled_duplicate_skill_paths_use_one_shot_config(self) -> None:
+        duplicate = Path("/tmp/duplicate-skill/SKILL.md")
+        command = build_codex_command(
+            ["codex"],
+            "hello",
+            sandbox="workspace-write",
+            json_trace=True,
+            live_radar_network=True,
+            disabled_skill_paths=[duplicate],
+        )
+        config = command[command.index("skills.config=[{path=\"/tmp/duplicate-skill/SKILL.md\",enabled=false}]")]
+        self.assertEqual(
+            config,
+            'skills.config=[{path="/tmp/duplicate-skill/SKILL.md",enabled=false}]',
+        )
+        self.assertNotIn("auth", " ".join(command).lower())
 
     def test_select_cases_can_span_suites_and_reject_unknown_ids(self) -> None:
         selected = select_cases(
@@ -235,8 +347,6 @@ class HostEvalRunnerTests(unittest.TestCase):
         self.assertEqual(result["route_observation"], "fail_unobservable")
 
     def test_stream_disconnect_is_a_gate_failure_even_when_process_exits_zero(self) -> None:
-        from scripts.run_host_evals import _result_is_gate_failure
-
         self.assertTrue(_result_is_gate_failure({
             "runtime_status": "completed",
             "route_observation": "pass_expected_workflow_observed",
@@ -245,13 +355,29 @@ class HostEvalRunnerTests(unittest.TestCase):
         }))
 
     def test_recovered_stream_is_allowed_by_environment_gate(self) -> None:
-        from scripts.run_host_evals import _result_is_gate_failure
-
         self.assertFalse(_result_is_gate_failure({
             "runtime_status": "completed",
             "route_observation": "pass_expected_workflow_observed",
             "trace_integrity_status": "complete_after_recovery",
             "worktree_clean_after": True,
+            "authoritative_evidence_grade": "pass_expected_workflow_evidence_observed",
+        }))
+
+    def test_authoritative_grade_resolves_collector_disagreement(self) -> None:
+        base = {
+            "runtime_status": "completed",
+            "trace_integrity_status": "complete_clean",
+            "worktree_clean_after": True,
+        }
+        self.assertFalse(_result_is_gate_failure({
+            **base,
+            "route_observation": "partial_workflow_observed",
+            "authoritative_evidence_grade": "pass_expected_workflow_evidence_observed",
+        }))
+        self.assertTrue(_result_is_gate_failure({
+            **base,
+            "route_observation": "pass_expected_workflow_observed",
+            "authoritative_evidence_grade": "unobservable",
         }))
 
     def test_recovered_disconnect_has_passing_trace_integrity(self) -> None:
@@ -349,6 +475,7 @@ class HostEvalRunnerTests(unittest.TestCase):
             {
                 "route_observation": "pass_expected_skill_observed",
                 "runtime_status": "completed",
+                "authoritative_evidence_grade": "pass_expected_skill_observed",
             },
             {
                 "route_observation": "unobservable",
@@ -364,6 +491,9 @@ class HostEvalRunnerTests(unittest.TestCase):
                     "unobservable": 1,
                 },
                 "runtime_statuses": {"completed": 1, "timeout": 1},
+                "authoritative_evidence_grades": {
+                    "pass_expected_skill_observed": 1,
+                },
             },
         )
         report = build_report(

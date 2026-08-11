@@ -205,9 +205,18 @@ def verify(root: Path, version: str) -> Path:
             "expected_skill": expected.expected_skill,
             "expected_workflow": list(expected.expected_workflow),
             "requires_live_network": expected.requires_live_network,
+            "installed_skills": list(expected.installed_skills),
         }
         if not isinstance(submitted, Mapping) or any(submitted.get(key) != value for key, value in required.items()):
             raise ReleaseEvidenceError(f"raw Host Eval case contract differs from eval definition: {expected.case_id}")
+        if (
+            submitted.get("skill_environment_isolated") is not True
+            or submitted.get("codex_home_preserved") is not True
+            or submitted.get("skill_source_commit") != commit
+        ):
+            raise ReleaseEvidenceError(
+                f"raw Host Eval Skill visibility contract is missing or unbound: {expected.case_id}"
+            )
 
     bad_trace = []
     for case in raw_cases:
@@ -292,6 +301,17 @@ def verify(root: Path, version: str) -> Path:
         or submitted.get("evidence_grade") != actual.get("evidence_grade")
         or actual.get("evidence_grade") not in PASS_GRADES
     ]
+    bad_authoritative = [
+        _case_id(raw_case)
+        for raw_case, actual in zip(raw_cases, regenerated_cases)
+        if not isinstance(raw_case, Mapping)
+        or raw_case.get("authoritative_evidence_grade") != actual.get("evidence_grade")
+    ]
+    if bad_authoritative:
+        raise ReleaseEvidenceError(
+            "raw Host Eval authoritative grade does not match regenerated evidence: "
+            + ", ".join(bad_authoritative)
+        )
     if bad_grades:
         raise ReleaseEvidenceError("Host Eval evidence is not fully passing: " + ", ".join(bad_grades))
 

@@ -19,6 +19,7 @@ from scripts.grade_host_eval import (
 ROOT = Path(__file__).resolve().parents[1]
 CREATOR = "creator-topic-opportunity-research"
 BRIEF = "evidence-backed-content-brief"
+TEST_COMMIT = "0" * 40
 
 
 def _event(item: dict[str, object]) -> str:
@@ -81,13 +82,18 @@ def _agent_message(text: str) -> str:
 
 
 def _composite_checkpoint(topic_id: str = "topic:abc123") -> str:
+    payload = {
+        "schema": HANDOFF_SCHEMA,
+        "topic_id": topic_id,
+        "snapshot": {
+            "generated_at": "2026-08-11T00:00:00Z",
+            "partial": False,
+            "stale": False,
+        },
+        "topic_snapshot": {"id": topic_id},
+    }
     return _agent_message(
-        "ati.topic-opportunity-handoff.v1\n"
-        f"topic_id: {topic_id}\n"
-        f"topic_snapshot.id: {topic_id}\n"
-        "snapshot.generated_at: 2026-08-11T00:00:00Z\n"
-        "snapshot.partial: false\n"
-        "snapshot.stale: false\n"
+        f"```json\n{json.dumps(payload)}\n```\n"
         "evidence-backed-content-brief:host-reasoning"
     )
 
@@ -99,6 +105,33 @@ def _trigger_case(expected_skill: str | None) -> dict[str, object]:
         "expected_skill": expected_skill,
         "expected_workflow": [] if expected_skill is None else [expected_skill],
     }
+
+
+def _quality_case(
+    expected_workflow: list[str],
+    installed_skills: list[str],
+    **overrides: object,
+) -> dict[str, object]:
+    case: dict[str, object] = {
+        "id": "quality-case",
+        "suite": "v0.2.1",
+        "expected_workflow": expected_workflow,
+        "installed_skills": installed_skills,
+        "skill_environment_isolated": True,
+        "skill_source_commit": TEST_COMMIT,
+        "codex_home_preserved": True,
+        "_report_commit": TEST_COMMIT,
+        "runtime_status": "completed",
+        "exit_code": 0,
+        "timed_out": False,
+        "stdout_truncated": False,
+        "stderr_truncated": False,
+        "worktree_clean_after": True,
+        "trace_integrity_status": "complete_clean",
+        "final_agent_message_observed": True,
+    }
+    case.update(overrides)
+    return case
 
 
 class HostEvalEvidenceTests(unittest.TestCase):
@@ -215,7 +248,9 @@ class HostEvalEvidenceTests(unittest.TestCase):
         agent_output = _event(
             {"type": "agent_message", "text": f"ATI_HANDOFF_AUDIT {HANDOFF_SCHEMA}"}
         )
-        self.assertTrue(observe_evidence(agent_output)["handoff_agent_message_observed"])
+        agent_evidence = observe_evidence(agent_output)
+        self.assertTrue(agent_evidence["handoff_schema_mention_observed"])
+        self.assertFalse(agent_evidence["handoff_agent_message_observed"])
 
     def test_grade_report_preserves_collector_result_but_adds_evidence_grade(self) -> None:
         stdout = _event(
@@ -301,26 +336,27 @@ class HostEvalEvidenceTests(unittest.TestCase):
             )
 
     def test_v021_quality_case_is_graded_like_quality_suite(self) -> None:
+        case = _quality_case([CREATOR], [CREATOR])
+        case.update({"stdout": _helper_event(), "stderr": ""})
         payload = {
             "schema": "ati.host-eval.v1", "host": "codex", "skill_version": "0.2.1",
-            "suites": ["v0.2.1"], "cases": [{
-                "id": "v021", "suite": "v0.2.1", "expected_workflow": [CREATOR],
-                "runtime_status": "completed", "stdout": _helper_event(), "stderr": "",
-            }],
+            "commit": TEST_COMMIT, "suites": ["v0.2.1"], "cases": [case],
         }
         graded = grade_report(payload)
         self.assertEqual(graded["cases"][0]["evidence_grade"], "pass_expected_workflow_evidence_observed")
 
     def test_v021_quality_definition_read_alone_is_not_live_workflow_evidence(self) -> None:
+        case = _quality_case([CREATOR], [CREATOR])
+        case.update({
+            "stdout": _event({
+                "type": "command_execution",
+                "command": f"sed -n '1,180p' ~/.agents/skills/{CREATOR}/SKILL.md",
+            }),
+            "stderr": "",
+        })
         payload = {
             "schema": "ati.host-eval.v1", "host": "codex", "skill_version": "0.2.1",
-            "suites": ["v0.2.1"], "cases": [{
-                "id": "v021", "suite": "v0.2.1", "expected_workflow": [CREATOR],
-                "runtime_status": "completed", "stdout": _event({
-                    "type": "command_execution",
-                    "command": f"sed -n '1,180p' ~/.agents/skills/{CREATOR}/SKILL.md",
-                }), "stderr": "",
-            }],
+            "commit": TEST_COMMIT, "suites": ["v0.2.1"], "cases": [case],
         }
         graded = grade_report(payload)
         self.assertEqual(graded["cases"][0]["evidence_grade"], "unobservable")
@@ -360,7 +396,7 @@ class HostEvalEvidenceTests(unittest.TestCase):
                 self.assertEqual(evidence["runtime_use_skills"], [])
                 self.assertIn("non_skill_local_helper", evidence["runtime_violation_reasons"])
                 self.assertEqual(
-                    classify_case({"suite": "v0.2.1", "expected_workflow": [CREATOR]}, evidence),
+                    classify_case(_quality_case([CREATOR], [CREATOR]), evidence),
                     "fail_noncompliant_skill_runtime_attempt_observed",
                 )
 
@@ -377,23 +413,44 @@ class HostEvalEvidenceTests(unittest.TestCase):
         self.assertEqual(evidence["handoff_checkpoint_topic_id"], "topic:abc123")
         self.assertEqual(evidence["runtime_attempt_count"], 1)
         self.assertEqual(
-            classify_case({
-                "suite": "v0.2.1",
-                "expected_workflow": [CREATOR, HANDOFF_SCHEMA, f"{BRIEF}:host-reasoning"],
-            }, evidence),
+            classify_case(
+                _quality_case(
+                    [CREATOR, HANDOFF_SCHEMA, f"{BRIEF}:host-reasoning"],
+                    [CREATOR, BRIEF],
+                ),
+                evidence,
+            ),
             "pass_expected_workflow_evidence_observed",
         )
 
     def test_incomplete_composite_checkpoint_paths_do_not_pass(self) -> None:
+        mismatched = {
+            "schema": HANDOFF_SCHEMA,
+            "topic_id": "topic:one",
+            "snapshot": {
+                "generated_at": "2026-08-11T00:00:00Z",
+                "partial": False,
+                "stale": False,
+            },
+            "topic_snapshot": {"id": "topic:two"},
+        }
         rows = (
             (_helper_event(CREATOR), "missing_handoff"),
             ("\n".join((_helper_event(CREATOR), _agent_message(HANDOFF_SCHEMA), _agent_message("final"))), "missing_checkpoint"),
+            ("\n".join((
+                _helper_event(CREATOR),
+                _agent_message(
+                    json.dumps(mismatched)
+                    + f"\n{BRIEF}:host-reasoning"
+                ),
+                _agent_message("final"),
+            )), "mismatched_identity"),
             ("\n".join((_helper_event(CREATOR), _composite_checkpoint())), "missing_terminal"),
         )
-        case = {
-            "suite": "v0.2.1",
-            "expected_workflow": [CREATOR, HANDOFF_SCHEMA, f"{BRIEF}:host-reasoning"],
-        }
+        case = _quality_case(
+            [CREATOR, HANDOFF_SCHEMA, f"{BRIEF}:host-reasoning"],
+            [CREATOR, BRIEF],
+        )
         for stdout, label in rows:
             with self.subTest(label=label):
                 self.assertNotEqual(
@@ -410,10 +467,13 @@ class HostEvalEvidenceTests(unittest.TestCase):
         ))
         evidence = observe_evidence(stdout)
         self.assertEqual(
-            classify_case({
-                "suite": "v0.2.1",
-                "expected_workflow": [CREATOR, HANDOFF_SCHEMA, f"{BRIEF}:host-reasoning"],
-            }, evidence),
+            classify_case(
+                _quality_case(
+                    [CREATOR, HANDOFF_SCHEMA, f"{BRIEF}:host-reasoning"],
+                    [CREATOR, BRIEF],
+                ),
+                evidence,
+            ),
             "fail_unsuccessful_skill_runtime_attempt_observed",
         )
 
@@ -504,7 +564,7 @@ class HostEvalEvidenceTests(unittest.TestCase):
         self.assertEqual(evidence["runtime_attempt_count"], 1)
         self.assertIn("invalid_cli_arguments", evidence["runtime_violation_reasons"])
         self.assertEqual(
-            classify_case({"suite": "v0.2.1", "expected_workflow": [CREATOR]}, evidence),
+            classify_case(_quality_case([CREATOR], [CREATOR]), evidence),
             "fail_noncompliant_skill_runtime_attempt_observed",
         )
 
@@ -533,7 +593,7 @@ class HostEvalEvidenceTests(unittest.TestCase):
         self.assertEqual(evidence["runtime_operations"], [f"{CREATOR}:feed"])
         self.assertEqual(evidence["runtime_attempt_count"], 2)
         self.assertEqual(
-            classify_case({"suite": "v0.2.1", "expected_workflow": [CREATOR]}, evidence),
+            classify_case(_quality_case([CREATOR], [CREATOR]), evidence),
             "fail_noncompliant_skill_runtime_attempt_observed",
         )
 
@@ -546,7 +606,7 @@ class HostEvalEvidenceTests(unittest.TestCase):
         evidence = observe_evidence(stdout)
         self.assertEqual(evidence["runtime_attempt_count"], 2)
         self.assertEqual(
-            classify_case({"suite": "v0.2.1", "expected_workflow": [CREATOR]}, evidence),
+            classify_case(_quality_case([CREATOR], [CREATOR]), evidence),
             "fail_noncompliant_skill_runtime_attempt_observed",
         )
 
@@ -556,7 +616,7 @@ class HostEvalEvidenceTests(unittest.TestCase):
         self.assertIn("nonzero_exit", evidence["runtime_violation_reasons"])
         self.assertTrue(evidence["failed_runtime_attempts"])
         self.assertEqual(
-            classify_case({"suite": "v0.2.1", "expected_workflow": [CREATOR]}, evidence),
+            classify_case(_quality_case([CREATOR], [CREATOR]), evidence),
             "fail_unsuccessful_skill_runtime_attempt_observed",
         )
 
@@ -575,8 +635,92 @@ class HostEvalEvidenceTests(unittest.TestCase):
         self.assertEqual(evidence["runtime_operations"], [f"{CREATOR}:feed"])
         self.assertEqual(evidence["runtime_attempt_count"], 2)
         self.assertEqual(
-            classify_case({"suite": "v0.2.1", "expected_workflow": [CREATOR]}, evidence),
+            classify_case(_quality_case([CREATOR], [CREATOR]), evidence),
             "fail_unsuccessful_skill_runtime_attempt_observed",
+        )
+
+    def test_missing_skill_visibility_contract_fails_quality_case(self) -> None:
+        evidence = observe_evidence(_helper_event(CREATOR))
+        self.assertEqual(
+            classify_case(
+                {"suite": "v0.2.1", "expected_workflow": [CREATOR]},
+                evidence,
+            ),
+            "fail_missing_skill_visibility_contract",
+        )
+
+    def test_runtime_from_undeclared_skill_fails_before_workflow_inference(self) -> None:
+        stdout = "\n".join((
+            _helper_event(CREATOR),
+            _helper_event(
+                BRIEF,
+                operation="history",
+                arguments=" topic-1",
+                output=_history_payload(),
+            ),
+            _agent_message("Terminal brief"),
+        ))
+        evidence = observe_evidence(stdout)
+        self.assertEqual(
+            classify_case(
+                _quality_case(
+                    [f"{BRIEF}:bounded-selection", f"{BRIEF}:host-reasoning"],
+                    [BRIEF],
+                ),
+                evidence,
+            ),
+            "fail_unavailable_skill_runtime_observed",
+        )
+        self.assertNotIn(f"{BRIEF}:feed", evidence["runtime_operations"])
+
+    def test_bounded_selection_requires_brief_feed(self) -> None:
+        case = _quality_case([f"{BRIEF}:bounded-selection"], [BRIEF])
+        brief_history = observe_evidence(_helper_event(
+            BRIEF,
+            operation="history",
+            arguments=" topic-1",
+            output=_history_payload(),
+        ))
+        creator_feed = observe_evidence(_helper_event(CREATOR))
+        brief_feed = observe_evidence(_helper_event(BRIEF))
+
+        self.assertEqual(classify_case(case, brief_history), "unobservable")
+        self.assertEqual(
+            classify_case(
+                _quality_case([f"{BRIEF}:bounded-selection"], [CREATOR, BRIEF]),
+                creator_feed,
+            ),
+            "unobservable",
+        )
+        self.assertEqual(
+            classify_case(case, brief_feed),
+            "pass_expected_workflow_evidence_observed",
+        )
+
+    def test_brief_only_runtime_and_later_answer_prove_host_reasoning(self) -> None:
+        evidence = observe_evidence("\n".join((
+            _helper_event(BRIEF),
+            _agent_message("Terminal host-generated brief"),
+        )))
+        self.assertEqual(
+            classify_case(
+                _quality_case([f"{BRIEF}:host-reasoning"], [BRIEF]),
+                evidence,
+            ),
+            "pass_expected_workflow_evidence_observed",
+        )
+
+    def test_unknown_subworkflow_token_is_not_inferred_from_runtime(self) -> None:
+        evidence = observe_evidence("\n".join((
+            _helper_event(BRIEF),
+            _agent_message("Terminal answer"),
+        )))
+        self.assertEqual(
+            classify_case(
+                _quality_case([f"{BRIEF}:unknown-workflow"], [BRIEF]),
+                evidence,
+            ),
+            "unobservable",
         )
 
     def test_started_and_completed_events_count_as_one_runtime_attempt(self) -> None:
