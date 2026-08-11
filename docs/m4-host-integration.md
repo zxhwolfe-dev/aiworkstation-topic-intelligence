@@ -95,6 +95,14 @@ M4 deliberately uses two stages.
 
 This tooling is a strict observability check, not a complete semantic Host behavior gate. Codex JSON traces do not expose every Skill decision or HTTP request as a stable first-class event. Before a release candidate, run the live collector with `--strict-observation`, retain the raw and graded reports, then manually verify every selected eval case's `must_show` and `must_not` fields—including zero public `/insight` calls and no reselection after a valid handoff.
 
+Live Radar cases must additionally use the explicit `--live-radar-network` mode
+with `--sandbox workspace-write`. The runner creates a temporary detached
+worktree at the evaluated commit, enables Codex's restricted network proxy only
+for `aiworkstation.cn`, records that policy in the raw report, and rejects any
+Host-created worktree changes. Outer-shell feed checks do not establish that a
+Host sandbox can reach Radar; read-only, unrestricted, custom-origin, or
+expanded-allowlist runs are not release evidence.
+
 ### Stage 1 — collect fresh host traces
 
 Use:

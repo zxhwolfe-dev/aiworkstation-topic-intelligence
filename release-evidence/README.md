@@ -9,3 +9,11 @@ Each release after the immutable v0.2.1 line must add a directory named `v<VERSI
 Do not copy failed, dry-run, or merely unobservable reports into a release directory and do not mark them approved. The release workflow validates this structure for versions newer than v0.2.1.
 
 Runtime workflow evidence requires a completed, exit-zero Python invocation of the Skill-local helper for a `feed`, `sources`, or `history` read without an explicit custom origin and whose stdout is contract-valid Radar JSON. Reading or compiling helper source, `--help`, failed/network-error calls, explicit `--base-url` overrides, pipes/redirections, and compound shell commands do not qualify. This trace gate is not a cryptographic attestation of the host process; protected release controls and the structured manual trace review remain required.
+
+For a live release candidate, outer-shell network checks are insufficient: the Host
+itself must run with the explicit `--live-radar-network` mode in a temporary,
+clean, detached `workspace-write` worktree. The launcher records
+`sandbox=workspace-write`, `live_radar_network=true`, and the exact network
+allowlist `['aiworkstation.cn']`. Read-only or unrestricted sandboxes, missing or
+expanded allowlists, custom Radar origins, and any Host-created worktree changes
+are invalid evidence.

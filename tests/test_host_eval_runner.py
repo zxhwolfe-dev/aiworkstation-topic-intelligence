@@ -66,6 +66,22 @@ class HostEvalRunnerTests(unittest.TestCase):
             ["codex_yinhe", "exec", "--sandbox", "read-only", "--json", "hello"],
         )
 
+    def test_live_network_requires_workspace_write(self) -> None:
+        with self.assertRaisesRegex(HostEvalError, "workspace-write"):
+            build_codex_command(
+                ["codex"], "hello", sandbox="read-only", json_trace=True,
+                live_radar_network=True,
+            )
+
+    def test_live_network_command_is_explicitly_allowlisted(self) -> None:
+        command = build_codex_command(
+            ["codex"], "hello", sandbox="workspace-write", json_trace=True,
+            live_radar_network=True,
+        )
+        self.assertIn("sandbox_workspace_write.network_access=true", command)
+        self.assertIn('network_proxy.domains=["aiworkstation.cn"]', command)
+        self.assertNotIn("danger-full-access", command)
+        self.assertNotIn("--yolo", command)
     def test_trace_parser_observes_nested_jsonl_skill_and_handoff_tokens(self) -> None:
         stdout = "\n".join(
             [
@@ -216,6 +232,16 @@ class HostEvalRunnerTests(unittest.TestCase):
         case = EvalCase("trigger", "strict", "x", "creator-topic-opportunity-research", ("creator-topic-opportunity-research",), None, {})
         result = run_case(case, command=[sys.executable, "-c", "pass"], cwd=ROOT, timeout_seconds=5, max_output_chars=1000, dry_run=False, strict_observation=True)
         self.assertEqual(result["route_observation"], "fail_unobservable")
+
+    def test_stream_disconnect_is_a_gate_failure_even_when_process_exits_zero(self) -> None:
+        from scripts.run_host_evals import _result_is_gate_failure
+
+        self.assertTrue(_result_is_gate_failure({
+            "runtime_status": "completed",
+            "route_observation": "pass_expected_workflow_observed",
+            "stream_disconnected": True,
+            "worktree_clean_after": True,
+        }))
 
     def test_report_schema_and_summary_are_stable(self) -> None:
         results = [

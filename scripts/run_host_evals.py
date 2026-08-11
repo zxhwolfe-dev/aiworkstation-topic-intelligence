@@ -15,6 +15,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -32,6 +33,13 @@ TOPIC_INTELLIGENCE_SKILLS = (
 HANDOFF_SCHEMA = "ati.topic-opportunity-handoff.v1"
 DEFAULT_TIMEOUT_SECONDS = 45.0
 DEFAULT_MAX_OUTPUT_CHARS = 200_000
+LIVE_RADAR_NETWORK_DOMAIN = "aiworkstation.cn"
+LIVE_RADAR_NETWORK_DOMAINS = [LIVE_RADAR_NETWORK_DOMAIN]
+ORIGIN_OVERRIDE_ENV_VARS = (
+    "AIWORKSTATION_TOPIC_RADAR_BASE_URL",
+    "AI_WORKSTATION_API_BASE_URL",
+    "TOPIC_RADAR_BASE_URL",
+)
 
 
 class HostEvalError(RuntimeError):
@@ -187,12 +195,87 @@ def build_codex_command(
     *,
     sandbox: str,
     json_trace: bool,
+    live_radar_network: bool = False,
 ) -> list[str]:
+    if live_radar_network and sandbox != "workspace-write":
+        raise HostEvalError(
+            "--live-radar-network requires --sandbox workspace-write"
+        )
     command = [*launcher, "exec", "--sandbox", sandbox]
+    if live_radar_network:
+        # Network access is deliberately opt-in and scoped to the public Radar
+        # origin.  The proxy feature enforces the domain policy for commands
+        # executed inside the workspace-write sandbox.
+        command.extend(
+            [
+                "-c",
+                "sandbox_workspace_write.network_access=true",
+                "-c",
+                'network_proxy.domains=["aiworkstation.cn"]',
+                "--enable",
+                "network_proxy",
+                "-c",
+                'approval_policy="never"',
+            ]
+        )
     if json_trace:
         command.append("--json")
     command.append(prompt)
     return command
+
+
+def _git_output(cwd: Path, *args: str) -> str:
+    completed = subprocess.run(
+        ["git", *args], cwd=cwd, text=True, stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE, check=False,
+    )
+    if completed.returncode != 0:
+        raise HostEvalError(f"git {' '.join(args)} failed in {cwd}: {completed.stderr.strip()}")
+    return completed.stdout.strip()
+
+
+def validate_live_worktree(root: Path, cwd: Path, commit: str | None) -> dict[str, Any]:
+    """Require an isolated, clean detached worktree for live Host runs."""
+
+    root = root.resolve()
+    cwd = cwd.resolve()
+    if cwd == root:
+        raise HostEvalError("live Host Eval must use a temporary detached worktree, not the repository root")
+    if _git_output(cwd, "rev-parse", "--is-inside-work-tree") != "true":
+        raise HostEvalError(f"live Host Eval cwd is not a Git worktree: {cwd}")
+    top = Path(_git_output(cwd, "rev-parse", "--show-toplevel")).resolve()
+    if top != cwd:
+        raise HostEvalError(f"live Host Eval cwd must be the worktree root: {cwd}")
+    symbolic = subprocess.run(
+        ["git", "symbolic-ref", "--quiet", "--short", "HEAD"],
+        cwd=cwd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        check=False,
+    )
+    if symbolic.returncode == 0 and symbolic.stdout.strip():
+        raise HostEvalError("live Host Eval worktree must be detached")
+    if symbolic.returncode not in {0, 1}:
+        raise HostEvalError("could not determine whether live Host Eval worktree is detached")
+    actual = _git_output(cwd, "rev-parse", "HEAD")
+    if commit and actual != commit:
+        raise HostEvalError(f"live Host Eval worktree commit {actual} does not match {commit}")
+    status = _git_output(cwd, "status", "--porcelain", "--untracked-files=all")
+    if status:
+        raise HostEvalError("live Host Eval worktree must be clean before execution")
+    return {
+        "path": str(cwd),
+        "temporary": True,
+        "detached": True,
+        "clean_before": True,
+        "commit": actual,
+    }
+
+
+def _clean_worktree_status(cwd: Path) -> list[str]:
+    try:
+        output = _git_output(cwd, "status", "--porcelain", "--untracked-files=all")
+    except HostEvalError:
+        return ["<git status unavailable>"]
+    return [line for line in output.splitlines() if line.strip()]
 
 
 def _collect_strings(value: Any) -> Iterable[str]:
@@ -262,7 +345,7 @@ def classify_observation(case: EvalCase, observation: Mapping[str, Any]) -> str:
 def _result_is_gate_failure(result: Mapping[str, Any], *, strict_observation: bool = False) -> bool:
     return str(result.get("runtime_status")) != "completed" or str(result.get("route_observation")) in {
         "fail_unexpected_skill", "fail_wrong_skill_observed", "partial_workflow_observed"
-    } or (strict_observation and str(result.get("route_observation")) in {"unobservable", "fail_unobservable"})
+    } or bool(result.get("stream_disconnected")) or result.get("worktree_clean_after") is False or (strict_observation and str(result.get("route_observation")) in {"unobservable", "fail_unobservable"})
 
 
 def _truncate(text: str, limit: int) -> tuple[str, bool]:
@@ -280,6 +363,7 @@ def run_case(
     max_output_chars: int,
     dry_run: bool,
     strict_observation: bool = False,
+    worktree: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     started_at = datetime.now(timezone.utc).isoformat()
     if dry_run:
@@ -306,6 +390,7 @@ def run_case(
             "stderr": "",
             "stdout_truncated": False,
             "stderr_truncated": False,
+            "worktree_clean_after": None,
         }
 
     start = time.monotonic()
@@ -346,6 +431,17 @@ def run_case(
         route_observation = "fail_unobservable"
     stdout, stdout_truncated = _truncate(stdout, max_output_chars)
     stderr, stderr_truncated = _truncate(stderr, max_output_chars)
+    clean_after = not _clean_worktree_status(cwd)
+    lowered_trace = searchable.lower()
+    stream_disconnected = any(
+        marker in lowered_trace
+        for marker in (
+            "stream disconnected",
+            "stream disconnect",
+            "response stream disconnected",
+            "stream closed before response.completed",
+        )
+    )
 
     return {
         "id": case.case_id,
@@ -366,6 +462,8 @@ def run_case(
         "stderr": stderr,
         "stdout_truncated": stdout_truncated,
         "stderr_truncated": stderr_truncated,
+        "worktree_clean_after": clean_after,
+        "stream_disconnected": stream_disconnected,
     }
 
 
@@ -404,6 +502,9 @@ def build_report(
     dry_run: bool,
     strict_observation: bool = False,
     commit: str | None = None,
+    live_radar_network: bool = False,
+    network_allowed_domains: Sequence[str] | None = None,
+    worktree: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     version_path = root / "VERSION"
     version = version_path.read_text(encoding="utf-8").strip() if version_path.is_file() else None
@@ -419,6 +520,9 @@ def build_report(
         "launcher": list(launcher),
         "dry_run": dry_run,
         "strict_observation": strict_observation,
+        "live_radar_network": live_radar_network,
+        "network_allowed_domains": list(network_allowed_domains or []),
+        "worktree": dict(worktree or {}),
         "summary": summarize(results),
         "cases": list(results),
         "grading_note": (
@@ -462,6 +566,11 @@ def _parser() -> argparse.ArgumentParser:
         help="Codex launcher command, e.g. 'codex' or 'codex_yinhe'",
     )
     parser.add_argument("--sandbox", default="read-only")
+    parser.add_argument(
+        "--live-radar-network",
+        action="store_true",
+        help="Explicitly enable restricted live Radar networking (workspace-write only)",
+    )
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT_SECONDS)
     parser.add_argument(
         "--max-output-chars", type=int, default=DEFAULT_MAX_OUTPUT_CHARS
@@ -508,33 +617,84 @@ def main(argv: Sequence[str] | None = None) -> int:
         if not launcher:
             raise HostEvalError("launcher must not be empty")
         cwd = (args.cwd or root).expanduser().resolve()
+        if args.live_radar_network and args.dry_run:
+            raise HostEvalError("--live-radar-network cannot be combined with --dry-run")
+        if args.live_radar_network and args.sandbox != "workspace-write":
+            raise HostEvalError("--live-radar-network requires --sandbox workspace-write")
+        if args.live_radar_network and args.cwd:
+            raise HostEvalError("--live-radar-network always creates its own temporary detached worktree; do not pass --cwd")
         if not cwd.is_dir():
             raise HostEvalError(f"working directory does not exist: {cwd}")
+        if args.live_radar_network:
+            overridden = [name for name in ORIGIN_OVERRIDE_ENV_VARS if os.getenv(name)]
+            if overridden:
+                raise HostEvalError(
+                    "live Host Eval refuses custom Radar origin environment: "
+                    + ", ".join(overridden)
+                )
 
         # Bind the report to the repository revision that was inspected before
         # any host process starts.  This prevents a concurrent code change from
         # silently changing the meaning of an otherwise valid-looking trace.
         commit = _repository_commit(root)
+        if args.live_radar_network and not commit:
+            raise HostEvalError("live Host Eval requires a resolvable repository commit")
+        if args.live_radar_network and _git_output(root, "status", "--porcelain", "--untracked-files=all"):
+            raise HostEvalError("live Host Eval requires a clean repository before creating its temporary worktree")
+
+        worktree: dict[str, Any] = {}
+        temporary_worktree: tempfile.TemporaryDirectory[str] | None = None
+        if args.live_radar_network:
+            temporary_worktree = tempfile.TemporaryDirectory(prefix="ati-host-eval-")
+            temp_path = Path(temporary_worktree.name) / "worktree"
+            subprocess.run(
+                ["git", "worktree", "add", "--detach", str(temp_path), str(commit)],
+                cwd=root, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                text=True,
+            )
+            cwd = temp_path.resolve()
+            worktree = validate_live_worktree(root, cwd, commit)
 
         results: list[dict[str, Any]] = []
-        for case in cases:
-            command = build_codex_command(
-                launcher,
-                case.prompt,
-                sandbox=args.sandbox,
-                json_trace=True,
-            )
-            results.append(
-                run_case(
-                    case,
-                    command=command,
-                    cwd=cwd,
-                    timeout_seconds=float(args.timeout),
-                    max_output_chars=args.max_output_chars,
-                    dry_run=args.dry_run,
-                    strict_observation=args.strict_observation,
+        try:
+            for case in cases:
+                command = build_codex_command(
+                    launcher,
+                    case.prompt,
+                    sandbox=args.sandbox,
+                    json_trace=True,
+                    live_radar_network=args.live_radar_network,
                 )
-            )
+                result = run_case(
+                        case,
+                        command=command,
+                        cwd=cwd,
+                        timeout_seconds=float(args.timeout),
+                        max_output_chars=args.max_output_chars,
+                        dry_run=args.dry_run,
+                        strict_observation=args.strict_observation,
+                        worktree=worktree,
+                    )
+                results.append(result)
+                if args.live_radar_network and result.get("worktree_clean_after") is not True:
+                    raise HostEvalError(
+                        f"Host modified the temporary worktree during case {case.case_id}; evidence rejected"
+                    )
+            if args.live_radar_network:
+                status_after = _clean_worktree_status(cwd)
+                worktree["clean_after"] = not status_after
+                worktree["status_after"] = status_after
+        finally:
+            if temporary_worktree is not None:
+                status_after = _clean_worktree_status(cwd)
+                worktree["clean_after"] = not status_after
+                worktree["status_after"] = status_after
+                subprocess.run(
+                    ["git", "worktree", "remove", "--force", str(cwd)],
+                    cwd=root, check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    text=True,
+                )
+                temporary_worktree.cleanup()
 
         report = build_report(
             root=root,
@@ -547,6 +707,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             dry_run=args.dry_run,
             strict_observation=args.strict_observation,
             commit=commit,
+            live_radar_network=args.live_radar_network,
+            network_allowed_domains=(LIVE_RADAR_NETWORK_DOMAINS if args.live_radar_network else []),
+            worktree=worktree,
         )
     except HostEvalError as exc:
         print(f"error: {exc}", file=sys.stderr)

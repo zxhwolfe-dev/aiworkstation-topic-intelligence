@@ -21,6 +21,9 @@ from scripts.grade_host_eval import EvidenceGradeError, PASS_GRADES, grade_repor
 from scripts.run_host_evals import load_suite
 
 
+LIVE_RADAR_NETWORK_DOMAINS = ["aiworkstation.cn"]
+
+
 class ReleaseEvidenceError(RuntimeError):
     pass
 
@@ -41,6 +44,34 @@ def _object(path: Path) -> Mapping[str, Any]:
 
 def _case_id(value: Any) -> str:
     return str(value.get("id")) if isinstance(value, Mapping) else "<non-object>"
+
+
+def _command_strings(value: Any) -> list[str]:
+    """Extract executed command fields without scanning documentation output."""
+
+    found: list[str] = []
+    if isinstance(value, Mapping):
+        for key, item in value.items():
+            if key == "command":
+                if isinstance(item, str):
+                    found.append(item)
+                elif isinstance(item, list):
+                    found.extend(str(part) for part in item)
+            else:
+                found.extend(_command_strings(item))
+    elif isinstance(value, list):
+        for item in value:
+            found.extend(_command_strings(item))
+    return found
+
+
+def _contains_forbidden_origin(raw: Mapping[str, Any]) -> bool:
+    commands = _command_strings(raw)
+    return any(
+        "--base-url" in command.lower()
+        or "aiworkstation_topic_radar_base_url" in command.lower()
+        for command in commands
+    )
 
 
 def _git(root: Path, *args: str) -> str:
@@ -98,6 +129,25 @@ def verify(root: Path, version: str) -> Path:
         raise ReleaseEvidenceError("evidence version does not match VERSION")
     if raw.get("dry_run") is not False or raw.get("strict_observation") is not True:
         raise ReleaseEvidenceError("raw Host Eval must be a live strict-observation run")
+    if raw.get("sandbox") != "workspace-write":
+        raise ReleaseEvidenceError("live Host Eval evidence must use workspace-write sandbox")
+    if raw.get("live_radar_network") is not True:
+        raise ReleaseEvidenceError("live Host Eval evidence must explicitly enable live Radar networking")
+    if raw.get("network_allowed_domains") != LIVE_RADAR_NETWORK_DOMAINS:
+        raise ReleaseEvidenceError(
+            "live Host Eval network allowlist must be exactly ['aiworkstation.cn']"
+        )
+    if _contains_forbidden_origin(raw):
+        raise ReleaseEvidenceError("live Host Eval evidence contains a custom Radar origin override")
+    worktree = raw.get("worktree")
+    if (
+        not isinstance(worktree, Mapping)
+        or worktree.get("temporary") is not True
+        or worktree.get("detached") is not True
+        or worktree.get("clean_before") is not True
+        or worktree.get("clean_after") is not True
+    ):
+        raise ReleaseEvidenceError("live Host Eval must run in a clean detached worktree")
     if raw.get("suites") != ["v0.2.1"] or graded.get("suites") != ["v0.2.1"]:
         raise ReleaseEvidenceError("evidence must cover exactly the v0.2.1 suite")
     commit = str(raw.get("commit") or "")
@@ -139,6 +189,8 @@ def verify(root: Path, version: str) -> Path:
             or case.get("timed_out") is not False
             or case.get("stdout_truncated") is not False
             or case.get("stderr_truncated") is not False
+            or case.get("worktree_clean_after") is not True
+            or case.get("stream_disconnected") is not False
         )
     ]
     if bad_runtime:

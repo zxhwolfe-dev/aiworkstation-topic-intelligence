@@ -17,6 +17,7 @@ Release candidate prepared for validation. This version is not tagged or publish
 - Hardened the release evidence verifier against fabricated grades, wrong suites/versions, incomplete or truncated runs, case-contract drift, stale code revisions, and unstructured manual attestations; fixed grading for the v0.2.1 suite.
 - Required successful `feed`/`sources`/`history` helper execution without an explicit custom origin and with contract-valid Radar JSON before Host Eval records runtime workflow evidence; source reads, help, failed calls, and composed shell commands no longer qualify.
 - Synced authenticated Premium identity forwarding guidance and preserved the published v0.2.1 release record below.
+- Made live Host Eval networking an explicit, single-domain, workspace-write opt-in executed only in a clean temporary detached worktree; release evidence now binds and verifies that network/sandbox policy.
 
 ## [Unreleased]
 

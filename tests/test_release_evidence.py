@@ -77,12 +77,17 @@ def _write_valid_evidence(root: Path, evaluated_commit: str) -> Path:
             "runtime_status": "completed", "route_observation": "pass_expected_workflow_observed",
             "exit_code": 0, "timed_out": False, "stdout": "\n".join(commands), "stderr": "",
             "stdout_truncated": False, "stderr_truncated": False,
+            "worktree_clean_after": True,
+            "stream_disconnected": False,
         })
     raw = {
         "schema": "ati.host-eval.v1", "generated_at": "2026-08-11T00:00:00+00:00",
         "host": "codex", "skill_version": "0.2.2", "commit": evaluated_commit,
-        "suites": ["v0.2.1"], "sandbox": "read-only", "dry_run": False,
-        "strict_observation": True, "cases": raw_cases,
+        "suites": ["v0.2.1"], "sandbox": "workspace-write", "dry_run": False,
+        "strict_observation": True, "live_radar_network": True,
+        "network_allowed_domains": ["aiworkstation.cn"],
+        "worktree": {"temporary": True, "detached": True, "clean_before": True, "clean_after": True},
+        "cases": raw_cases,
     }
     graded = grade_report(raw)
     review = {
@@ -127,6 +132,62 @@ class ReleaseEvidenceTests(unittest.TestCase):
                 _git(root, "add", ".")
                 _git(root, "commit", "-qm", f"tamper {field}")
                 with self.subTest(field=field), self.assertRaisesRegex(ReleaseEvidenceError, message):
+                    verify(root, "0.2.2")
+            finally:
+                temporary.cleanup()
+
+    def test_missing_or_expanded_live_network_policy_blocks(self) -> None:
+        for field, value, message in (
+            ("sandbox", "read-only", "workspace-write"),
+            ("live_radar_network", False, "explicitly enable"),
+            ("network_allowed_domains", ["aiworkstation.cn", "example.com"], "allowlist"),
+            ("network_allowed_domains", ["*"], "allowlist"),
+        ):
+            temporary, root, evaluated = _repo()
+            try:
+                evidence = _write_valid_evidence(root, evaluated)
+                raw_path = evidence / "host-eval.json"
+                raw = json.loads(raw_path.read_text())
+                raw[field] = value
+                raw_path.write_text(json.dumps(raw))
+                _git(root, "add", ".")
+                _git(root, "commit", "-qm", f"tamper network policy {field}")
+                with self.subTest(field=field, value=value), self.assertRaisesRegex(
+                    ReleaseEvidenceError, message
+                ):
+                    verify(root, "0.2.2")
+            finally:
+                temporary.cleanup()
+
+    def test_custom_radar_origin_blocks(self) -> None:
+        temporary, root, evaluated = _repo()
+        try:
+            evidence = _write_valid_evidence(root, evaluated)
+            raw_path = evidence / "host-eval.json"
+            raw = json.loads(raw_path.read_text())
+            raw["cases"][0]["command"] = ["python3", "helper.py", "--base-url", "https://example.com"]
+            raw_path.write_text(json.dumps(raw))
+            _git(root, "add", ".")
+            _git(root, "commit", "-qm", "tamper custom origin")
+            with self.assertRaisesRegex(ReleaseEvidenceError, "custom Radar origin"):
+                verify(root, "0.2.2")
+        finally:
+            temporary.cleanup()
+
+    def test_dirty_or_nondetached_eval_worktree_blocks(self) -> None:
+        for field in ("detached", "clean_before", "clean_after"):
+            temporary, root, evaluated = _repo()
+            try:
+                evidence = _write_valid_evidence(root, evaluated)
+                raw_path = evidence / "host-eval.json"
+                raw = json.loads(raw_path.read_text())
+                raw["worktree"][field] = False
+                raw_path.write_text(json.dumps(raw))
+                _git(root, "add", ".")
+                _git(root, "commit", "-qm", f"tamper worktree {field}")
+                with self.subTest(field=field), self.assertRaisesRegex(
+                    ReleaseEvidenceError, "clean detached"
+                ):
                     verify(root, "0.2.2")
             finally:
                 temporary.cleanup()
