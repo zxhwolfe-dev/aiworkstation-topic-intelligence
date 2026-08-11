@@ -259,10 +259,10 @@ def classify_observation(case: EvalCase, observation: Mapping[str, Any]) -> str:
     return "unobservable"
 
 
-def _result_is_gate_failure(result: Mapping[str, Any]) -> bool:
+def _result_is_gate_failure(result: Mapping[str, Any], *, strict_observation: bool = False) -> bool:
     return str(result.get("runtime_status")) != "completed" or str(result.get("route_observation")) in {
         "fail_unexpected_skill", "fail_wrong_skill_observed", "partial_workflow_observed"
-    }
+    } or (strict_observation and str(result.get("route_observation")) in {"unobservable", "fail_unobservable"})
 
 
 def _truncate(text: str, limit: int) -> tuple[str, bool]:
@@ -279,6 +279,7 @@ def run_case(
     timeout_seconds: float,
     max_output_chars: int,
     dry_run: bool,
+    strict_observation: bool = False,
 ) -> dict[str, Any]:
     started_at = datetime.now(timezone.utc).isoformat()
     if dry_run:
@@ -341,6 +342,8 @@ def run_case(
     searchable = trace_text(stdout, stderr)
     observation = observe_tokens(searchable, case.expected_workflow)
     route_observation = classify_observation(case, observation)
+    if strict_observation and route_observation == "unobservable":
+        route_observation = "fail_unobservable"
     stdout, stdout_truncated = _truncate(stdout, max_output_chars)
     stderr, stderr_truncated = _truncate(stderr, max_output_chars)
 
@@ -460,6 +463,11 @@ def _parser() -> argparse.ArgumentParser:
         help="Validate case selection and commands without invoking the host",
     )
     parser.add_argument(
+        "--strict-observation",
+        action="store_true",
+        help="Treat an unobservable live host trace as a gate failure",
+    )
+    parser.add_argument(
         "--cwd",
         type=Path,
         help="Working directory for fresh host processes; defaults to repository root",
@@ -505,6 +513,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     timeout_seconds=float(args.timeout),
                     max_output_chars=args.max_output_chars,
                     dry_run=args.dry_run,
+                    strict_observation=args.strict_observation,
                 )
             )
 
@@ -541,7 +550,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     else:
         print(rendered, end="")
-    return 0 if args.dry_run else (1 if any(_result_is_gate_failure(result) for result in results) else 0)
+    return 0 if args.dry_run else (1 if any(_result_is_gate_failure(result, strict_observation=args.strict_observation) for result in results) else 0)
 
 
 if __name__ == "__main__":

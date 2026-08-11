@@ -211,6 +211,11 @@ class HostEvalRunnerTests(unittest.TestCase):
         self.assertTrue(result["timed_out"])
         self.assertEqual(result["route_observation"], "unobservable")
 
+    def test_strict_observation_marks_unobservable_as_failure(self) -> None:
+        case = EvalCase("trigger", "strict", "x", "creator-topic-opportunity-research", ("creator-topic-opportunity-research",), None, {})
+        result = run_case(case, command=[sys.executable, "-c", "pass"], cwd=ROOT, timeout_seconds=5, max_output_chars=1000, dry_run=False, strict_observation=True)
+        self.assertEqual(result["route_observation"], "fail_unobservable")
+
     def test_report_schema_and_summary_are_stable(self) -> None:
         results = [
             {

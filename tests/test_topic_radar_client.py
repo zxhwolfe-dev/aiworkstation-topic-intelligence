@@ -117,6 +117,15 @@ class TopicRadarClientTests(unittest.TestCase):
         with self.assertRaisesRegex(TopicRadarProtocolError, "does not match"):
             mismatch.history("topic-1")
 
+    def test_nested_source_and_history_contracts_are_validated(self) -> None:
+        bad_source = sample_feed()
+        bad_source["source_status"] = [{"id": "x"}]
+        with self.assertRaisesRegex(TopicRadarProtocolError, "source_status item"):
+            TopicRadarClient(base_url="https://example.test", opener=lambda *args, **kwargs: FakeResponse(bad_source)).feed()
+        bad_point = {"topic_id": "topic-1", "points": [{"observed_at": "2026-08-09T00:00:00Z", "opportunity_score": "high"}]}
+        with self.assertRaisesRegex(TopicRadarProtocolError, "opportunity_score"):
+            TopicRadarClient(base_url="https://example.test", opener=lambda *args, **kwargs: FakeResponse(bad_point)).history("topic-1")
+
     def test_public_client_exposes_no_server_model_method(self) -> None:
         client = TopicRadarClient(
             base_url="https://example.test",
@@ -190,7 +199,7 @@ class TopicRadarClientTests(unittest.TestCase):
             raise URLError("offline")
 
         client = TopicRadarClient(base_url="https://example.test", opener=opener)
-        with self.assertRaisesRegex(TopicRadarError, "offline"):
+        with self.assertRaisesRegex(TopicRadarError, r"example\.test.*offline"):
             client.sources()
 
     def test_rejects_invalid_signal(self) -> None:

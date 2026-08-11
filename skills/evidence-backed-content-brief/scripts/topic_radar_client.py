@@ -69,6 +69,12 @@ def _validate_payload(kind: str, payload: Any) -> dict[str, Any]:
         _require_list(obj, "items", context="feed")
         _require_list(obj, "source_status", context="feed")
         _validate_feed_items(obj["items"])
+        for index, item in enumerate(obj["source_status"]):
+            if not isinstance(item, dict):
+                raise TopicRadarProtocolError(f"feed: source_status item {index} is not an object")
+            for field in ("id", "status"):
+                if not isinstance(item.get(field), str) or not item[field].strip():
+                    raise TopicRadarProtocolError(f"feed: source_status item {index} missing string field {field!r}")
         if not isinstance(obj.get("partial"), bool) or not isinstance(obj.get("stale"), bool):
             raise TopicRadarProtocolError("feed: partial and stale must be boolean")
         for key in ("refreshing", "history_available"):
@@ -90,6 +96,14 @@ def _validate_payload(kind: str, payload: Any) -> dict[str, Any]:
         if not isinstance(obj.get("topic_id"), str):
             raise TopicRadarProtocolError("history: expected string field 'topic_id'")
         _require_list(obj, "points", context="history")
+        for index, item in enumerate(obj["points"]):
+            if not isinstance(item, dict):
+                raise TopicRadarProtocolError(f"history: point {index} is not an object")
+            if not isinstance(item.get("observed_at"), str) or not item["observed_at"].strip():
+                raise TopicRadarProtocolError(f"history: point {index} missing string field 'observed_at'")
+            score = item.get("opportunity_score")
+            if isinstance(score, bool) or not isinstance(score, (int, float)):
+                raise TopicRadarProtocolError(f"history: point {index} opportunity_score must be numeric")
 
     return obj
 
@@ -166,11 +180,11 @@ class TopicRadarClient:
             except Exception:
                 detail = ""
             suffix = f": {detail}" if detail else ""
-            raise TopicRadarError(f"HTTP {exc.code} from Topic Radar{suffix}") from exc
+            raise TopicRadarError(f"HTTP {exc.code} from Topic Radar ({self.base_url}){suffix}") from exc
         except URLError as exc:
-            raise TopicRadarError(f"Topic Radar request failed: {exc.reason}") from exc
+            raise TopicRadarError(f"Topic Radar request failed ({self.base_url}): {exc.reason}") from exc
         except TimeoutError as exc:
-            raise TopicRadarError("Topic Radar request timed out") from exc
+            raise TopicRadarError(f"Topic Radar request timed out ({self.base_url})") from exc
 
         try:
             payload = json.loads(raw.decode("utf-8"))
