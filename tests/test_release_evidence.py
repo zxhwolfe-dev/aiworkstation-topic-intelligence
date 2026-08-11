@@ -89,7 +89,6 @@ def _write_valid_evidence(root: Path, evaluated_commit: str) -> Path:
         "launcher_config": [
             "sandbox_workspace_write.network_access=true",
             'network_proxy={enabled=true,allowed_domains=["aiworkstation.cn"]}',
-            "features.network_proxy=true",
             'approval_policy="never"',
         ],
         "worktree": {"temporary": True, "detached": True, "clean_before": True, "clean_after": True},

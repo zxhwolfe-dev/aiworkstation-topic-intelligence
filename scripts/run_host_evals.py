@@ -212,8 +212,6 @@ def build_codex_command(
                 "sandbox_workspace_write.network_access=true",
                 "-c",
                 'network_proxy={enabled=true,allowed_domains=["aiworkstation.cn"]}',
-                "--enable",
-                "network_proxy",
                 "-c",
                 'approval_policy="never"',
             ]
@@ -716,7 +714,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                 [
                     "sandbox_workspace_write.network_access=true",
                     'network_proxy={enabled=true,allowed_domains=["aiworkstation.cn"]}',
-                    "features.network_proxy=true",
                     'approval_policy="never"',
                 ]
                 if args.live_radar_network else []

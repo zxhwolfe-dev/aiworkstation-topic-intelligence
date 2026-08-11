@@ -25,7 +25,6 @@ LIVE_RADAR_NETWORK_DOMAINS = ["aiworkstation.cn"]
 LIVE_RADAR_LAUNCHER_CONFIG = [
     "sandbox_workspace_write.network_access=true",
     'network_proxy={enabled=true,allowed_domains=["aiworkstation.cn"]}',
-    "features.network_proxy=true",
     'approval_policy="never"',
 ]
 
