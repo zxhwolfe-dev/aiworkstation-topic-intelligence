@@ -4,7 +4,9 @@ All notable public changes to AI Workstation Topic Intelligence are recorded her
 
 The project follows Semantic Versioning for distributable Skill releases.
 
-## [Unreleased]
+## [0.2.2] - 2026-08-11
+
+Release candidate prepared for validation. This version is not tagged or published.
 
 ### Changed
 
@@ -15,6 +17,10 @@ The project follows Semantic Versioning for distributable Skill releases.
 - Hardened the release evidence verifier against fabricated grades, wrong suites/versions, incomplete or truncated runs, case-contract drift, stale code revisions, and unstructured manual attestations; fixed grading for the v0.2.1 suite.
 - Required successful `feed`/`sources`/`history` helper execution without an explicit custom origin and with contract-valid Radar JSON before Host Eval records runtime workflow evidence; source reads, help, failed calls, and composed shell commands no longer qualify.
 - Synced authenticated Premium identity forwarding guidance and preserved the published v0.2.1 release record below.
+
+## [Unreleased]
+
+No unreleased changes.
 
 ## [0.2.1] - 2026-08-10
 

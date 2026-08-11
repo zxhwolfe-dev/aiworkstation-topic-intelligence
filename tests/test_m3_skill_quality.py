@@ -59,12 +59,13 @@ class _RadarHandler(BaseHTTPRequestHandler):
 
 
 class M3SkillQualityTests(unittest.TestCase):
-    def test_v0_2_release_history_is_preserved_on_v0_2_1_release_line(self) -> None:
-        self.assertEqual((ROOT / "VERSION").read_text(encoding="utf-8").strip(), "0.2.1")
+    def test_v0_2_release_history_is_preserved_on_v0_2_2_rc_line(self) -> None:
+        self.assertEqual((ROOT / "VERSION").read_text(encoding="utf-8").strip(), "0.2.2")
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         acceptance = (
             ROOT / "docs" / "m3.1-final-acceptance-2026-08-09.md"
         ).read_text(encoding="utf-8")
+        self.assertIn("## [0.2.2] - 2026-08-11", changelog)
         self.assertIn("## [0.2.1] - 2026-08-10", changelog)
         self.assertIn("## [0.2.0] - 2026-08-09", changelog)
         self.assertIn("## [0.1.0] - 2026-08-09", changelog)
