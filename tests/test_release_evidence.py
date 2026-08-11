@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import shutil
 import subprocess
 import tempfile
@@ -68,6 +69,16 @@ def _repo() -> tuple[tempfile.TemporaryDirectory, Path, str]:
     root = Path(temporary.name)
     (root / "evals").mkdir()
     shutil.copy2(ROOT / "evals/v0.2.1-skill-quality.json", root / "evals/v0.2.1-skill-quality.json")
+    (root / "skills").mkdir()
+    for skill in (
+        "creator-topic-opportunity-research",
+        "evidence-backed-content-brief",
+    ):
+        shutil.copytree(
+            ROOT / "skills" / skill,
+            root / "skills" / skill,
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+        )
     (root / "VERSION").write_text("0.2.2\n", encoding="utf-8")
     _git(root, "init", "-q")
     _git(root, "config", "user.email", "test@example.invalid")
@@ -77,12 +88,31 @@ def _repo() -> tuple[tempfile.TemporaryDirectory, Path, str]:
     return temporary, root, _git(root, "rev-parse", "HEAD")
 
 
+def _fixture_manifest(root: Path, skill: str) -> list[dict[str, object]]:
+    skill_root = root / "skills" / skill
+    rows = []
+    for path in sorted(item for item in skill_root.rglob("*") if item.is_file()):
+        payload = path.read_bytes()
+        rows.append({
+            "path": path.relative_to(skill_root).as_posix(),
+            "bytes": len(payload),
+            "sha256": hashlib.sha256(payload).hexdigest(),
+        })
+    return rows
+
+
 def _write_valid_evidence(root: Path, evaluated_commit: str) -> Path:
     evidence = root / "release-evidence/v0.2.2"
     evidence.mkdir(parents=True)
     cases = load_suite(root, "v0.2.1")
     raw_cases = []
     for case in cases:
+        fixture_roots = {
+            skill: (
+                f"/tmp/ati-host-eval-home-test/.agents/skills/{skill}"
+            )
+            for skill in case.installed_skills
+        }
         commands = [
             _typed_event("thread.started", thread_id="test-thread"),
             _typed_event("turn.started"),
@@ -105,7 +135,7 @@ def _write_valid_evidence(root: Path, evaluated_commit: str) -> Path:
         for skill in sorted(runtime_skills):
             commands.append(_event({
                 "type": "command_execution",
-                "command": f"python3 /skills/{skill}/scripts/topic_radar_client.py --timeout 30 feed --q AI --limit 12",
+                "command": f"python3 {fixture_roots[skill]}/scripts/topic_radar_client.py --timeout 30 feed --q AI --limit 12",
                 "aggregated_output": _feed_payload(),
                 "exit_code": 0,
                 "status": "completed",
@@ -127,6 +157,22 @@ def _write_valid_evidence(root: Path, evaluated_commit: str) -> Path:
             "skill_environment_isolated": True,
             "skill_source_commit": evaluated_commit,
             "codex_home_preserved": True,
+            "authentication_material_copied": False,
+            "authentication_content_recorded": False,
+            "skill_fixture_roots": fixture_roots,
+            "skill_fixture_manifest": {
+                skill: _fixture_manifest(root, skill)
+                for skill in case.installed_skills
+            },
+            "execution_workspace_isolated": True,
+            "execution_workspace_root": "/tmp/ati-host-eval-workspace-test",
+            "execution_workspace_neutral": True,
+            "execution_workspace_clean_before": True,
+            "execution_workspace_clean_after": True,
+            "source_worktree_used_as_host_cwd": False,
+            "source_worktree_clean_after": True,
+            "skill_fixture_clean_after": True,
+            "disabled_skill_paths": [],
         }
         raw_case.update(analyze_jsonl_trace(
             raw_case["stdout"], exit_code=0, runtime_status="completed",
@@ -145,7 +191,13 @@ def _write_valid_evidence(root: Path, evaluated_commit: str) -> Path:
             'network_proxy={enabled=true,allowed_domains=["aiworkstation.cn"]}',
             'approval_policy="never"',
         ],
-        "worktree": {"temporary": True, "detached": True, "clean_before": True, "clean_after": True},
+        "worktree": {
+            "path": "/tmp/ati-host-eval-source-test/worktree",
+            "temporary": True,
+            "detached": True,
+            "clean_before": True,
+            "clean_after": True,
+        },
         "cases": raw_cases,
     }
     graded = grade_report(raw)
@@ -292,6 +344,51 @@ class ReleaseEvidenceTests(unittest.TestCase):
                         verify(root, "0.2.2")
                 finally:
                     temporary.cleanup()
+
+    def test_fixture_manifest_and_neutral_workspace_tampering_blocks(self) -> None:
+        rows = (
+            ("skill_fixture_manifest", {}, "fixture manifest"),
+            ("execution_workspace_isolated", False, "neutral execution"),
+            ("execution_workspace_neutral", False, "neutral execution"),
+            ("execution_workspace_clean_before", False, "neutral execution"),
+            ("execution_workspace_clean_after", False, "neutral execution"),
+            ("source_worktree_used_as_host_cwd", True, "neutral execution"),
+            ("source_worktree_clean_after", False, "neutral execution"),
+        )
+        for field, value, message in rows:
+            with self.subTest(field=field):
+                temporary, root, evaluated = _repo()
+                try:
+                    evidence = _write_valid_evidence(root, evaluated)
+                    raw_path = evidence / "host-eval.json"
+                    raw = json.loads(raw_path.read_text())
+                    raw["cases"][0][field] = value
+                    raw_path.write_text(json.dumps(raw))
+                    _git(root, "add", ".")
+                    _git(root, "commit", "-qm", f"tamper {field}")
+                    with self.assertRaisesRegex(ReleaseEvidenceError, message):
+                        verify(root, "0.2.2")
+                finally:
+                    temporary.cleanup()
+
+    def test_fixture_cannot_be_disabled_or_share_source_cwd(self) -> None:
+        temporary, root, evaluated = _repo()
+        try:
+            evidence = _write_valid_evidence(root, evaluated)
+            raw_path = evidence / "host-eval.json"
+            raw = json.loads(raw_path.read_text())
+            case = raw["cases"][0]
+            skill = case["installed_skills"][0]
+            case["disabled_skill_paths"] = [
+                str(Path(case["skill_fixture_roots"][skill]) / "SKILL.md")
+            ]
+            raw_path.write_text(json.dumps(raw))
+            _git(root, "add", ".")
+            _git(root, "commit", "-qm", "disable evaluated fixture")
+            with self.assertRaisesRegex(ReleaseEvidenceError, "fixture manifest"):
+                verify(root, "0.2.2")
+        finally:
+            temporary.cleanup()
 
     def test_runner_authoritative_grade_must_match_regenerated_grade(self) -> None:
         temporary, root, evaluated = _repo()

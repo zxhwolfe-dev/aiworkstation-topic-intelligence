@@ -22,6 +22,7 @@ Release candidate prepared for validation. This version is not tagged or publish
 - Defined standalone `feed`/`sources`/positional-`history` command forms, required explicit audience/saturation/virality unknowns, and made any noncompliant or unsuccessful helper attempt fail Host evidence grading.
 - Rejected repository-root and other non-Skill-local Radar helper execution, aligned the selection-only AI eval with Creator-only routing, and made the Creator-to-Brief handoff observable without redundant Radar calls.
 - Isolated each Host Eval case to its declared installed Skill set and unified runner and release verification around operation-specific authoritative evidence grades instead of user-visible workflow marker text.
+- Separated the evaluated RC source worktree from a neutral per-case Host workspace, bound runtime evidence to exact Skill fixture manifests, and rejected helpers discovered from repository or other non-fixture paths.
 
 ## [Unreleased]
 

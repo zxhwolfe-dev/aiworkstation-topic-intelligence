@@ -144,15 +144,10 @@ def _helper_path_info(command: str) -> tuple[list[str], int, str] | None:
     return tokens, index, tokens[index].replace("\\", "/")
 
 
-def _skill_for_helper_path(path: str) -> str | None:
-    """Recognize only helpers under an installed Skill root.
+def _named_skill_for_helper_path(path: str) -> str | None:
+    """Return the apparent Skill name without granting fixture ownership."""
 
-    `/skills/<name>/scripts/...` is the deterministic fixture form used by the
-    tests; real installs use `~/.agents/skills/<name>/scripts/...`. Repository
-    checkouts and sibling repositories are deliberately excluded.
-    """
-
-    normalized = path.rstrip("/")
+    normalized = path.replace("\\", "/").rstrip("/")
     match = re.search(
         r"/(creator-topic-opportunity-research|evidence-backed-content-brief)/scripts/"
         + re.escape(HELPER_BASENAME)
@@ -161,16 +156,47 @@ def _skill_for_helper_path(path: str) -> str | None:
     )
     if not match:
         return None
-    skill = match.group(1)
-    prefix = normalized[: match.start()]
-    if "aiworkstation-topic-intelligence" in prefix or "akaiagents" in prefix:
-        return None
-    if "/.agents/skills" in prefix or prefix in {"", "/", "/skills"}:
-        return skill
-    return None
+    return match.group(1)
 
 
-def _runtime_attempt(command: str) -> dict[str, Any] | None:
+def _skill_for_helper_path(
+    path: str,
+    fixture_roots: Mapping[str, str] | None,
+) -> tuple[str | None, list[str]]:
+    """Require exact ownership by this case's recorded Skill fixture."""
+
+    normalized = path.replace("\\", "/").rstrip("/")
+    apparent_skill = _named_skill_for_helper_path(normalized)
+    # Unit-level callers may omit roots and use the deterministic /skills test
+    # fixture. All real reports pass their recorded roots through grade_report.
+    roots = (
+        dict(fixture_roots)
+        if fixture_roots is not None
+        else {
+            skill: f"/skills/{skill}" for skill in TOPIC_INTELLIGENCE_SKILLS
+        }
+    )
+    for skill, root in roots.items():
+        if skill not in TOPIC_INTELLIGENCE_SKILLS or not isinstance(root, str):
+            continue
+        expected = root.replace("\\", "/").rstrip("/") + f"/scripts/{HELPER_BASENAME}"
+        if normalized == expected:
+            return skill, []
+
+    violations = ["runtime_outside_case_fixture"]
+    if apparent_skill is None:
+        violations.insert(0, "non_skill_local_helper")
+    elif apparent_skill not in roots:
+        violations.insert(0, "unavailable_skill_runtime")
+    else:
+        violations.insert(0, "non_skill_local_helper")
+    return apparent_skill, violations
+
+
+def _runtime_attempt(
+    command: str,
+    fixture_roots: Mapping[str, str] | None = None,
+) -> dict[str, Any] | None:
     """Describe any attempted helper execution, including non-Skill helpers."""
 
     info = _helper_path_info(command)
@@ -201,10 +227,8 @@ def _runtime_attempt(command: str) -> dict[str, Any] | None:
         if executable in INSPECTION_EXECUTABLES:
             return None
 
-    skill = _skill_for_helper_path(helper_path)
-    violations: list[str] = []
-    if skill is None:
-        violations.append("non_skill_local_helper")
+    skill, path_violations = _skill_for_helper_path(helper_path, fixture_roots)
+    violations: list[str] = list(path_violations)
     if helper_index == 0:
         violations.append("missing_python3_interpreter")
     elif executable != "python3":
@@ -404,7 +428,12 @@ def _command_text(item: Mapping[str, Any]) -> str:
     return ""
 
 
-def observe_evidence(stdout: str, stderr: str = "") -> dict[str, Any]:
+def observe_evidence(
+    stdout: str,
+    stderr: str = "",
+    *,
+    skill_fixture_roots: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
     mentioned: set[str] = set()
     definition_reads: set[str] = set()
     runtime_uses: set[str] = set()
@@ -475,7 +504,7 @@ def observe_evidence(stdout: str, stderr: str = "") -> dict[str, Any]:
     command_items = [*command_items_by_id.values(), *anonymous_command_items]
     for position, item in command_items:
         command = _command_text(item)
-        attempt = _runtime_attempt(command)
+        attempt = _runtime_attempt(command, skill_fixture_roots)
         if attempt is None:
             continue
         runtime_attempt_count += 1
@@ -587,12 +616,33 @@ def _skill_visibility_contract_is_valid(case: Mapping[str, Any]) -> bool:
         return False
     source_commit = case.get("skill_source_commit")
     report_commit = case.get("_report_commit")
+    roots = case.get("skill_fixture_roots")
+    manifest = case.get("skill_fixture_manifest")
     return bool(
         case.get("skill_environment_isolated") is True
         and case.get("codex_home_preserved") is True
+        and case.get("authentication_material_copied") is False
+        and case.get("authentication_content_recorded") is False
         and isinstance(source_commit, str)
         and COMMIT_RE.fullmatch(source_commit)
         and source_commit == report_commit
+        and isinstance(roots, Mapping)
+        and set(roots) == set(installed)
+        and all(
+            isinstance(roots.get(skill), str) and bool(str(roots[skill]).strip())
+            for skill in installed
+        )
+        and isinstance(manifest, Mapping)
+        and set(manifest) == set(installed)
+        and all(isinstance(manifest.get(skill), list) for skill in installed)
+        and case.get("execution_workspace_isolated") is True
+        and isinstance(case.get("execution_workspace_root"), str)
+        and bool(str(case.get("execution_workspace_root")).strip())
+        and case.get("execution_workspace_neutral") is True
+        and case.get("execution_workspace_clean_before") is True
+        and case.get("execution_workspace_clean_after") is True
+        and case.get("source_worktree_used_as_host_cwd") is False
+        and case.get("source_worktree_clean_after") is True
     )
 
 
@@ -604,6 +654,8 @@ def _complete_case_lifecycle(case: Mapping[str, Any]) -> bool:
         and case.get("stdout_truncated") is False
         and case.get("stderr_truncated") is False
         and case.get("worktree_clean_after") is True
+        and case.get("execution_workspace_clean_after") is True
+        and case.get("source_worktree_used_as_host_cwd") is False
         and case.get("trace_integrity_status") in {
             "complete_clean", "complete_after_recovery"
         }
@@ -726,7 +778,12 @@ def grade_report(payload: Mapping[str, Any]) -> dict[str, Any]:
             raise EvidenceGradeError("case result must be an object")
         stdout = str(raw.get("stdout") or "")
         stderr = str(raw.get("stderr") or "")
-        evidence = observe_evidence(stdout, stderr)
+        roots = raw.get("skill_fixture_roots")
+        evidence = observe_evidence(
+            stdout,
+            stderr,
+            skill_fixture_roots=roots if isinstance(roots, Mapping) else {},
+        )
         case_contract = dict(raw)
         case_contract["_report_commit"] = payload.get("commit")
         grade = classify_case(case_contract, evidence)

@@ -9,6 +9,7 @@ raw trace, and classifies only behavior that is directly observable.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import shlex
@@ -244,12 +245,15 @@ def build_codex_command(
     json_trace: bool,
     live_radar_network: bool = False,
     disabled_skill_paths: Sequence[Path] = (),
+    neutral_workspace: bool = False,
 ) -> list[str]:
     if live_radar_network and sandbox != "workspace-write":
         raise HostEvalError(
             "--live-radar-network requires --sandbox workspace-write"
         )
     command = [*launcher, "exec", "--sandbox", sandbox]
+    if neutral_workspace:
+        command.append("--skip-git-repo-check")
     if live_radar_network:
         # Network access is deliberately opt-in and scoped to the public Radar
         # origin.  The proxy feature enforces the domain policy for commands
@@ -315,6 +319,29 @@ def _potential_duplicate_skill_paths(
     return sorted(set(found))
 
 
+def _skill_file_manifest(skill_root: Path) -> list[dict[str, Any]]:
+    """Describe portable fixture files without persisting their absolute root."""
+
+    rows: list[dict[str, Any]] = []
+    for path in sorted(item for item in skill_root.rglob("*") if item.is_file()):
+        relative = path.relative_to(skill_root)
+        if "__pycache__" in relative.parts or path.suffix == ".pyc":
+            continue
+        payload = path.read_bytes()
+        rows.append(
+            {
+                "path": relative.as_posix(),
+                "bytes": len(payload),
+                "sha256": hashlib.sha256(payload).hexdigest(),
+            }
+        )
+    return rows
+
+
+def _directory_is_empty(path: Path) -> bool:
+    return path.is_dir() and next(path.iterdir(), None) is None
+
+
 def prepare_case_skill_environment(
     case: EvalCase,
     *,
@@ -323,7 +350,12 @@ def prepare_case_skill_environment(
     home: Path,
     codex_home: Path,
     original_home: Path,
-) -> tuple[dict[str, str], list[Path]]:
+) -> tuple[
+    dict[str, str],
+    list[Path],
+    dict[str, str],
+    dict[str, list[dict[str, Any]]],
+]:
     """Create the exact declared Skill fixture without copying Codex auth."""
 
     skills_root = home / ".agents" / "skills"
@@ -334,7 +366,12 @@ def prepare_case_skill_environment(
             raise HostEvalError(
                 f"{case.case_id}: missing Skill at evaluated commit: {skill}"
             )
-        shutil.copytree(source, skills_root / skill)
+        destination = skills_root / skill
+        shutil.copytree(
+            source,
+            destination,
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+        )
 
     visible = sorted(
         path.parent.name for path in skills_root.glob("*/SKILL.md")
@@ -348,9 +385,32 @@ def prepare_case_skill_environment(
     environment["HOME"] = str(home)
     environment["CODEX_HOME"] = str(codex_home)
     environment["ATI_HOST_EVAL_SKILL_SOURCE_COMMIT"] = source_commit
-    return environment, _potential_duplicate_skill_paths(
+    environment["PYTHONDONTWRITEBYTECODE"] = "1"
+    fixture_roots = {
+        skill: str((skills_root / skill).resolve()) for skill in case.installed_skills
+    }
+    fixture_manifest = {
+        skill: _skill_file_manifest(skills_root / skill)
+        for skill in case.installed_skills
+    }
+    for skill in case.installed_skills:
+        source_manifest = _skill_file_manifest(source_root / "skills" / skill)
+        if fixture_manifest[skill] != source_manifest:
+            raise HostEvalError(
+                f"{case.case_id}: fixture manifest differs from evaluated Skill: {skill}"
+            )
+    disabled = _potential_duplicate_skill_paths(
         source_root, codex_home, original_home
     )
+    fixture_paths = [Path(path) for path in fixture_roots.values()]
+    if any(
+        disabled_path == fixture_root / "SKILL.md"
+        or fixture_root in disabled_path.parents
+        for disabled_path in disabled
+        for fixture_root in fixture_paths
+    ):
+        raise HostEvalError(f"{case.case_id}: fixture was included in disabled Skills")
+    return environment, disabled, fixture_roots, fixture_manifest
 
 
 def _git_output(cwd: Path, *args: str) -> str:
@@ -639,6 +699,8 @@ def _result_is_gate_failure(result: Mapping[str, Any], *, strict_observation: bo
         or result.get("trace_integrity_status")
         not in PASSING_TRACE_INTEGRITY_STATUSES
         or result.get("worktree_clean_after") is not True
+        or result.get("execution_workspace_clean_after") is not True
+        or result.get("source_worktree_used_as_host_cwd") is not False
         or result.get("authoritative_evidence_grade") not in PASS_GRADES
     )
 
@@ -663,8 +725,28 @@ def run_case(
     skill_environment_isolated: bool = False,
     skill_source_commit: str | None = None,
     codex_home_preserved: bool = False,
+    skill_fixture_roots: Mapping[str, str] | None = None,
+    skill_fixture_manifest: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
+    disabled_skill_paths: Sequence[Path] = (),
+    source_worktree: Path | None = None,
+    execution_workspace_isolated: bool = False,
 ) -> dict[str, Any]:
     started_at = datetime.now(timezone.utc).isoformat()
+    source_worktree_resolved = (
+        source_worktree.resolve() if source_worktree is not None else cwd.resolve()
+    )
+    host_cwd = cwd.resolve()
+    source_used_as_host_cwd = host_cwd == source_worktree_resolved
+    workspace_clean_before = _directory_is_empty(host_cwd)
+    workspace_neutral = bool(
+        execution_workspace_isolated
+        and workspace_clean_before
+        and not source_used_as_host_cwd
+        and not any(
+            (host_cwd / name).exists()
+            for name in ("scripts", "skills", "AGENTS.md", ".agents", ".codex", ".git")
+        )
+    )
     if dry_run:
         return {
             "id": case.case_id,
@@ -695,6 +777,20 @@ def run_case(
             "skill_environment_isolated": False,
             "skill_source_commit": skill_source_commit,
             "codex_home_preserved": codex_home_preserved,
+            "authentication_material_copied": False,
+            "authentication_content_recorded": False,
+            "skill_fixture_roots": dict(skill_fixture_roots or {}),
+            "skill_fixture_manifest": {
+                key: list(value)
+                for key, value in (skill_fixture_manifest or {}).items()
+            },
+            "disabled_skill_paths": [str(path) for path in disabled_skill_paths],
+            "execution_workspace_isolated": False,
+            "execution_workspace_root": str(host_cwd),
+            "execution_workspace_neutral": False,
+            "execution_workspace_clean_before": workspace_clean_before,
+            "execution_workspace_clean_after": None,
+            "source_worktree_used_as_host_cwd": source_used_as_host_cwd,
         }
 
     start = time.monotonic()
@@ -736,7 +832,28 @@ def run_case(
         route_observation = "fail_unobservable"
     stdout, stdout_truncated = _truncate(stdout, max_output_chars)
     stderr, stderr_truncated = _truncate(stderr, max_output_chars)
-    clean_after = not _clean_worktree_status(cwd)
+    source_worktree_clean_after = not _clean_worktree_status(source_worktree_resolved)
+    if execution_workspace_isolated:
+        execution_workspace_clean_after = _directory_is_empty(host_cwd)
+        skill_fixture_clean_after = bool(
+            skill_fixture_roots
+            and skill_fixture_manifest
+            and all(
+                Path(root).is_dir()
+                and _skill_file_manifest(Path(root))
+                == list(skill_fixture_manifest.get(skill) or [])
+                for skill, root in skill_fixture_roots.items()
+            )
+        )
+        clean_after = bool(
+            execution_workspace_clean_after
+            and source_worktree_clean_after
+            and skill_fixture_clean_after
+        )
+    else:
+        execution_workspace_clean_after = source_worktree_clean_after
+        skill_fixture_clean_after = True
+        clean_after = source_worktree_clean_after
     trace_integrity = analyze_jsonl_trace(
         stdout,
         exit_code=exit_code,
@@ -771,6 +888,22 @@ def run_case(
         "skill_environment_isolated": skill_environment_isolated,
         "skill_source_commit": skill_source_commit,
         "codex_home_preserved": codex_home_preserved,
+        "authentication_material_copied": False,
+        "authentication_content_recorded": False,
+        "skill_fixture_roots": dict(skill_fixture_roots or {}),
+        "skill_fixture_manifest": {
+            key: list(value)
+            for key, value in (skill_fixture_manifest or {}).items()
+        },
+        "disabled_skill_paths": [str(path) for path in disabled_skill_paths],
+        "execution_workspace_isolated": execution_workspace_isolated,
+        "execution_workspace_root": str(host_cwd),
+        "execution_workspace_neutral": workspace_neutral,
+        "execution_workspace_clean_before": workspace_clean_before,
+        "execution_workspace_clean_after": execution_workspace_clean_after,
+        "source_worktree_used_as_host_cwd": source_used_as_host_cwd,
+        "source_worktree_clean_after": source_worktree_clean_after,
+        "skill_fixture_clean_after": skill_fixture_clean_after,
         **trace_integrity,
     }
 
@@ -953,15 +1086,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         if not launcher:
             raise HostEvalError("launcher must not be empty")
-        cwd = (args.cwd or root).expanduser().resolve()
+        source_worktree = (args.cwd or root).expanduser().resolve()
         if args.live_radar_network and args.dry_run:
             raise HostEvalError("--live-radar-network cannot be combined with --dry-run")
         if args.live_radar_network and args.sandbox != "workspace-write":
             raise HostEvalError("--live-radar-network requires --sandbox workspace-write")
         if args.live_radar_network and args.cwd:
             raise HostEvalError("--live-radar-network always creates its own temporary detached worktree; do not pass --cwd")
-        if not cwd.is_dir():
-            raise HostEvalError(f"working directory does not exist: {cwd}")
+        if not source_worktree.is_dir():
+            raise HostEvalError(f"working directory does not exist: {source_worktree}")
         if args.live_radar_network:
             overridden = [name for name in ORIGIN_OVERRIDE_ENV_VARS if os.getenv(name)]
             if overridden:
@@ -993,8 +1126,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 cwd=root, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 text=True,
             )
-            cwd = temp_path.resolve()
-            worktree = validate_live_worktree(root, cwd, commit)
+            source_worktree = temp_path.resolve()
+            worktree = validate_live_worktree(root, source_worktree, commit)
 
         results: list[dict[str, Any]] = []
         try:
@@ -1002,19 +1135,34 @@ def main(argv: Sequence[str] | None = None) -> int:
                 environment: Mapping[str, str] | None = None
                 disabled_skill_paths: list[Path] = []
                 case_home: tempfile.TemporaryDirectory[str] | None = None
+                case_workspace: tempfile.TemporaryDirectory[str] | None = None
+                fixture_roots: dict[str, str] = {}
+                fixture_manifest: dict[str, list[dict[str, Any]]] = {}
                 try:
                     if not args.dry_run:
                         case_home = tempfile.TemporaryDirectory(
                             prefix="ati-host-eval-home-"
                         )
-                        environment, disabled_skill_paths = prepare_case_skill_environment(
+                        (
+                            environment,
+                            disabled_skill_paths,
+                            fixture_roots,
+                            fixture_manifest,
+                        ) = prepare_case_skill_environment(
                             case,
-                            source_root=cwd,
+                            source_root=source_worktree,
                             source_commit=str(commit),
                             home=Path(case_home.name),
                             codex_home=codex_home,
                             original_home=original_home,
                         )
+                        case_workspace = tempfile.TemporaryDirectory(
+                            prefix="ati-host-eval-workspace-"
+                        )
+                        if not _directory_is_empty(Path(case_workspace.name)):
+                            raise HostEvalError(
+                                f"{case.case_id}: neutral execution workspace is not empty"
+                            )
                     command = build_codex_command(
                         launcher,
                         case.prompt,
@@ -1022,11 +1170,16 @@ def main(argv: Sequence[str] | None = None) -> int:
                         json_trace=True,
                         live_radar_network=args.live_radar_network,
                         disabled_skill_paths=disabled_skill_paths,
+                        neutral_workspace=not args.dry_run,
                     )
                     result = run_case(
                         case,
                         command=command,
-                        cwd=cwd,
+                        cwd=(
+                            source_worktree
+                            if args.dry_run
+                            else Path(str(case_workspace.name))
+                        ),
                         timeout_seconds=float(args.timeout),
                         max_output_chars=args.max_output_chars,
                         dry_run=args.dry_run,
@@ -1036,8 +1189,15 @@ def main(argv: Sequence[str] | None = None) -> int:
                         skill_environment_isolated=not args.dry_run,
                         skill_source_commit=str(commit) if commit else None,
                         codex_home_preserved=not args.dry_run,
+                        skill_fixture_roots=fixture_roots,
+                        skill_fixture_manifest=fixture_manifest,
+                        disabled_skill_paths=disabled_skill_paths,
+                        source_worktree=source_worktree,
+                        execution_workspace_isolated=not args.dry_run,
                     )
                 finally:
+                    if case_workspace is not None:
+                        case_workspace.cleanup()
                     if case_home is not None:
                         case_home.cleanup()
                 results.append(result)
@@ -1046,16 +1206,16 @@ def main(argv: Sequence[str] | None = None) -> int:
                         f"Host modified the temporary worktree during case {case.case_id}; evidence rejected"
                     )
             if args.live_radar_network:
-                status_after = _clean_worktree_status(cwd)
+                status_after = _clean_worktree_status(source_worktree)
                 worktree["clean_after"] = not status_after
                 worktree["status_after"] = status_after
         finally:
             if temporary_worktree is not None:
-                status_after = _clean_worktree_status(cwd)
+                status_after = _clean_worktree_status(source_worktree)
                 worktree["clean_after"] = not status_after
                 worktree["status_after"] = status_after
                 subprocess.run(
-                    ["git", "worktree", "remove", "--force", str(cwd)],
+                    ["git", "worktree", "remove", "--force", str(source_worktree)],
                     cwd=root, check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                     text=True,
                 )

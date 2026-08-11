@@ -58,7 +58,7 @@ def _helper_event(
     return _event({
         "type": "command_execution",
         "command": (
-            f"python3 ~/.agents/skills/{skill}/scripts/topic_radar_client.py "
+            f"python3 /skills/{skill}/scripts/topic_radar_client.py "
             f"{operation}{arguments}"
         ),
         "aggregated_output": payload,
@@ -120,6 +120,20 @@ def _quality_case(
         "skill_environment_isolated": True,
         "skill_source_commit": TEST_COMMIT,
         "codex_home_preserved": True,
+        "authentication_material_copied": False,
+        "authentication_content_recorded": False,
+        "skill_fixture_roots": {
+            skill: f"/skills/{skill}" for skill in installed_skills
+        },
+        "skill_fixture_manifest": {skill: [] for skill in installed_skills},
+        "execution_workspace_isolated": True,
+        "execution_workspace_root": "/tmp/ati-host-eval-workspace-test",
+        "execution_workspace_neutral": True,
+        "execution_workspace_clean_before": True,
+        "execution_workspace_clean_after": True,
+        "source_worktree_used_as_host_cwd": False,
+        "source_worktree_clean_after": True,
+        "skill_fixture_clean_after": True,
         "_report_commit": TEST_COMMIT,
         "runtime_status": "completed",
         "exit_code": 0,
@@ -399,6 +413,52 @@ class HostEvalEvidenceTests(unittest.TestCase):
                     classify_case(_quality_case([CREATOR], [CREATOR]), evidence),
                     "fail_noncompliant_skill_runtime_attempt_observed",
                 )
+
+    def test_runtime_must_match_the_exact_case_fixture_root(self) -> None:
+        fixture = f"/tmp/ati-host-eval-home-test/.agents/skills/{CREATOR}"
+        roots = {CREATOR: fixture}
+        valid_command = (
+            f"python3 {fixture}/scripts/topic_radar_client.py "
+            "--timeout 30 feed --q AI --limit 12"
+        )
+        valid = observe_evidence(
+            _helper_command_event(valid_command), skill_fixture_roots=roots
+        )
+        self.assertEqual(valid["runtime_operations"], [f"{CREATOR}:feed"])
+
+        invalid_paths = (
+            f"/tmp/ati-host-eval-source/worktree/skills/{CREATOR}/scripts/topic_radar_client.py",
+            f"/home/test/.agents/skills/{CREATOR}/scripts/topic_radar_client.py",
+            f"/work/sibling/{CREATOR}/scripts/topic_radar_client.py",
+            f"/tmp/copied/{CREATOR}/scripts/topic_radar_client.py",
+        )
+        for helper in invalid_paths:
+            command = f"python3 {helper} --timeout 30 feed --q AI --limit 12"
+            with self.subTest(helper=helper):
+                evidence = observe_evidence(
+                    _helper_command_event(command), skill_fixture_roots=roots
+                )
+                self.assertEqual(evidence["runtime_use_skills"], [])
+                self.assertIn(
+                    "runtime_outside_case_fixture",
+                    evidence["runtime_violation_reasons"],
+                )
+
+    def test_undeclared_skill_fixture_path_is_unavailable_runtime(self) -> None:
+        brief_helper = (
+            f"/tmp/ati-host-eval-home-test/.agents/skills/{BRIEF}/scripts/"
+            "topic_radar_client.py"
+        )
+        evidence = observe_evidence(
+            _helper_command_event(
+                f"python3 {brief_helper} --timeout 30 feed --q AI --limit 12"
+            ),
+            skill_fixture_roots={
+                CREATOR: f"/tmp/ati-host-eval-home-test/.agents/skills/{CREATOR}"
+            },
+        )
+        self.assertIn("unavailable_skill_runtime", evidence["runtime_violation_reasons"])
+        self.assertIn("runtime_outside_case_fixture", evidence["runtime_violation_reasons"])
 
     def test_composite_creator_checkpoint_proves_brief_without_duplicate_radar(self) -> None:
         stdout = "\n".join((

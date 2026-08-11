@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import subprocess
@@ -112,6 +113,41 @@ def _git(root: Path, *args: str) -> str:
     return completed.stdout.strip()
 
 
+def _manifest_at_commit(
+    root: Path, commit: str, skill: str
+) -> list[dict[str, Any]]:
+    prefix = f"skills/{skill}/"
+    files = [
+        path
+        for path in _git(root, "ls-tree", "-r", "--name-only", commit, prefix).splitlines()
+        if path.startswith(prefix)
+    ]
+    if not files:
+        raise ReleaseEvidenceError(
+            f"evaluated commit is missing Skill fixture source: {skill}"
+        )
+    rows: list[dict[str, Any]] = []
+    for path in files:
+        completed = subprocess.run(
+            ["git", "show", f"{commit}:{path}"],
+            cwd=root,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        if completed.returncode != 0:
+            raise ReleaseEvidenceError(f"could not read evaluated Skill file: {path}")
+        payload = completed.stdout
+        rows.append(
+            {
+                "path": path[len(prefix):],
+                "bytes": len(payload),
+                "sha256": hashlib.sha256(payload).hexdigest(),
+            }
+        )
+    return rows
+
+
 def _verify_commit_binding(root: Path, evidence_dir: Path, evaluated_commit: str) -> None:
     if not COMMIT_RE.fullmatch(evaluated_commit):
         raise ReleaseEvidenceError("raw Host Eval commit is not a full Git SHA")
@@ -212,10 +248,67 @@ def verify(root: Path, version: str) -> Path:
         if (
             submitted.get("skill_environment_isolated") is not True
             or submitted.get("codex_home_preserved") is not True
+            or submitted.get("authentication_material_copied") is not False
+            or submitted.get("authentication_content_recorded") is not False
             or submitted.get("skill_source_commit") != commit
         ):
             raise ReleaseEvidenceError(
                 f"raw Host Eval Skill visibility contract is missing or unbound: {expected.case_id}"
+            )
+        roots = submitted.get("skill_fixture_roots")
+        manifest = submitted.get("skill_fixture_manifest")
+        disabled = submitted.get("disabled_skill_paths")
+        source_path = str(worktree.get("path") or "")
+        execution_root = str(submitted.get("execution_workspace_root") or "")
+        if (
+            not isinstance(roots, Mapping)
+            or set(roots) != set(expected.installed_skills)
+            or not all(
+                isinstance(roots.get(skill), str)
+                and str(roots[skill]).startswith("/tmp/ati-host-eval-home-")
+                and str(roots[skill]).endswith(f"/.agents/skills/{skill}")
+                and source_path not in str(roots[skill])
+                for skill in expected.installed_skills
+            )
+            or not isinstance(disabled, list)
+            or not all(isinstance(path, str) for path in disabled)
+            or any(
+                str(Path(str(roots[skill])) / "SKILL.md") in disabled
+                for skill in expected.installed_skills
+            )
+            or not execution_root.startswith("/tmp/ati-host-eval-workspace-")
+            or execution_root == source_path
+            or any(execution_root == str(roots[skill]) for skill in expected.installed_skills)
+            or not isinstance(manifest, Mapping)
+            or set(manifest) != set(expected.installed_skills)
+            or any(
+                manifest.get(skill) != _manifest_at_commit(root, commit, skill)
+                for skill in expected.installed_skills
+            )
+            or any(
+                any(
+                    forbidden in str(row.get("path") or "").lower()
+                    for forbidden in ("auth.json", "token", "session", "cookie", "config.toml")
+                )
+                for skill in expected.installed_skills
+                for row in (manifest.get(skill) or [])
+                if isinstance(row, Mapping)
+            )
+        ):
+            raise ReleaseEvidenceError(
+                f"raw Host Eval fixture manifest is missing or differs from RC: {expected.case_id}"
+            )
+        if (
+            submitted.get("execution_workspace_isolated") is not True
+            or submitted.get("execution_workspace_neutral") is not True
+            or submitted.get("execution_workspace_clean_before") is not True
+            or submitted.get("execution_workspace_clean_after") is not True
+            or submitted.get("source_worktree_used_as_host_cwd") is not False
+            or submitted.get("source_worktree_clean_after") is not True
+            or submitted.get("skill_fixture_clean_after") is not True
+        ):
+            raise ReleaseEvidenceError(
+                f"raw Host Eval neutral execution workspace contract failed: {expected.case_id}"
             )
 
     bad_trace = []
@@ -281,6 +374,10 @@ def verify(root: Path, version: str) -> Path:
             or case.get("stdout_truncated") is not False
             or case.get("stderr_truncated") is not False
             or case.get("worktree_clean_after") is not True
+            or case.get("execution_workspace_clean_after") is not True
+            or case.get("source_worktree_clean_after") is not True
+            or case.get("skill_fixture_clean_after") is not True
+            or case.get("source_worktree_used_as_host_cwd") is not False
         )
     ]
     if bad_runtime:

@@ -104,7 +104,7 @@ class HostEvalRunnerTests(unittest.TestCase):
             duplicate.mkdir(parents=True)
             (duplicate / "SKILL.md").write_text("duplicate", encoding="utf-8")
 
-            environment, disabled = prepare_case_skill_environment(
+            environment, disabled, fixture_roots, fixture_manifest = prepare_case_skill_environment(
                 case,
                 source_root=ROOT,
                 source_commit=TEST_COMMIT,
@@ -135,6 +135,14 @@ class HostEvalRunnerTests(unittest.TestCase):
             )
             self.assertNotIn(auth_marker, fixture_text)
             self.assertFalse((home / ".codex").exists())
+            self.assertEqual(
+                fixture_roots,
+                {BRIEF: str((fixture_root / BRIEF).resolve())},
+            )
+            self.assertTrue(fixture_manifest[BRIEF])
+            self.assertNotIn(
+                (fixture_root / BRIEF / "SKILL.md").resolve(), disabled
+            )
 
     def test_disabled_duplicate_skill_paths_use_one_shot_config(self) -> None:
         duplicate = Path("/tmp/duplicate-skill/SKILL.md")
@@ -152,6 +160,44 @@ class HostEvalRunnerTests(unittest.TestCase):
             'skills.config=[{path="/tmp/duplicate-skill/SKILL.md",enabled=false}]',
         )
         self.assertNotIn("auth", " ".join(command).lower())
+
+    def test_live_command_supports_a_neutral_non_git_workspace(self) -> None:
+        command = build_codex_command(
+            ["codex"], "hello", sandbox="workspace-write", json_trace=True,
+            live_radar_network=True, neutral_workspace=True,
+        )
+        self.assertIn("--skip-git-repo-check", command)
+
+    def test_neutral_workspace_is_separate_empty_and_must_stay_empty(self) -> None:
+        case = EvalCase(
+            suite="trigger", case_id="neutral", prompt="x", expected_skill=None,
+            expected_workflow=(), requires_live_network=None, source={},
+        )
+        with tempfile.TemporaryDirectory(prefix="ati-source-test-") as source_dir:
+            source = Path(source_dir)
+            subprocess.run(["git", "init", "-q"], cwd=source, check=True)
+            with tempfile.TemporaryDirectory(
+                prefix="ati-host-eval-workspace-"
+            ) as workspace_dir:
+                workspace = Path(workspace_dir)
+                result = run_case(
+                    case,
+                    command=[
+                        sys.executable, "-c",
+                        "from pathlib import Path; Path('residue').write_text('x')",
+                    ],
+                    cwd=workspace,
+                    source_worktree=source,
+                    execution_workspace_isolated=True,
+                    timeout_seconds=5,
+                    max_output_chars=10_000,
+                    dry_run=False,
+                )
+                self.assertNotEqual(workspace.resolve(), source.resolve())
+                self.assertTrue(result["execution_workspace_neutral"])
+                self.assertFalse(result["execution_workspace_clean_after"])
+                self.assertFalse(result["worktree_clean_after"])
+                self.assertFalse(result["source_worktree_used_as_host_cwd"])
 
     def test_select_cases_can_span_suites_and_reject_unknown_ids(self) -> None:
         selected = select_cases(
@@ -360,6 +406,8 @@ class HostEvalRunnerTests(unittest.TestCase):
             "route_observation": "pass_expected_workflow_observed",
             "trace_integrity_status": "complete_after_recovery",
             "worktree_clean_after": True,
+            "execution_workspace_clean_after": True,
+            "source_worktree_used_as_host_cwd": False,
             "authoritative_evidence_grade": "pass_expected_workflow_evidence_observed",
         }))
 
@@ -368,6 +416,8 @@ class HostEvalRunnerTests(unittest.TestCase):
             "runtime_status": "completed",
             "trace_integrity_status": "complete_clean",
             "worktree_clean_after": True,
+            "execution_workspace_clean_after": True,
+            "source_worktree_used_as_host_cwd": False,
         }
         self.assertFalse(_result_is_gate_failure({
             **base,
