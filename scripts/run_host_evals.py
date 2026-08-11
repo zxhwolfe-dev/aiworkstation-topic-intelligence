@@ -402,6 +402,8 @@ def build_report(
     launcher: Sequence[str],
     results: Sequence[Mapping[str, Any]],
     dry_run: bool,
+    strict_observation: bool = False,
+    commit: str | None = None,
 ) -> dict[str, Any]:
     version_path = root / "VERSION"
     version = version_path.read_text(encoding="utf-8").strip() if version_path.is_file() else None
@@ -410,11 +412,13 @@ def build_report(
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "host": host,
         "skill_version": version,
+        "commit": commit or _repository_commit(root),
         "suites": list(suites),
         "sandbox": sandbox,
         "timeout_seconds": timeout_seconds,
         "launcher": list(launcher),
         "dry_run": dry_run,
+        "strict_observation": strict_observation,
         "summary": summarize(results),
         "cases": list(results),
         "grading_note": (
@@ -422,6 +426,16 @@ def build_report(
             "semantic must_show/must_not grading remains a separate review step"
         ),
     }
+
+
+def _repository_commit(root: Path) -> str | None:
+    try:
+        return subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=root, text=True,
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=True,
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return None
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -497,6 +511,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         if not cwd.is_dir():
             raise HostEvalError(f"working directory does not exist: {cwd}")
 
+        # Bind the report to the repository revision that was inspected before
+        # any host process starts.  This prevents a concurrent code change from
+        # silently changing the meaning of an otherwise valid-looking trace.
+        commit = _repository_commit(root)
+
         results: list[dict[str, Any]] = []
         for case in cases:
             command = build_codex_command(
@@ -526,6 +545,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             launcher=launcher,
             results=results,
             dry_run=args.dry_run,
+            strict_observation=args.strict_observation,
+            commit=commit,
         )
     except HostEvalError as exc:
         print(f"error: {exc}", file=sys.stderr)

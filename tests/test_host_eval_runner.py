@@ -12,6 +12,7 @@ from scripts.run_host_evals import (
     REPORT_SCHEMA,
     EvalCase,
     HostEvalError,
+    _repository_commit,
     build_codex_command,
     build_report,
     classify_observation,
@@ -247,10 +248,38 @@ class HostEvalRunnerTests(unittest.TestCase):
             launcher=["codex"],
             results=results,
             dry_run=True,
+            strict_observation=True,
+            commit="abc123",
         )
         self.assertEqual(report["schema"], REPORT_SCHEMA)
         self.assertEqual(report["host"], "codex")
         self.assertIn("semantic", report["grading_note"])
+        self.assertTrue(report["strict_observation"])
+        self.assertEqual(report["commit"], "abc123")
+
+    def test_report_commit_is_captured_before_cases_run(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "VERSION").write_text("0.2.1\n", encoding="utf-8")
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            subprocess.run(["git", "config", "user.email", "test@example.invalid"], cwd=root, check=True)
+            subprocess.run(["git", "config", "user.name", "Host Eval Test"], cwd=root, check=True)
+            subprocess.run(["git", "add", "."], cwd=root, check=True)
+            subprocess.run(["git", "commit", "-qm", "initial"], cwd=root, check=True)
+            commit = _repository_commit(root)
+            report = build_report(
+                root=root,
+                host="codex",
+                suites=["v0.2.1"],
+                sandbox="read-only",
+                timeout_seconds=1,
+                launcher=["codex"],
+                results=[],
+                dry_run=True,
+                strict_observation=True,
+                commit=commit,
+            )
+            self.assertEqual(report["commit"], commit)
 
     def test_cli_dry_run_needs_no_codex_login_or_network(self) -> None:
         with tempfile.TemporaryDirectory() as output_dir:

@@ -1,52 +1,233 @@
 from __future__ import annotations
 
 import json
+import shutil
+import subprocess
+import tempfile
+import unittest
 from pathlib import Path
 
-import unittest
-
+from scripts.grade_host_eval import HANDOFF_SCHEMA, grade_report
+from scripts.run_host_evals import load_suite
 from scripts.verify_release_evidence import ReleaseEvidenceError, verify
 
 
-def _write_case(root: Path, *, grade: str = "pass_expected_workflow_evidence_observed", runtime: str = "completed") -> Path:
-    evidence = root / "release-evidence" / "v0.2.2"
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def _git(root: Path, *args: str) -> str:
+    return subprocess.run(
+        ["git", *args], cwd=root, text=True, stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE, check=True,
+    ).stdout.strip()
+
+
+def _event(item: dict) -> str:
+    return json.dumps({"type": "item.completed", "item": item})
+
+
+def _repo() -> tuple[tempfile.TemporaryDirectory, Path, str]:
+    temporary = tempfile.TemporaryDirectory()
+    root = Path(temporary.name)
+    (root / "evals").mkdir()
+    shutil.copy2(ROOT / "evals/v0.2.1-skill-quality.json", root / "evals/v0.2.1-skill-quality.json")
+    (root / "VERSION").write_text("0.2.2\n", encoding="utf-8")
+    _git(root, "init", "-q")
+    _git(root, "config", "user.email", "test@example.invalid")
+    _git(root, "config", "user.name", "Release Evidence Test")
+    _git(root, "add", ".")
+    _git(root, "commit", "-qm", "evaluated release candidate")
+    return temporary, root, _git(root, "rev-parse", "HEAD")
+
+
+def _write_valid_evidence(root: Path, evaluated_commit: str) -> Path:
+    evidence = root / "release-evidence/v0.2.2"
     evidence.mkdir(parents=True)
-    (evidence / "host-eval.json").write_text(
-        json.dumps({"schema": "ati.host-eval.v1", "cases": [{"id": "one", "runtime_status": runtime}]}),
-        encoding="utf-8",
-    )
-    (evidence / "host-evidence.json").write_text(
-        json.dumps({"schema": "ati.host-evidence.v1", "cases": [{"id": "one", "evidence_grade": grade}]}),
-        encoding="utf-8",
-    )
-    (evidence / "manual-review.md").write_text(
-        "APPROVED: yes\nmust_show: reviewed\nmust_not: reviewed\n"
-        "anonymous_server_insight_calls: 0\nhandoff_reselection: none\n",
-        encoding="utf-8",
-    )
+    cases = load_suite(root, "v0.2.1")
+    raw_cases = []
+    for case in cases:
+        commands = []
+        for skill in ("creator-topic-opportunity-research", "evidence-backed-content-brief"):
+            if any(token == skill or token.startswith(skill + ":") for token in case.expected_workflow):
+                commands.append(_event({
+                    "type": "command_execution",
+                    "command": f"python3 /skills/{skill}/scripts/topic_radar_client.py feed",
+                }))
+        if HANDOFF_SCHEMA in case.expected_workflow:
+            commands.append(_event({"type": "agent_message", "text": HANDOFF_SCHEMA}))
+        raw_cases.append({
+            "id": case.case_id, "suite": "v0.2.1", "prompt": case.prompt,
+            "expected_skill": case.expected_skill,
+            "expected_workflow": list(case.expected_workflow),
+            "requires_live_network": case.requires_live_network,
+            "runtime_status": "completed", "route_observation": "pass_expected_workflow_observed",
+            "exit_code": 0, "timed_out": False, "stdout": "\n".join(commands), "stderr": "",
+            "stdout_truncated": False, "stderr_truncated": False,
+        })
+    raw = {
+        "schema": "ati.host-eval.v1", "generated_at": "2026-08-11T00:00:00+00:00",
+        "host": "codex", "skill_version": "0.2.2", "commit": evaluated_commit,
+        "suites": ["v0.2.1"], "sandbox": "read-only", "dry_run": False,
+        "strict_observation": True, "cases": raw_cases,
+    }
+    graded = grade_report(raw)
+    review = {
+        "approved": True, "anonymous_server_insight_calls": 0, "handoff_reselection": "none",
+        "cases": [{
+            "id": case.case_id, "decision": "pass",
+            "must_show_reviewed": case.source.get("must_show") or [],
+            "must_not_reviewed": case.source.get("must_not") or [],
+        } for case in cases],
+    }
+    (evidence / "host-eval.json").write_text(json.dumps(raw), encoding="utf-8")
+    (evidence / "host-evidence.json").write_text(json.dumps(graded), encoding="utf-8")
+    (evidence / "manual-review.json").write_text(json.dumps(review), encoding="utf-8")
+    _git(root, "add", ".")
+    _git(root, "commit", "-qm", "persist release evidence")
     return evidence
 
 
 class ReleaseEvidenceTests(unittest.TestCase):
-    def test_release_evidence_requires_all_persistent_artifacts(self) -> None:
-        import tempfile
-        with tempfile.TemporaryDirectory() as directory:
-            with self.assertRaisesRegex(ReleaseEvidenceError, "missing persistent"):
-                verify(Path(directory), "0.2.2")
-
-
-    def test_release_evidence_rejects_incomplete_live_run(self) -> None:
-        import tempfile
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            _write_case(root, runtime="timeout")
-            with self.assertRaisesRegex(ReleaseEvidenceError, "did not complete"):
-                verify(root, "0.2.2")
-
-
-    def test_release_evidence_accepts_completed_review(self) -> None:
-        import tempfile
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            evidence = _write_case(root)
+    def test_complete_bound_evidence_passes(self) -> None:
+        temporary, root, evaluated = _repo()
+        try:
+            evidence = _write_valid_evidence(root, evaluated)
             self.assertEqual(verify(root, "0.2.2"), evidence)
+        finally:
+            temporary.cleanup()
+
+    def test_dry_run_non_strict_wrong_version_and_suite_block(self) -> None:
+        for field, value, message in (
+            ("dry_run", True, "live strict"),
+            ("strict_observation", False, "live strict"),
+            ("skill_version", "0.1.0", "version"),
+            ("suites", ["quality"], "suite"),
+        ):
+            temporary, root, evaluated = _repo()
+            try:
+                evidence = _write_valid_evidence(root, evaluated)
+                raw_path = evidence / "host-eval.json"
+                raw = json.loads(raw_path.read_text())
+                raw[field] = value
+                raw_path.write_text(json.dumps(raw))
+                _git(root, "add", ".")
+                _git(root, "commit", "-qm", f"tamper {field}")
+                with self.subTest(field=field), self.assertRaisesRegex(ReleaseEvidenceError, message):
+                    verify(root, "0.2.2")
+            finally:
+                temporary.cleanup()
+
+    def test_missing_mismatched_or_duplicate_case_ids_block(self) -> None:
+        temporary, root, evaluated = _repo()
+        try:
+            evidence = _write_valid_evidence(root, evaluated)
+            raw_path = evidence / "host-eval.json"
+            raw = json.loads(raw_path.read_text())
+            raw["cases"][0]["id"] = raw["cases"][1]["id"]
+            raw_path.write_text(json.dumps(raw))
+            _git(root, "add", ".")
+            _git(root, "commit", "-qm", "tamper IDs")
+            with self.assertRaisesRegex(ReleaseEvidenceError, "case IDs"):
+                verify(root, "0.2.2")
+        finally:
+            temporary.cleanup()
+
+    def test_fabricated_grade_and_global_only_manual_review_block(self) -> None:
+        temporary, root, evaluated = _repo()
+        try:
+            evidence = _write_valid_evidence(root, evaluated)
+            graded_path = evidence / "host-evidence.json"
+            graded = json.loads(graded_path.read_text())
+            graded["cases"][0]["evidence_grade"] = "pass_fabricated"
+            graded_path.write_text(json.dumps(graded))
+            (evidence / "manual-review.json").write_text(json.dumps({
+                "approved": True, "anonymous_server_insight_calls": 0,
+                "handoff_reselection": "none", "cases": [],
+            }))
+            _git(root, "add", ".")
+            _git(root, "commit", "-qm", "fabricate evidence")
+            with self.assertRaisesRegex(ReleaseEvidenceError, "graded report|manual"):
+                verify(root, "0.2.2")
+        finally:
+            temporary.cleanup()
+
+    def test_nonzero_timeout_or_truncated_case_blocks(self) -> None:
+        for field, value in (
+            ("exit_code", 1),
+            ("timed_out", True),
+            ("stdout_truncated", True),
+            ("stderr_truncated", True),
+        ):
+            temporary, root, evaluated = _repo()
+            try:
+                evidence = _write_valid_evidence(root, evaluated)
+                raw_path = evidence / "host-eval.json"
+                raw = json.loads(raw_path.read_text())
+                raw["cases"][0][field] = value
+                raw_path.write_text(json.dumps(raw))
+                _git(root, "add", ".")
+                _git(root, "commit", "-qm", f"tamper execution {field}")
+                with self.subTest(field=field), self.assertRaisesRegex(ReleaseEvidenceError, "cleanly"):
+                    verify(root, "0.2.2")
+            finally:
+                temporary.cleanup()
+
+    def test_extra_non_object_manual_case_blocks(self) -> None:
+        temporary, root, evaluated = _repo()
+        try:
+            evidence = _write_valid_evidence(root, evaluated)
+            manual_path = evidence / "manual-review.json"
+            manual = json.loads(manual_path.read_text())
+            manual["cases"].append("unexpected")
+            manual_path.write_text(json.dumps(manual))
+            _git(root, "add", ".")
+            _git(root, "commit", "-qm", "tamper manual case shape")
+            with self.assertRaisesRegex(ReleaseEvidenceError, "manual review must contain"):
+                verify(root, "0.2.2")
+        finally:
+            temporary.cleanup()
+
+    def test_old_report_is_invalid_after_non_evidence_code_change(self) -> None:
+        temporary, root, evaluated = _repo()
+        try:
+            _write_valid_evidence(root, evaluated)
+            (root / "VERSION").write_text("0.2.2\nchanged\n")
+            _git(root, "add", ".")
+            _git(root, "commit", "-qm", "change release code")
+            with self.assertRaisesRegex(ReleaseEvidenceError, "release code changed|version"):
+                verify(root, "0.2.2")
+        finally:
+            temporary.cleanup()
+
+    def test_direct_cli_entrypoint_loads_package_imports(self) -> None:
+        completed = subprocess.run(
+            [
+                "python3",
+                str(ROOT / "scripts" / "verify_release_evidence.py"),
+                "--version",
+                "0.2.2",
+                "--root",
+                str(ROOT),
+            ],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("missing persistent live Host Eval evidence", completed.stdout)
+
+    def test_dirty_worktree_blocks_evidence_verification(self) -> None:
+        temporary, root, evaluated = _repo()
+        try:
+            _write_valid_evidence(root, evaluated)
+            (root / "uncommitted.txt").write_text("changed\n", encoding="utf-8")
+            with self.assertRaisesRegex(ReleaseEvidenceError, "worktree must be clean"):
+                verify(root, "0.2.2")
+        finally:
+            temporary.cleanup()
+
+
+if __name__ == "__main__":
+    unittest.main()

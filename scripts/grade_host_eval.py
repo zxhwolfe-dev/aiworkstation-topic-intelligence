@@ -25,6 +25,13 @@ TOPIC_INTELLIGENCE_SKILLS = (
     "creator-topic-opportunity-research",
     "evidence-backed-content-brief",
 )
+SUPPORTED_QUALITY_SUITES = {"quality", "v0.2.1"}
+PASS_GRADES = {
+    "pass_no_skill_runtime_observed",
+    "pass_expected_skill_runtime_observed",
+    "pass_expected_skill_definition_consulted",
+    "pass_expected_workflow_evidence_observed",
+}
 
 
 class EvidenceGradeError(RuntimeError):
@@ -171,7 +178,7 @@ def classify_case(case: Mapping[str, Any], evidence: Mapping[str, Any]) -> str:
             return "expected_skill_mentioned_only"
         return "unobservable"
 
-    if suite == "quality":
+    if suite in SUPPORTED_QUALITY_SUITES:
         workflow = _expected_workflow(case)
         if not workflow:
             return "unobservable"
@@ -179,7 +186,14 @@ def classify_case(case: Mapping[str, Any], evidence: Mapping[str, Any]) -> str:
         observed_tokens: set[str] = set()
         for token in workflow:
             if token in TOPIC_INTELLIGENCE_SKILLS:
-                if token in runtime or token in definitions:
+                # Quality/release workflows require observable helper use. A
+                # definition read is useful trigger evidence, but cannot prove
+                # that the host actually executed the live Radar workflow.
+                if token in runtime:
+                    observed_tokens.add(token)
+            elif any(token.startswith(f"{skill}:") for skill in TOPIC_INTELLIGENCE_SKILLS):
+                skill = token.split(":", 1)[0]
+                if skill in runtime:
                     observed_tokens.add(token)
             elif token == HANDOFF_SCHEMA:
                 if evidence.get("handoff_agent_message_observed") is True:
@@ -207,7 +221,6 @@ def grade_report(payload: Mapping[str, Any]) -> dict[str, Any]:
     raw_cases = payload.get("cases")
     if not isinstance(raw_cases, list):
         raise EvidenceGradeError("input report is missing cases list")
-
     graded_cases: list[dict[str, Any]] = []
     counts: dict[str, int] = {}
     for raw in raw_cases:
@@ -234,6 +247,10 @@ def grade_report(payload: Mapping[str, Any]) -> dict[str, Any]:
         "source_schema": INPUT_SCHEMA,
         "host": payload.get("host"),
         "skill_version": payload.get("skill_version"),
+        "commit": payload.get("commit"),
+        "suites": payload.get("suites"),
+        "dry_run": payload.get("dry_run"),
+        "strict_observation": payload.get("strict_observation"),
         "source_generated_at": payload.get("generated_at"),
         "summary": {
             "total": len(graded_cases),

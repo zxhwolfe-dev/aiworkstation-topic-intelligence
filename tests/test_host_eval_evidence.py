@@ -223,6 +223,34 @@ class HostEvalEvidenceTests(unittest.TestCase):
                 "pass_expected_skill_definition_consulted",
             )
 
+    def test_v021_quality_case_is_graded_like_quality_suite(self) -> None:
+        payload = {
+            "schema": "ati.host-eval.v1", "host": "codex", "skill_version": "0.2.1",
+            "suites": ["v0.2.1"], "cases": [{
+                "id": "v021", "suite": "v0.2.1", "expected_workflow": [CREATOR],
+                "runtime_status": "completed", "stdout": _event({
+                    "type": "command_execution",
+                    "command": f"python3 ~/.agents/skills/{CREATOR}/scripts/topic_radar_client.py feed",
+                }), "stderr": "",
+            }],
+        }
+        graded = grade_report(payload)
+        self.assertEqual(graded["cases"][0]["evidence_grade"], "pass_expected_workflow_evidence_observed")
+
+    def test_v021_quality_definition_read_alone_is_not_live_workflow_evidence(self) -> None:
+        payload = {
+            "schema": "ati.host-eval.v1", "host": "codex", "skill_version": "0.2.1",
+            "suites": ["v0.2.1"], "cases": [{
+                "id": "v021", "suite": "v0.2.1", "expected_workflow": [CREATOR],
+                "runtime_status": "completed", "stdout": _event({
+                    "type": "command_execution",
+                    "command": f"sed -n '1,180p' ~/.agents/skills/{CREATOR}/SKILL.md",
+                }), "stderr": "",
+            }],
+        }
+        graded = grade_report(payload)
+        self.assertEqual(graded["cases"][0]["evidence_grade"], "unobservable")
+
 
 if __name__ == "__main__":
     unittest.main()
