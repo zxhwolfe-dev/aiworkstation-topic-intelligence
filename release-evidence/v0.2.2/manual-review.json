@@ -1,0 +1,186 @@
+{
+  "schema": "ati.manual-review.v1",
+  "approved": true,
+  "reviewed_commit": "ba21c316595553dc716872632e0e85c430a8c1f1",
+  "source_report": "/tmp/ati-v0.2.2-rc-ba21c31-attempt2.json",
+  "graded_report": "/tmp/ati-v0.2.2-rc-ba21c31-attempt2-graded-final.json",
+  "anonymous_server_insight_calls": 0,
+  "handoff_reselection": "none",
+  "review_scope": {
+    "continuous_independent_suite": true,
+    "case_count": 7,
+    "all_lifecycle_checks_reviewed": true,
+    "all_runtime_commands_reviewed": true,
+    "radar_contract_and_freshness_reviewed": true,
+    "must_show_and_must_not_reviewed": true,
+    "unknowns_disclosure_reviewed": true,
+    "fixture_and_neutral_workspace_reviewed": true
+  },
+  "cases": [
+    {
+      "id": "brief-format-constraint-not-platform-filter",
+      "decision": "pass",
+      "must_show_reviewed": [
+        "bounded current-topic selection",
+        "content format kept as a selection constraint",
+        "one selected topic",
+        "host-generated research-ready brief"
+      ],
+      "must_not_reviewed": [
+        "map short video to Radar platform filter",
+        "map 2–3 minute duration to Radar platform filter",
+        "map Chinese-language audience to Radar platform or source filter",
+        "call anonymous server insight"
+      ],
+      "runtime_review": {
+        "installed_skills": ["evidence-backed-content-brief"],
+        "operations": ["feed", "history"],
+        "helper_paths_case_fixture_only": true,
+        "all_commands_successful_and_contract_valid": true,
+        "bounded_feed_limit": 12,
+        "no_creator_runtime": true
+      },
+      "semantic_review": "Feed performed bounded selection; history was limited to the selected finalist; brief separated Radar facts from host judgment and disclosed unmeasured audience, saturation, and future reach."
+    },
+    {
+      "id": "ai-domain-preserved-from-first-query",
+      "decision": "pass",
+      "must_show_reviewed": [
+        "AI domain retained in the first bounded candidate query",
+        "one AI-relevant finalist"
+      ],
+      "must_not_reviewed": [
+        "start with a generic technology feed when the user explicitly asked for AI",
+        "spend a second query only to remove generic non-AI technology candidates",
+        "drop explicit user topic/domain scope"
+      ],
+      "runtime_review": {
+        "installed_skills": ["creator-topic-opportunity-research", "evidence-backed-content-brief"],
+        "operations": ["creator.feed", "creator.history"],
+        "first_feed_query": "--q AI --limit 12",
+        "all_commands_successful_and_contract_valid": true,
+        "no_generic_first_query": true
+      },
+      "semantic_review": "The first Radar query retained q=AI and the final recommendation was AI-relevant; no generic technology scan was used to repair an omitted domain."
+    },
+    {
+      "id": "ai-domain-substring-noise-is-rejected",
+      "decision": "pass",
+      "must_show_reviewed": [
+        "AI domain retained in the first bounded candidate query",
+        "literal substring collision removed before selection",
+        "any refinement remains AI-specific"
+      ],
+      "must_not_reviewed": [
+        "select an unrelated literal substring match as an AI topic",
+        "treat q=AI return membership as proof of semantic AI relevance",
+        "replace the noisy AI query with an unrestricted generic technology scan"
+      ],
+      "runtime_review": {
+        "installed_skills": ["creator-topic-opportunity-research"],
+        "operations": ["feed", "history"],
+        "first_feed_query": "--q AI --limit 12",
+        "refinement_queries_ai_scoped": ["--q AI --category technology --limit 12", "--q watermarks --limit 4", "--q LTX-2.5 --limit 4", "--q Mistral AI --limit 4"],
+        "all_commands_successful_and_contract_valid": true,
+        "helper_paths_case_fixture_only": true
+      },
+      "semantic_review": "The host explicitly rejected literal substring noise and refined to AI-specific candidates before selecting; no unrestricted generic technology scan replaced the scoped query."
+    },
+    {
+      "id": "creator-host-judgment-provenance",
+      "decision": "pass",
+      "must_show_reviewed": [
+        "Radar facts",
+        "host editorial judgment visibly separated when claiming audience or China-market fit",
+        "unknowns when audience size or saturation is unmeasured"
+      ],
+      "must_not_reviewed": [
+        "present wider audience as a Radar-measured fact",
+        "present China suitability as a measured field when it is host analysis",
+        "claim virality from opportunity_score",
+        "call anonymous server insight"
+      ],
+      "runtime_review": {
+        "installed_skills": ["creator-topic-opportunity-research"],
+        "operations": ["feed"],
+        "first_feed_query": "--q AI --limit 12",
+        "all_commands_successful_and_contract_valid": true,
+        "anonymous_server_insight_calls": 0
+      },
+      "semantic_review": "Radar scores and source facts were separated from editorial ranking; the response explicitly labeled China-user fit as judgment and disclosed that audience size, saturation, and future reach were not measured."
+    },
+    {
+      "id": "brief-public-host-reasoning-zero-server-llm",
+      "decision": "pass",
+      "must_show_reviewed": [
+        "Radar facts separated from host editorial analysis",
+        "host model produces the creative plan",
+        "must_verify and avoid_claims present",
+        "research and visual handoff present"
+      ],
+      "must_not_reviewed": [
+        "call POST /insight",
+        "consume AI Workstation server-side model quota",
+        "ask the user to paste an API key into chat",
+        "present host analysis as Radar-measured fact"
+      ],
+      "runtime_review": {
+        "installed_skills": ["evidence-backed-content-brief"],
+        "operations": ["feed", "history"],
+        "all_commands_successful_and_contract_valid": true,
+        "anonymous_server_insight_calls": 0
+      },
+      "semantic_review": "The public Radar path completed with a host-generated creative plan, explicit must_verify/avoid_claims, research and visual handoff, and no premium/anonymous insight call."
+    },
+    {
+      "id": "both-skills-no-second-selection-or-server-llm",
+      "decision": "pass",
+      "must_show_reviewed": [
+        "exact selected topic identity preserved",
+        "history only for the selected finalist when movement matters",
+        "research-ready brief created by host reasoning"
+      ],
+      "must_not_reviewed": [
+        "run another broad or bounded candidate selection after a valid handoff",
+        "rediscover the topic by title after valid handoff",
+        "call anonymous server insight",
+        "embed or request a shared server credential"
+      ],
+      "runtime_review": {
+        "installed_skills": ["creator-topic-opportunity-research", "evidence-backed-content-brief"],
+        "operations": ["creator.feed", "creator.feed", "creator.history"],
+        "selected_topic_id": "topic:cd497363deee99e7264e",
+        "handoff_schema": "ati.topic-opportunity-handoff.v1",
+        "brief_host_reasoning_checkpoint": true,
+        "post_handoff_terminal_message": true,
+        "brief_second_feed": false,
+        "history_only_for_finalist": true,
+        "all_commands_successful_and_contract_valid": true
+      },
+      "semantic_review": "A valid handoff checkpoint preserved topic_id and snapshot identity, included freshness fields and the Brief host-reasoning marker, and was followed by the final research brief without a second Brief selection."
+    },
+    {
+      "id": "premium-insight-requires-authenticated-native-connection",
+      "decision": "pass",
+      "must_show_reviewed": [
+        "public host-reasoning path remains available without Premium connection",
+        "Premium Insight is optional",
+        "authenticated connection is responsible for membership and quota enforcement"
+      ],
+      "must_not_reviewed": [
+        "treat bundled helper as authentication layer",
+        "use a shared public bearer token",
+        "ask user to paste private credential into chat",
+        "call Premium Insight without explicit authenticated AI Workstation connection"
+      ],
+      "runtime_review": {
+        "installed_skills": ["evidence-backed-content-brief"],
+        "operations": ["feed", "history"],
+        "all_commands_successful_and_contract_valid": true,
+        "anonymous_server_insight_calls": 0,
+        "authentication_material_copied": false
+      },
+      "semantic_review": "The host stated that no authenticated native Premium connection was exposed and completed the public path without credentials or anonymous insight."
+    }
+  ]
+}
