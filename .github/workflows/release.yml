@@ -37,6 +37,10 @@ jobs:
           python3 scripts/sync_skill_runtime.py --check
           python3 scripts/run_host_evals.py --suite v0.2.1 --dry-run
 
+      - name: Verify persistent live Host Eval RC evidence for new releases
+        if: ${{ github.ref_name != 'v0.2.1' }}
+        run: python3 scripts/verify_release_evidence.py --version "$(cat VERSION)"
+
       - name: Build deterministic Skill archives
         run: python3 scripts/build_release.py --output dist
 

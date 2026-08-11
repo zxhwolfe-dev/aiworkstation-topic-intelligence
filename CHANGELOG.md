@@ -11,6 +11,7 @@ The project follows Semantic Versioning for distributable Skill releases.
 - Added stricter public client origin and freshness contracts, target-platform CLI filtering, and real Host Eval failure exit codes.
 - Documented the official Radar origin rule and the strict Host Eval observability/manual-review boundary.
 - Kept packaged Skill runtime copies synchronized after the nested response-contract checks.
+- Added a persistent post-v0.2.1 Host Eval evidence gate; v0.2.2 remains blocked until a completed live RC and manual semantic review are committed.
 - Synced authenticated Premium identity forwarding guidance and preserved the published v0.2.1 release record below.
 
 ## [0.2.1] - 2026-08-10

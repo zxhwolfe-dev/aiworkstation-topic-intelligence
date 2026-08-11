@@ -184,6 +184,8 @@ Require exact finalist identity preservation and host-generated Brief completion
 
 Run the v0.2.1 release-candidate suite live with `--strict-observation`. Save both the raw `ati.host-eval.v1` report and the `ati.host-evidence.v1` graded report. This is an observability gate only: manually review the raw traces/output against each case's `must_show` and `must_not` before approval.
 
+For every release after the immutable v0.2.1 line, persist those artifacts under `release-evidence/v<VERSION>/host-eval.json`, `host-evidence.json`, and `manual-review.md`. `scripts/verify_release_evidence.py` requires completed cases, passing evidence grades, and explicit attestations for `must_show`, `must_not`, zero anonymous `/insight` calls, and no post-handoff reselection. The tag workflow hard-fails when this evidence is absent or incomplete. The v0.2.1 tag is the sole historical workflow exception.
+
 If ChatGPT is a target surface, use a fresh uploaded release-candidate package; do not assume Codex proves ChatGPT behavior.
 
 ## 10. Tag
