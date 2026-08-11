@@ -4,9 +4,9 @@
 
 [English](README.md)
 
-最新公开版本：**v0.2.1**
+当前包版本：**v0.2.2**
 
-v0.2.0 已经证明：两个 standalone Skill 可以在 ChatGPT 上传/发现/执行，能直接访问实时 AI Workstation Topic Radar，也能完成 Creator → Brief 组合流程。
+v0.2.0 已经证明：两个 standalone Skill 可以在 ChatGPT 上传/发现/执行，能直接访问实时 AI Workstation Topic Radar，也能完成 Creator → Brief 组合流程。v0.2.2 在此基础上固定了 `python3` 和确定性的 helper 调用、bounded Radar 扫描、严格 runtime/evidence grading、隔离 Skill fixture 与中性的 Host workspace，并引入持久化 release evidence。
 
 v0.2.1 继续优化真实 ChatGPT 使用中发现的问题，并新增一个非常重要的商业/成本边界：
 
@@ -56,7 +56,7 @@ Creator 只选一个 finalist，并把同一个 live `id` 交给 Brief。Brief �
 
 如果只装 Brief，它会做一次 bounded live selection（通常最多 5 个候选），选最多一个，再按需要查 history，然后由**当前宿主模型**直接生成研究就绪的内容简报。
 
-## v0.2.1：公开 Skill 的成本边界
+## v0.2.2：公开 Skill 的成本边界
 
 公开 Skill 应该可以放心传播，而不是每有一个人调用，就消耗你网站服务器的大模型额度。
 
@@ -232,7 +232,7 @@ v0.2.0 已经在 ChatGPT Web 做过真实 Creator-only / Brief-only / Both-Skill
 - live Radar：PASS
 - 双 Skill 组合：行为验证 PASS
 
-v0.2.1 候选包另外完成了不依赖 ChatGPT 登录的三条隔离新代理验收（Creator-only / Brief-only / Both-Skills）、解压包执行、实时 `feed` / `sources` / `history`、断网无本地回退和零 `/insight` 检查。这属于宿主/运行时验收，不声称重新测试了 v0.2.1 的 ChatGPT ZIP 上传界面。
+v0.2.1 和 v0.2.2 的 Codex/Host Eval 属于宿主/运行时验收，不冒充对应版本的 ChatGPT Web UI ZIP 上传验证。v0.2.2 另外持久化了完整 live suite、人工审核和 verifier evidence。
 
 详见：
 
@@ -297,5 +297,6 @@ python3 -m unittest discover -s tests -v
 
 ## 当前状态
 
-- **v0.2.1**：当前最新公开不可变版本；公开模式由宿主模型完成 Brief，不消耗 AI Workstation 服务器端 LLM Token。
-- **v0.2.0**：上一公开不可变版本，也是最近一次在 ChatGPT Web 手工上传验证的版本。
+- **v0.2.2**：当前包版本；公开模式由宿主模型完成 Brief，并通过确定性 helper、隔离 Host 执行和持久化 live evidence，不消耗 AI Workstation 服务器端 LLM Token。
+- **v0.2.1**：上一条 Host/Codex 验证版本；其 Host Eval 不代表 ChatGPT Web UI 验证。
+- **v0.2.0**：上一条公开不可变版本，也是最近一次在 ChatGPT Web 手工上传验证的版本。

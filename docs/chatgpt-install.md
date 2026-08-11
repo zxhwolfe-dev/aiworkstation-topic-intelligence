@@ -7,7 +7,7 @@ Topic Intelligence ships as two Agent Skills:
 - `creator-topic-opportunity-research`
 - `evidence-backed-content-brief`
 
-Latest public release: **v0.2.1**.
+Current package version: **v0.2.2**.
 
 ## Current ChatGPT availability
 
@@ -44,7 +44,7 @@ references/quality-contract.md
 LICENSE
 ```
 
-v0.2.1 changes the bundled helper into a **public no-cost read transport**. It exposes only:
+v0.2.2 changes the bundled helper into a **public no-cost read transport** with deterministic `python3` invocation and bounded scans. It exposes only:
 
 ```text
 feed
@@ -94,7 +94,7 @@ v0.2.1 additionally addresses issues found in that smoke:
 - no second selection after a valid handoff;
 - public Brief uses host reasoning with zero AI Workstation server-model spend.
 
-The v0.2.1 release candidate was accepted without a ChatGPT login through isolated Creator-only, Brief-only, and both-Skills fresh-agent runs plus extracted-package/live-runtime checks. The v0.2.1 ChatGPT upload UI itself was not re-tested, so its status must not be inferred from those non-UI results. See [`v0.2.1-non-ui-host-acceptance-2026-08-10.md`](v0.2.1-non-ui-host-acceptance-2026-08-10.md).
+The v0.2.1 and v0.2.2 candidates were accepted through strict isolated Codex Host Eval, including live Radar evidence, neutral workspaces, Skill fixture isolation, manual review, and persistent verifier checks. This is Host/runtime evidence; it does **not** claim that the v0.2.2 ZIP upload UI was re-tested in ChatGPT. The last real ChatGPT Web upload evidence remains v0.2.0. See [`v0.2.1-non-ui-host-acceptance-2026-08-10.md`](v0.2.1-non-ui-host-acceptance-2026-08-10.md).
 
 ## First-use prompts
 

@@ -2,7 +2,7 @@
 
 AI Workstation Topic Intelligence is distributed as two reusable Skills over the existing AI Workstation Global Topic Radar.
 
-Latest public release: **v0.2.1**.
+Current package version: **v0.2.2**.
 
 A `VERSION` change does not publish anything by itself; only a matching pushed `v*` tag can start the release workflow.
 
@@ -113,6 +113,13 @@ Published v0.2.1 hashes:
 81d6aac45b42c27b8f24c27ac18b6a268509fb9a8a88a0813b96feab8f034d5e  aiworkstation-topic-intelligence-0.2.1-evidence-backed-content-brief.zip
 ```
 
+v0.2.2 deterministic build hashes:
+
+```text
+e0c56957c95333ae8de28a2bfb71fcbaf59ec15bc65ace2f5d379a819a7fad68  aiworkstation-topic-intelligence-0.2.2-creator-topic-opportunity-research.zip
+80a1d10cf46b25549a0abc803fef368144c166bb5356f571b452aa6f80c6332e  aiworkstation-topic-intelligence-0.2.2-evidence-backed-content-brief.zip
+```
+
 Consumers should verify release assets against `SHA256SUMS` / `release-manifest.json`.
 
 ### 3. ChatGPT Skill upload
@@ -130,7 +137,7 @@ ChatGPT host model
 
 The uploaded public Skill should not depend on a server-side AI Workstation model call.
 
-The v0.2.1 release candidate passed isolated non-UI host/runtime acceptance. The ChatGPT v0.2.1 upload UI was not re-tested; the last manual web-upload evidence remains the separately recorded v0.2.0 smoke.
+The v0.2.1 and v0.2.2 candidates passed isolated non-UI Codex/Host acceptance. The v0.2.1 and v0.2.2 ChatGPT upload UIs were not re-tested; the last manual web-upload evidence remains the separately recorded v0.2.0 smoke.
 
 If a future ChatGPT App/Plugin/OAuth integration provides an authenticated AI Workstation account connection, that native connection may expose separate Premium capabilities. Do not put that authentication responsibility inside the portable Skill ZIP.
 
@@ -145,9 +152,10 @@ vX.Y.Z
 Pushing a matching tag triggers `.github/workflows/release.yml`, which:
 
 1. verifies tag == `VERSION`;
-2. runs the offline suite;
-3. builds deterministic archives;
-4. publishes ZIPs, manifest, and checksums.
+2. runs the offline full test suite, runtime sync, and eval dry-run;
+3. verifies persistent live Host Eval evidence and manual review;
+4. builds deterministic archives;
+5. publishes ZIPs, manifest, and `SHA256SUMS`.
 
 Existing tags such as `v0.1.0` and `v0.2.0` are immutable.
 

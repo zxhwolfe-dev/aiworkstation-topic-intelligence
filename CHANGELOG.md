@@ -6,14 +6,14 @@ The project follows Semantic Versioning for distributable Skill releases.
 
 ## [0.2.2] - 2026-08-11
 
-Release candidate prepared for validation. This version is not tagged or published.
+v0.2.2 introduces a persistent live Host Eval evidence gate for release validation.
 
 ### Changed
 
 - Added stricter public client origin and freshness contracts, target-platform CLI filtering, and real Host Eval failure exit codes.
 - Documented the official Radar origin rule and the strict Host Eval observability/manual-review boundary.
 - Kept packaged Skill runtime copies synchronized after the nested response-contract checks.
-- Added a persistent post-v0.2.1 Host Eval evidence gate; v0.2.2 remains blocked until a completed live RC and manual semantic review are committed.
+- Added a persistent post-v0.2.1 Host Eval evidence gate: publication requires a complete live suite, structured manual semantic review, and a passing release verifier.
 - Hardened the release evidence verifier against fabricated grades, wrong suites/versions, incomplete or truncated runs, case-contract drift, stale code revisions, and unstructured manual attestations; fixed grading for the v0.2.1 suite.
 - Required successful `feed`/`sources`/`history` helper execution without an explicit custom origin and with contract-valid Radar JSON before Host Eval records runtime workflow evidence; source reads, help, failed calls, and composed shell commands no longer qualify.
 - Synced authenticated Premium identity forwarding guidance and preserved the published v0.2.1 release record below.
@@ -61,7 +61,7 @@ No unreleased changes.
 
 ### Distribution
 
-- `v0.2.1` is the current public immutable release; `v0.2.0` remains immutable and retains the last manual ChatGPT web-upload evidence.
+- `v0.2.2` is the current package line; `v0.2.0` remains immutable and retains the last manual ChatGPT web-upload evidence, while v0.2.1 and v0.2.2 Host Eval results do not claim ChatGPT Web UI validation.
 - No Hosted MCP transport is required for public Radar connectivity because standalone ChatGPT Skills already reach the live public read endpoints.
 - A future authenticated App/Plugin/OAuth transport may be introduced only for Premium account-bound capabilities such as server Topic Insight.
 

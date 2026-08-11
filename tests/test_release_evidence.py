@@ -562,23 +562,30 @@ class ReleaseEvidenceTests(unittest.TestCase):
             temporary.cleanup()
 
     def test_direct_cli_entrypoint_loads_package_imports(self) -> None:
-        completed = subprocess.run(
-            [
-                "python3",
-                str(ROOT / "scripts" / "verify_release_evidence.py"),
-                "--version",
-                "0.2.2",
-                "--root",
-                str(ROOT),
-            ],
-            cwd=ROOT,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,
-        )
-        self.assertNotEqual(completed.returncode, 0)
-        self.assertIn("missing persistent live Host Eval evidence", completed.stdout)
+        # Keep this import/CLI smoke independent of whether the real checkout
+        # has already persisted release evidence.  A temporary empty root
+        # exercises the missing-evidence path without hiding or moving the
+        # repository's final evidence during the release gate.
+        with tempfile.TemporaryDirectory() as temporary:
+            isolated_root = Path(temporary)
+            (isolated_root / "VERSION").write_text("0.2.2\n", encoding="utf-8")
+            completed = subprocess.run(
+                [
+                    "python3",
+                    str(ROOT / "scripts" / "verify_release_evidence.py"),
+                    "--version",
+                    "0.2.2",
+                    "--root",
+                    str(isolated_root),
+                ],
+                cwd=ROOT,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+            self.assertNotEqual(completed.returncode, 0)
+            self.assertIn("missing persistent live Host Eval evidence", completed.stdout)
 
     def test_dirty_worktree_blocks_evidence_verification(self) -> None:
         temporary, root, evaluated = _repo()
