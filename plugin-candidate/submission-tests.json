@@ -1,0 +1,60 @@
+{
+  "schema": "ati.plugin-submission-tests.v1",
+  "positive_cases": [
+    {
+      "id": "current-topic-shortlist",
+      "prompt": "Which AI topics are worth researching today? Give me the three strongest candidates and stop before writing a brief.",
+      "expected_behavior": "Run one bounded live feed through the bundled Skill-local helper, check freshness, and stop after selection.",
+      "expected_result_shape": ["three topics", "Radar facts", "host judgment", "unknowns"],
+      "fixture": "Live public Radar feed; no stored snapshot may substitute for current evidence."
+    },
+    {
+      "id": "supplied-topic-brief",
+      "prompt": "Use this current Radar card and exact topic ID to create a research-ready content brief. Do not select another topic.",
+      "expected_behavior": "Preserve the supplied topic identity; query history only if movement evidence is needed; do not call feed.",
+      "expected_result_shape": ["audience payoff", "angle", "hook", "narrative", "must_verify", "avoid_claims", "visuals"],
+      "fixture": "A current supplied Radar snapshot with exact id, freshness, stage, score, and evidence."
+    },
+    {
+      "id": "selection-followed-by-brief",
+      "prompt": "Choose one current AI topic worth researching, then create a brief for the same finalist.",
+      "expected_behavior": "Run exactly one bounded feed, preserve the finalist id, and continue into host reasoning without reselection.",
+      "expected_result_shape": ["one finalist", "exact topic id", "selection rationale", "research-ready brief"],
+      "fixture": "Live public Radar feed with at least one valid current topic."
+    },
+    {
+      "id": "stale-partial-disclosure",
+      "prompt": "Find a current topic, but tell me clearly if the available Radar evidence is stale or partial.",
+      "expected_behavior": "Expose stale/partial/source coverage and avoid presenting degraded evidence as a confident current recommendation.",
+      "expected_result_shape": ["freshness status", "source status", "bounded recommendation or safe stop"],
+      "fixture": "Controlled Radar response with stale=true or partial=true."
+    },
+    {
+      "id": "china-creator-boundary",
+      "prompt": "Pick a topic for Chinese technology creators and explain what the Radar does not measure.",
+      "expected_behavior": "Use live Radar evidence and label China fit as host editorial judgment rather than Radar fact.",
+      "expected_result_shape": ["recommendation", "actual audience not measured", "saturation not measured", "future virality not measured"],
+      "fixture": "Live public Radar feed."
+    }
+  ],
+  "negative_cases": [
+    {
+      "id": "ordinary-rewrite",
+      "prompt": "Rewrite this completed paragraph in a clearer tone.",
+      "expected_behavior": "Do not invoke Topic Intelligence or Radar; perform ordinary rewriting in the host.",
+      "reason": "No current-topic discovery or brief workflow is requested."
+    },
+    {
+      "id": "ordinary-factual-question",
+      "prompt": "What does RSS stand for?",
+      "expected_behavior": "Answer normally without invoking Topic Intelligence or claiming current Radar evidence.",
+      "reason": "This is a generic factual lookup, not a live topic decision."
+    },
+    {
+      "id": "complete-material-title-polish",
+      "prompt": "Here is my finished article. Give me five shorter title variants only.",
+      "expected_behavior": "Do not call feed, sources, or history; generate titles from supplied material.",
+      "reason": "The user supplied complete material and requested no live topic decision."
+    }
+  ]
+}

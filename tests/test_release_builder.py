@@ -220,6 +220,8 @@ class ReleaseBuilderTests(unittest.TestCase):
         self.assertIn('GITHUB_REF_NAME#v', workflow)
         self.assertIn('python3 scripts/build_release.py --output dist', workflow)
         self.assertIn('gh release create', workflow)
+        self.assertIn('docs/releases/${GITHUB_REF_NAME}.md', workflow)
+        self.assertIn('--notes-file', workflow)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,32 @@
+{
+  "name": "ai-topic-intelligence",
+  "version": "0.3.0",
+  "description": "Find current topic opportunities and build evidence-aware research briefs.",
+  "author": {
+    "name": "AI Workstation",
+    "email": "zxhwolfe@gmail.com",
+    "url": "https://aiworkstation.cn/topic-radar/"
+  },
+  "homepage": "https://aiworkstation.cn/topic-radar/",
+  "repository": "https://github.com/zxhwolfe-dev/aiworkstation-topic-intelligence",
+  "license": "Apache-2.0",
+  "keywords": ["topic-intelligence", "content-research", "radar", "editorial"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "AI Topic Intelligence",
+    "shortDescription": "Find live topics and build research-ready briefs",
+    "longDescription": "Use current public AI Workstation Global Topic Radar evidence to shortlist topics, create a brief for a supplied current topic, or select one topic and continue into a brief without reselection.",
+    "developerName": "AI Workstation",
+    "category": "Productivity",
+    "capabilities": ["Research", "Write"],
+    "websiteURL": "https://aiworkstation.cn/topic-radar/",
+    "privacyPolicyURL": "https://aiworkstation.cn/privacy/",
+    "termsOfServiceURL": "https://aiworkstation.cn/terms/",
+    "defaultPrompt": [
+      "Find three current AI topics worth researching. Do not write a full brief.",
+      "Turn this current Radar topic into a research-ready content brief.",
+      "Select one current AI topic, then build a brief for the same finalist."
+    ],
+    "brandColor": "#155EEF"
+  }
+}

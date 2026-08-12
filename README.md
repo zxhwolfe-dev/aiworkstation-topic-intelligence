@@ -15,7 +15,7 @@ Topic Intelligence sits on top of the existing AI Workstation Global Topic Radar
 ### 1. What is worth researching today?
 
 ```text
-今天有哪些 AI 题材值得我继续研究或做内容？先检查 Radar 是否足够新，再给我最值得看的 3 个。
+Which AI topics are worth researching or covering today? Check Radar freshness first, then give me the three strongest candidates. Do not write a full brief.
 ```
 
 The `topic-intelligence` Skill reads live Radar evidence, checks freshness/source coverage, and uses the **host model** to explain which candidates may be worth researching. It stops at the requested shortlist and does not add an unsolicited brief.
@@ -23,7 +23,7 @@ The `topic-intelligence` Skill reads live Radar evidence, checks freshness/sourc
 ### 2. Is there a cross-market early opportunity?
 
 ```text
-海外现在有哪些科技话题正在升温、可能值得中文内容创作者提前研究？中文区是否已经做烂如果没有直接证据就明确说不知道。
+Which technology topics are gaining momentum outside China and may be worth early research by Chinese-language creators? If current evidence does not establish saturation in the Chinese market, say that explicitly.
 ```
 
 Cross-market timing or audience saturation remain hypotheses unless the current Radar evidence directly establishes them.
@@ -31,7 +31,7 @@ Cross-market timing or audience saturation remain hypotheses unless the current 
 ### 3. Pick a live topic and turn it into a brief
 
 ```text
-从当前 AI 热点里挑一个适合 2–3 分钟解释型内容的题材，给我受众收益、最强角度、前三秒、叙事结构、必须核验的事实、不能乱说的内容和素材建议。
+Choose one current AI topic suitable for a two-to-three-minute explainer, then give me the audience payoff, strongest angle, opening three seconds, narrative structure, facts to verify, claims to avoid, and suggested visuals.
 ```
 
 The same Skill automatically selects the smallest workflow:
