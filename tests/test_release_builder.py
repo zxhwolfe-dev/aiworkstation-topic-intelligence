@@ -17,13 +17,11 @@ from scripts.build_release import (
 )
 
 
-SKILLS = (
-    "creator-topic-opportunity-research",
-    "evidence-backed-content-brief",
-)
+SKILLS = ("topic-intelligence",)
 HELPER_TEXT = "#!/usr/bin/env python3\nprint('Thin client test helper')\n"
-HANDOFF_TEXT = "Schema: `ati.topic-opportunity-handoff.v1`\n"
 QUALITY_TEXT = "Topic Intelligence quality contract\n"
+SELECTION_TEXT = "Selection workflow\n"
+BRIEF_TEXT = "Brief workflow\n"
 
 
 def make_release_repo(root: Path, *, version: str = "0.1.0") -> None:
@@ -32,9 +30,14 @@ def make_release_repo(root: Path, *, version: str = "0.1.0") -> None:
     (root / "scripts").mkdir(parents=True)
     (root / "references").mkdir(parents=True)
     (root / "scripts" / "topic_radar_client.py").write_text(HELPER_TEXT, encoding="utf-8")
-    (root / "references" / "topic-opportunity-handoff.md").write_text(HANDOFF_TEXT, encoding="utf-8")
     (root / "references" / "topic-intelligence-quality-contract.md").write_text(
         QUALITY_TEXT, encoding="utf-8"
+    )
+    (root / "references" / "topic-intelligence-selection-workflow.md").write_text(
+        SELECTION_TEXT, encoding="utf-8"
+    )
+    (root / "references" / "topic-intelligence-brief-workflow.md").write_text(
+        BRIEF_TEXT, encoding="utf-8"
     )
     for name in SKILLS:
         skill = root / "skills" / name
@@ -50,8 +53,9 @@ def make_release_repo(root: Path, *, version: str = "0.1.0") -> None:
             encoding="utf-8",
         )
         (skill / "scripts" / "topic_radar_client.py").write_text(HELPER_TEXT, encoding="utf-8")
-        (skill / "references" / "handoff-contract.md").write_text(HANDOFF_TEXT, encoding="utf-8")
         (skill / "references" / "quality-contract.md").write_text(QUALITY_TEXT, encoding="utf-8")
+        (skill / "references" / "selection-workflow.md").write_text(SELECTION_TEXT, encoding="utf-8")
+        (skill / "references" / "brief-workflow.md").write_text(BRIEF_TEXT, encoding="utf-8")
 
 
 class ReleaseBuilderTests(unittest.TestCase):
@@ -76,6 +80,7 @@ class ReleaseBuilderTests(unittest.TestCase):
             self.assertEqual(manifest["version"], "0.1.0")
             self.assertEqual(manifest["license"], LICENSE_ID)
             self.assertEqual({item["skill"] for item in manifest["artifacts"]}, set(SKILLS))
+            self.assertEqual(manifest["artifacts"][0]["file"], "topic-intelligence-0.1.0.zip")
             disk_manifest = json.loads((output / "release-manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(disk_manifest, manifest)
             sums = (output / "SHA256SUMS").read_text(encoding="utf-8")
@@ -119,19 +124,19 @@ class ReleaseBuilderTests(unittest.TestCase):
             with self.assertRaisesRegex(ReleaseError, "scripts/topic_radar_client.py"):
                 build_release(Path(out_dir), root=repo)
 
-    def test_release_rejects_missing_handoff_contract(self) -> None:
+    def test_release_rejects_missing_selection_workflow(self) -> None:
         with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as out_dir:
             repo = Path(repo_dir)
             make_release_repo(repo)
-            (repo / "skills" / SKILLS[1] / "references" / "handoff-contract.md").unlink()
-            with self.assertRaisesRegex(ReleaseError, "references/handoff-contract.md"):
+            (repo / "skills" / SKILLS[0] / "references" / "selection-workflow.md").unlink()
+            with self.assertRaisesRegex(ReleaseError, "references/selection-workflow.md"):
                 build_release(Path(out_dir), root=repo)
 
     def test_release_rejects_missing_quality_contract(self) -> None:
         with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as out_dir:
             repo = Path(repo_dir)
             make_release_repo(repo)
-            (repo / "skills" / SKILLS[1] / "references" / "quality-contract.md").unlink()
+            (repo / "skills" / SKILLS[0] / "references" / "quality-contract.md").unlink()
             with self.assertRaisesRegex(ReleaseError, "references/quality-contract.md"):
                 build_release(Path(out_dir), root=repo)
 
@@ -143,11 +148,11 @@ class ReleaseBuilderTests(unittest.TestCase):
             with self.assertRaisesRegex(ReleaseError, "portable runtime drift"):
                 build_release(Path(out_dir), root=repo)
 
-    def test_release_rejects_drifted_handoff(self) -> None:
+    def test_release_rejects_drifted_selection_workflow(self) -> None:
         with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as out_dir:
             repo = Path(repo_dir)
             make_release_repo(repo)
-            (repo / "skills" / SKILLS[1] / "references" / "handoff-contract.md").write_text("drifted\n", encoding="utf-8")
+            (repo / "skills" / SKILLS[0] / "references" / "selection-workflow.md").write_text("drifted\n", encoding="utf-8")
             with self.assertRaisesRegex(ReleaseError, "portable runtime drift"):
                 build_release(Path(out_dir), root=repo)
 
@@ -184,7 +189,8 @@ class ReleaseBuilderTests(unittest.TestCase):
             manifest = build_release(output, root=self.ROOT)
             self.assertEqual(manifest["version"], read_version(self.ROOT))
             self.assertEqual(manifest["license"], "Apache-2.0")
-            self.assertEqual(len(manifest["artifacts"]), 2)
+            self.assertEqual(len(manifest["artifacts"]), 1)
+            self.assertEqual(manifest["artifacts"][0]["file"], "topic-intelligence-0.3.0.zip")
             for item in manifest["artifacts"]:
                 with ZipFile(output / item["file"]) as archive:
                     names = archive.namelist()
@@ -203,7 +209,8 @@ class ReleaseBuilderTests(unittest.TestCase):
         self.assertIn("scripts/build_release.py", distribution)
         self.assertIn("release-manifest.json", distribution)
         self.assertIn("scripts/topic_radar_client.py", distribution)
-        self.assertIn("references/handoff-contract.md", distribution)
+        self.assertIn("references/selection-workflow.md", distribution)
+        self.assertIn("references/brief-workflow.md", distribution)
         self.assertIn("Apache", license_text)
         self.assertIn("v${VERSION}", checklist)
 

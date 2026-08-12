@@ -14,10 +14,7 @@ from scripts.install_codex_skills import (
 )
 
 
-SKILLS = (
-    "creator-topic-opportunity-research",
-    "evidence-backed-content-brief",
-)
+SKILLS = ("topic-intelligence",)
 LEGACY_SKILL = "cross-market-trend-research"
 
 
@@ -40,13 +37,15 @@ def make_fake_repo(root: Path, *, version: str = "0.2.1") -> None:
             "#!/usr/bin/env python3\nprint('test helper')\n",
             encoding="utf-8",
         )
-        (skill / "references" / "handoff-contract.md").write_text(
-            "Schema: `ati.topic-opportunity-handoff.v1`\n",
-            encoding="utf-8",
-        )
         (skill / "references" / "quality-contract.md").write_text(
             "Topic Intelligence quality contract\n",
             encoding="utf-8",
+        )
+        (skill / "references" / "selection-workflow.md").write_text(
+            "Selection workflow\n", encoding="utf-8"
+        )
+        (skill / "references" / "brief-workflow.md").write_text(
+            "Brief workflow\n", encoding="utf-8"
         )
 
 
@@ -60,8 +59,8 @@ class CodexInstallerTests(unittest.TestCase):
             first = install(target, root=repo)
             second = install(target, root=repo)
 
-            self.assertEqual([row["state"] for row in first], ["installed", "installed"])
-            self.assertEqual([row["state"] for row in second], ["installed", "installed"])
+            self.assertEqual([row["state"] for row in first], ["installed"])
+            self.assertEqual([row["state"] for row in second], ["installed"])
             for name in SKILLS:
                 self.assertTrue((target / name).is_symlink())
                 self.assertEqual((target / name).resolve(), (repo / "skills" / name).resolve())
@@ -83,7 +82,7 @@ class CodexInstallerTests(unittest.TestCase):
             report = doctor(target, root=repo)
 
             self.assertFalse(legacy_link.is_symlink())
-            self.assertEqual([row["state"] for row in rows], ["installed", "installed"])
+            self.assertEqual([row["state"] for row in rows], ["installed"])
             self.assertTrue(report["legacy_clean"])
             self.assertTrue(report["ok"])
 
@@ -98,7 +97,7 @@ class CodexInstallerTests(unittest.TestCase):
             with self.assertRaisesRegex(InstallError, "refusing to overwrite"):
                 install(target, root=repo)
 
-            self.assertFalse((target / SKILLS[1]).exists())
+            self.assertTrue((target / SKILLS[0]).exists())
 
     def test_uninstall_removes_only_matching_links(self) -> None:
         with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as target_dir:
@@ -118,7 +117,6 @@ class CodexInstallerTests(unittest.TestCase):
 
             self.assertTrue(own_link.is_symlink())
             self.assertEqual(states[SKILLS[0]], "conflicting_symlink")
-            self.assertEqual(states[SKILLS[1]], "missing")
 
     def test_inspect_reports_missing_without_creating_target(self) -> None:
         with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as target_dir:
@@ -128,7 +126,7 @@ class CodexInstallerTests(unittest.TestCase):
 
             rows = inspect(target, root=repo)
 
-            self.assertEqual([row["state"] for row in rows], ["missing", "missing"])
+            self.assertEqual([row["state"] for row in rows], ["missing"])
             self.assertFalse(target.exists())
 
     def test_doctor_reports_version_python_metadata_and_install_health(self) -> None:
@@ -144,11 +142,12 @@ class CodexInstallerTests(unittest.TestCase):
             self.assertTrue(report["python_supported"])
             self.assertTrue(report["legacy_clean"])
             self.assertTrue(report["ok"])
-            self.assertEqual(len(report["skills"]), 2)
+            self.assertEqual(len(report["skills"]), 1)
             self.assertTrue(all(item["skill_md"] == "ok" for item in report["skills"]))
             self.assertTrue(all(item["openai_metadata"] == "ok" for item in report["skills"]))
             self.assertTrue(all(item["runtime_helper"] == "ok" for item in report["skills"]))
-            self.assertTrue(all(item["handoff_contract"] == "ok" for item in report["skills"]))
+            self.assertTrue(all(item["selection_workflow"] == "ok" for item in report["skills"]))
+            self.assertTrue(all(item["brief_workflow"] == "ok" for item in report["skills"]))
             self.assertTrue(all(item["quality_contract"] == "ok" for item in report["skills"]))
 
     def test_doctor_fails_when_required_runtime_file_is_missing(self) -> None:
@@ -167,20 +166,20 @@ class CodexInstallerTests(unittest.TestCase):
             self.assertEqual(first["state"], "installed")
             self.assertEqual(first["runtime_helper"], "missing")
 
-    def test_doctor_fails_when_handoff_contract_is_missing(self) -> None:
+    def test_doctor_fails_when_selection_workflow_is_missing(self) -> None:
         with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as target_dir:
             repo = Path(repo_dir)
             target = Path(target_dir) / "skills"
             make_fake_repo(repo)
             install(target, root=repo)
-            contract = repo / "skills" / SKILLS[1] / "references" / "handoff-contract.md"
+            contract = repo / "skills" / SKILLS[0] / "references" / "selection-workflow.md"
             contract.unlink()
 
             report = doctor(target, root=repo)
 
             self.assertFalse(report["ok"])
-            second = next(item for item in report["skills"] if item["name"] == SKILLS[1])
-            self.assertEqual(second["handoff_contract"], "missing")
+            first = next(item for item in report["skills"] if item["name"] == SKILLS[0])
+            self.assertEqual(first["selection_workflow"], "missing")
 
     def test_doctor_fails_when_quality_contract_is_missing(self) -> None:
         with tempfile.TemporaryDirectory() as repo_dir, tempfile.TemporaryDirectory() as target_dir:

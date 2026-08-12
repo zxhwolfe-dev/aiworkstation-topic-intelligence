@@ -31,9 +31,9 @@ class M3AdoptionTests(unittest.TestCase):
         )
         self.assertIn("Business, Enterprise, Healthcare, and Edu", content)
         self.assertIn("Do not market Topic Intelligence as a one-click install for every ChatGPT plan", content)
-        self.assertIn("Treat each ChatGPT surface installation independently", content)
-        self.assertIn("creator-topic-opportunity-research", content)
-        self.assertIn("evidence-backed-content-brief", content)
+        self.assertIn("Surface availability and installation state are independent", content)
+        self.assertIn("topic-intelligence", content)
+        self.assertIn("three user modes", content)
 
     def test_website_entry_is_user_value_first_and_keeps_evidence_boundary(self) -> None:
         content = (self.ROOT / "docs" / "website-entry-copy.zh-CN.md").read_text(
@@ -41,12 +41,12 @@ class M3AdoptionTests(unittest.TestCase):
         )
         self.assertIn("今天什么 AI 题材值得做？", content)
         self.assertIn("看看今天值得研究的题材", content)
-        self.assertIn("直接在 AI Workstation 使用", content)
+        self.assertIn("获取 Topic Intelligence", content)
         self.assertIn("事实、分析和建议分开", content)
         self.assertIn("不会用模型记忆或本地旧数据冒充", content)
         self.assertNotIn("保证抓住热点", content.split("## 首页不应该承诺的内容", 1)[0])
 
-    def test_v0_2_release_history_is_preserved_on_v0_2_2_rc_line(self) -> None:
+    def test_v0_2_release_history_is_preserved_under_current_v0_3_line(self) -> None:
         version = (self.ROOT / "VERSION").read_text(encoding="utf-8").strip()
         changelog = (self.ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         acceptance = (
@@ -62,7 +62,8 @@ class M3AdoptionTests(unittest.TestCase):
             self.ROOT / "docs" / "v0.2.1-non-ui-host-acceptance-2026-08-10.md"
         ).read_text(encoding="utf-8")
 
-        self.assertEqual(version, "0.2.2")
+        self.assertEqual(version, "0.3.0")
+        self.assertIn("## [0.3.0]", changelog)
         self.assertIn("## [0.2.2] - 2026-08-11", changelog)
         self.assertIn("## [0.2.1] - 2026-08-10", changelog)
         self.assertIn("## [0.2.0] - 2026-08-09", changelog)

@@ -1,217 +1,85 @@
 # Distribution
 
-AI Workstation Topic Intelligence is distributed as two reusable Skills over the existing AI Workstation Global Topic Radar.
+AI Workstation Topic Intelligence v0.3.0 is distributed as one public Skill and one self-contained install archive over the existing Global Topic Radar.
 
-Current package version: **v0.2.2**.
+Current package version: **v0.3.0**.
 
-A `VERSION` change does not publish anything by itself; only a matching pushed `v*` tag can start the release workflow.
+A `VERSION` change does not publish anything by itself. Only a matching pushed `v*` tag starts the GitHub Release workflow.
 
-## Public distribution principle
+## Public package
 
-The public Skill archives must be safe to distribute widely without giving anonymous users access to AI Workstation's server-side model budget.
-
-The bundled runtime therefore exposes only public read operations:
+The builder produces:
 
 ```text
-feed
-sources
-history
+topic-intelligence-0.3.0.zip
+release-manifest.json
+SHA256SUMS
 ```
 
-It intentionally does **not** expose a bundled `insight` command.
-
-Normal public Brief generation uses live Radar facts plus the current host model. Premium server-generated Topic Insight is a separate future account-bound capability and requires a native authenticated AI Workstation connection that enforces membership/quota/credits.
-
-Never distribute:
-
-- an embedded AI Workstation API key;
-- a shared public bearer token;
-- a Skill that asks users to paste private credentials into chat;
-- a bundled anonymous path that spends server-side model quota.
-
-## Release channels
-
-### 1. Codex checkout + symlink
-
-Best for development/evaluation:
-
-```bash
-git clone <repository>
-cd aiworkstation-topic-intelligence
-python3 scripts/install_codex_skills.py install
-python3 scripts/install_codex_skills.py doctor
-```
-
-The installer links the two Skill directories into `$HOME/.agents/skills` and refuses to overwrite unrelated paths.
-
-`doctor` validates:
-
-- `SKILL.md`;
-- `agents/openai.yaml`;
-- `scripts/topic_radar_client.py`;
-- `references/handoff-contract.md`;
-- `references/quality-contract.md`.
-
-### 2. Standalone Skill archives
-
-Build portable/self-contained archives with:
-
-```bash
-python3 scripts/build_release.py --output dist
-```
-
-Output:
-
-```text
-dist/
-  aiworkstation-topic-intelligence-VERSION-creator-topic-opportunity-research.zip
-  aiworkstation-topic-intelligence-VERSION-evidence-backed-content-brief.zip
-  release-manifest.json
-  SHA256SUMS
-```
-
-Each ZIP contains exactly one top-level Skill directory and must include:
+The archive contains one top-level `topic-intelligence/` directory with:
 
 ```text
 SKILL.md
 agents/openai.yaml
 scripts/topic_radar_client.py
-references/handoff-contract.md
 references/quality-contract.md
+references/selection-workflow.md
+references/brief-workflow.md
 LICENSE
 ```
 
-The bundled helper is the Skill-local standard-library **public read transport**. It does not require a repository-root helper or sibling `akaiagents` checkout.
+The Skill infers three modes from natural language: selection only, brief for a supplied current topic, and one bounded selection followed by a brief for the same finalist. These are workflows, not three install or website entry points.
 
-Portable copies are byte-checked against canonical sources:
+## Runtime boundary
 
-```text
-scripts/topic_radar_client.py
-references/topic-opportunity-handoff.md
-references/topic-intelligence-quality-contract.md
-```
+The bundled helper exposes only the public read operations `feed`, `sources`, and `history`. It uses `python3`, puts global options before the subcommand, defaults ordinary scans to `--limit 12`, and normally caps them at 24. It must read directly from the loaded Skill root and must not use a repository helper, shell composition, custom origin, or anonymous `/insight`.
 
-The builder rejects:
+Normal public Brief generation uses live Radar facts and the host model, producing zero AI Workstation server-side LLM calls. Premium server-generated Topic Insight remains a separate account-bound capability that requires a native authenticated connection enforcing the user's quota.
 
-- missing required files;
-- portable-copy drift;
-- symlinks inside a Skill archive.
-
-Archives are deterministic: identical source/version produces identical ZIP hashes.
-
-Published v0.2.0 hashes remain:
-
-```text
-7d7ca0266abd55df374e4ca37ff5affadf9eabffe694474d18be96c5402dc897  aiworkstation-topic-intelligence-0.2.0-creator-topic-opportunity-research.zip
-9c90adccd61966321201c8c05b0fad963e18ea412bd3112c694a4fe0cea9dab8  aiworkstation-topic-intelligence-0.2.0-evidence-backed-content-brief.zip
-```
-
-Published v0.2.1 hashes:
-
-```text
-3381d798c29cc8f67b1bca3f1f6da8a34a34ab78e64b6af7bd48aff95b663bb6  aiworkstation-topic-intelligence-0.2.1-creator-topic-opportunity-research.zip
-81d6aac45b42c27b8f24c27ac18b6a268509fb9a8a88a0813b96feab8f034d5e  aiworkstation-topic-intelligence-0.2.1-evidence-backed-content-brief.zip
-```
-
-v0.2.2 deterministic build hashes:
-
-```text
-e0c56957c95333ae8de28a2bfb71fcbaf59ec15bc65ace2f5d379a819a7fad68  aiworkstation-topic-intelligence-0.2.2-creator-topic-opportunity-research.zip
-80a1d10cf46b25549a0abc803fef368144c166bb5356f571b452aa6f80c6332e  aiworkstation-topic-intelligence-0.2.2-evidence-backed-content-brief.zip
-```
-
-Consumers should verify release assets against `SHA256SUMS` / `release-manifest.json`.
-
-### 3. ChatGPT Skill upload
-
-The published v0.2.0 archives were manually tested in ChatGPT web. Upload/discovery/bundled runtime/live Radar access passed.
-
-For v0.2.1, the intended public ChatGPT path is:
-
-```text
-ChatGPT host model
-  + public Skill
-  + live feed/sources/history
-  -> research-ready result
-```
-
-The uploaded public Skill should not depend on a server-side AI Workstation model call.
-
-The v0.2.1 and v0.2.2 candidates passed isolated non-UI Codex/Host acceptance. The v0.2.1 and v0.2.2 ChatGPT upload UIs were not re-tested; the last manual web-upload evidence remains the separately recorded v0.2.0 smoke.
-
-If a future ChatGPT App/Plugin/OAuth integration provides an authenticated AI Workstation account connection, that native connection may expose separate Premium capabilities. Do not put that authentication responsibility inside the portable Skill ZIP.
-
-### 4. GitHub Release
-
-Public releases use a Semantic Version in `VERSION` and a matching tag:
-
-```text
-vX.Y.Z
-```
-
-Pushing a matching tag triggers `.github/workflows/release.yml`, which:
-
-1. verifies tag == `VERSION`;
-2. runs the offline full test suite, runtime sync, and eval dry-run;
-3. verifies persistent live Host Eval evidence and manual review;
-4. builds deterministic archives;
-5. publishes ZIPs, manifest, and `SHA256SUMS`.
-
-Existing tags such as `v0.1.0` and `v0.2.0` are immutable.
-
-## Standalone acceptance
-
-Before a new public release, acceptance should prove:
-
-1. each ZIP contains all required files;
-2. portable helper/reference copies match canonical sources;
-3. two identical builds have identical hashes;
-4. extracted helpers work outside the repository;
-5. the helper CLI exposes `feed`, `sources`, `history` and **no anonymous `insight` command**;
-6. public helper HTTP operations are GET-only;
-7. creator-only, brief-only, and both-Skills host behavior remains correct;
-8. composed workflows preserve the selected topic identity;
-9. public Brief can complete using host reasoning without AI Workstation server-side LLM spend;
-10. no tag is created until acceptance is complete.
-
-## Integrity verification
-
-Manifest schema:
-
-```text
-ati.release.v1
-```
-
-It records package/version/license/Skill/file/hash/size.
-
-## Upgrade behavior
-
-### Codex symlink install
+## Build and verify locally
 
 ```bash
-git pull --ff-only
+python3 scripts/sync_skill_runtime.py --check
+python3 scripts/build_release.py --output dist
+sha256sum dist/*
 python3 scripts/install_codex_skills.py install
 python3 scripts/install_codex_skills.py doctor
 ```
 
-### Standalone / ChatGPT
+The builder is deterministic. Build twice in independent directories and compare every file byte-for-byte and by SHA256. Consumers must verify `SHA256SUMS` and `release-manifest.json` before installation.
 
-Download/build the newer archive and install/upload it using the supported host flow. Do not assume an older uploaded Skill is auto-replaced.
+## Historical hashes
 
-## Premium / Plugin direction
-
-A future AI Workstation Plugin/App may be useful for **authenticated account-bound capabilities**, not because public Skills need help reaching Radar.
-
-A suitable future boundary is:
+The v0.2.x history remains immutable and is retained for audit:
 
 ```text
-public Skill
-  -> public feed/sources/history
-  -> host reasoning
-
-AI Workstation authenticated App/Plugin
-  -> user identity / plan / quota
-  -> optional Premium Topic Insight
+7d7ca0266abd55df374e4ca37ff5affadf9eabffe694474d18be96c5402dc897  aiworkstation-topic-intelligence-0.2.0-creator-topic-opportunity-research.zip
+9c90adccd61966321201c8c05b0fad963e18ea412bd3112c694a4fe0cea9dab8  aiworkstation-topic-intelligence-0.2.0-evidence-backed-content-brief.zip
+3381d798c29cc8f67b1bca3f1f6da8a34a34ab78e64b6af7bd48aff95b663bb6  aiworkstation-topic-intelligence-0.2.1-creator-topic-opportunity-research.zip
+81d6aac45b42c27b8f24c27ac18b6a268509fb9a8a88a0813b96feab8f034d5e  aiworkstation-topic-intelligence-0.2.1-evidence-backed-content-brief.zip
+e0c56957c95333ae8de28a2bfb71fcbaf59ec15bc65ace2f5d379a819a7fad68  aiworkstation-topic-intelligence-0.2.2-creator-topic-opportunity-research.zip
+80a1d10cf46b25549a0abc803fef368144c166bb5356f571b452aa6f80c6332e  aiworkstation-topic-intelligence-0.2.2-evidence-backed-content-brief.zip
 ```
 
-Do not add a Hosted MCP/Plugin merely to duplicate the already-working public Radar transport. If one is added for Premium auth/tooling, keep it thin and do not duplicate collection, clustering, score, history, persistence, or model logic.
+The verified v0.3.0 archive from two independent byte-for-byte identical builds is:
+
+```text
+7c7a15ba5e551f451a8ba14200af9df8d225ac6bbf15b60407e235acf010ddee  topic-intelligence-0.3.0.zip
+```
+
+## Release workflow
+
+Pushing a matching tag runs `.github/workflows/release.yml` and must complete these gates:
+
+1. tag/version equality and tag ancestry on `main`;
+2. offline full unittest suite;
+3. runtime synchronization and v0.3.0 eval dry-run;
+4. persistent live Host Eval evidence and verifier;
+5. deterministic build and manifest/checksum generation;
+6. GitHub Release publication of the single ZIP, manifest, and `SHA256SUMS`.
+
+The v0.2.0 release remains the last manual ChatGPT Web ZIP upload validation. v0.2.1 and v0.2.2 Host Eval evidence is not ChatGPT Web UI evidence. v0.3.0 must carry its own Host Eval evidence and still must not claim a new ChatGPT Web upload test without one.
+
+## Installation channels
+
+For Codex development, clone the repository and run the installer. For normal users, download the ZIP from the GitHub Release linked by the AI Workstation Radar page. ChatGPT uploads are surface- and workspace-dependent; follow [`chatgpt-install.md`](chatgpt-install.md) and do not market universal plan availability.

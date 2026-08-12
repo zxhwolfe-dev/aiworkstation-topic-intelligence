@@ -32,10 +32,12 @@ jobs:
       - name: Run offline tests
         run: python3 -m unittest discover -s tests -v
 
-      - name: Verify bundled runtime and v0.2.1 eval contract
+      - name: Verify bundled runtime and current eval contract
         run: |
           python3 scripts/sync_skill_runtime.py --check
-          python3 scripts/run_host_evals.py --suite v0.2.1 --dry-run
+          VERSION="$(cat VERSION)"
+          if [ "$VERSION" = "0.2.2" ]; then SUITE="v0.2.1"; else SUITE="v0.3.0"; fi
+          python3 scripts/run_host_evals.py --suite "$SUITE" --dry-run
 
       - name: Verify persistent live Host Eval RC evidence for new releases
         if: ${{ github.ref_name != 'v0.2.1' }}

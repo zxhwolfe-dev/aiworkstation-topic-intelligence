@@ -14,11 +14,15 @@ class SkillRuntimeSyncTests(unittest.TestCase):
     def test_repository_runtime_copies_are_in_sync(self) -> None:
         self.assertEqual(sync(root=ROOT, check=True), [])
 
-    def test_handoff_contract_matches_canonical_reference(self) -> None:
-        canonical = (ROOT / "references" / "topic-opportunity-handoff.md").read_bytes()
-        for skill in SKILLS:
-            bundled = ROOT / "skills" / skill / "references" / "handoff-contract.md"
-            self.assertEqual(bundled.read_bytes(), canonical, skill)
+    def test_selection_and_brief_workflows_match_canonical_references(self) -> None:
+        for canonical_name, bundled_name in (
+            ("topic-intelligence-selection-workflow.md", "selection-workflow.md"),
+            ("topic-intelligence-brief-workflow.md", "brief-workflow.md"),
+        ):
+            canonical = (ROOT / "references" / canonical_name).read_bytes()
+            for skill in SKILLS:
+                bundled = ROOT / "skills" / skill / "references" / bundled_name
+                self.assertEqual(bundled.read_bytes(), canonical, skill)
 
     def test_quality_contract_matches_canonical_reference(self) -> None:
         canonical = (
@@ -29,17 +33,20 @@ class SkillRuntimeSyncTests(unittest.TestCase):
             self.assertEqual(bundled.read_bytes(), canonical, skill)
 
     @staticmethod
-    def _make_fixture(root: Path, *, helper_text: str, handoff_text: str, quality_text: str) -> None:
+    def _make_fixture(root: Path, *, helper_text: str, selection_text: str, brief_text: str, quality_text: str) -> None:
         (root / "scripts").mkdir(parents=True)
         (root / "references").mkdir(parents=True)
         (root / "scripts" / "topic_radar_client.py").write_text(
             "canonical helper\n", encoding="utf-8"
         )
-        (root / "references" / "topic-opportunity-handoff.md").write_text(
-            "canonical handoff\n", encoding="utf-8"
-        )
         (root / "references" / "topic-intelligence-quality-contract.md").write_text(
             "canonical quality\n", encoding="utf-8"
+        )
+        (root / "references" / "topic-intelligence-selection-workflow.md").write_text(
+            "canonical selection\n", encoding="utf-8"
+        )
+        (root / "references" / "topic-intelligence-brief-workflow.md").write_text(
+            "canonical brief\n", encoding="utf-8"
         )
         for skill in SKILLS:
             skill_root = root / "skills" / skill
@@ -48,11 +55,14 @@ class SkillRuntimeSyncTests(unittest.TestCase):
             (skill_root / "scripts" / "topic_radar_client.py").write_text(
                 helper_text, encoding="utf-8"
             )
-            (skill_root / "references" / "handoff-contract.md").write_text(
-                handoff_text, encoding="utf-8"
-            )
             (skill_root / "references" / "quality-contract.md").write_text(
                 quality_text, encoding="utf-8"
+            )
+            (skill_root / "references" / "selection-workflow.md").write_text(
+                selection_text, encoding="utf-8"
+            )
+            (skill_root / "references" / "brief-workflow.md").write_text(
+                brief_text, encoding="utf-8"
             )
 
     def test_check_reports_drift_without_mutating(self) -> None:
@@ -61,7 +71,8 @@ class SkillRuntimeSyncTests(unittest.TestCase):
             self._make_fixture(
                 root,
                 helper_text="drifted\n",
-                handoff_text="canonical handoff\n",
+                selection_text="canonical selection\n",
+                brief_text="canonical brief\n",
                 quality_text="canonical quality\n",
             )
 
@@ -81,12 +92,13 @@ class SkillRuntimeSyncTests(unittest.TestCase):
             self._make_fixture(
                 root,
                 helper_text="old helper\n",
-                handoff_text="old handoff\n",
+                selection_text="old selection\n",
+                brief_text="old brief\n",
                 quality_text="old quality\n",
             )
 
             changed = sync(root=root)
-            self.assertEqual(len(changed), 6)
+            self.assertEqual(len(changed), 4)
             self.assertEqual(sync(root=root, check=True), [])
 
 

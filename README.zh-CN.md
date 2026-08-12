@@ -1,66 +1,84 @@
 # AI Workstation Topic Intelligence
 
-**先找出今天真正值得研究的题，再把一个当前热点变成研究就绪的内容简报。**
+**从实时 Radar 找到值得研究的题，再把当前题材变成研究就绪的内容简报。**
 
 [English](README.md)
 
-当前包版本：**v0.2.2**
+当前包版本：**v0.3.0**
 
-v0.2.0 已经证明：两个 standalone Skill 可以在 ChatGPT 上传/发现/执行，能直接访问实时 AI Workstation Topic Radar，也能完成 Creator → Brief 组合流程。v0.2.2 在此基础上固定了 `python3` 和确定性的 helper 调用、bounded Radar 扫描、严格 runtime/evidence grading、隔离 Skill fixture 与中性的 Host workspace，并引入持久化 release evidence。
+v0.3.0 对外只提供一个公开 Skill、一个安装包和一个官网入口。Skill 会根据自然语言自动识别三种模式：只选题、围绕用户给定题材做 Brief、先选题再基于同一个 finalist 做 Brief。
 
-v0.2.1 继续优化真实 ChatGPT 使用中发现的问题，并新增一个非常重要的商业/成本边界：
+它继续使用 AI Workstation 全球热点选题 Radar 的公开读取接口。正常公开使用由用户当前的 ChatGPT、Codex 或其他宿主模型完成编辑分析，不消耗 AI Workstation 服务器端 LLM quota。
 
-> **公开 Skill 的正常使用，不再消耗 AI Workstation 服务器端大模型 Token。**
+## 三种自动模式
 
-Topic Intelligence 继续建立在 AI Workstation「全球热点选题雷达」之上，不重新做爬虫、聚类、评分或持久化。
-
-## 你可以拿它做什么？
-
-### 1. 今天什么 AI 题材值得研究？
+### 只选题
 
 ```text
-今天有哪些 AI 题材值得我继续研究或做内容？先检查 Radar 是否足够新，再给我最值得看的 3 个。
+今天有哪些 AI 题材值得继续研究或做内容？先检查 Radar 新鲜度，再给我最值得看的 3 个，不要写完整简报。
 ```
 
-预期 Skill：
+Skill 做一次 bounded feed，返回候选、Radar 事实、选择理由和未知项，不主动追加 Brief。
+
+### 用户已经给出题材，生成 Brief
 
 ```text
-creator-topic-opportunity-research
+请基于我刚贴出的当前 Radar 卡片和精确 topic ID 写一份研究就绪的内容简报。只有在确实需要判断走势时才查这个题目的 history，不要重新选题。
 ```
 
-Skill 从实时 Radar 获取事实，由**当前 ChatGPT / Codex / Agent 自己的大模型**完成比较、解释和推荐。
+Skill 保留用户给定的 topic identity。没有足够的当前快照时，会说明证据缺口，不会静默替换成另一个题材。
 
-### 2. 海外有没有值得提前跟的机会？
+### 先选题，再生成 Brief
 
 ```text
-海外现在有哪些科技话题正在升温、可能值得中文内容创作者提前研究？中文区是否已经做烂如果没有直接证据就明确说不知道。
+从当前 AI 热点中挑一个适合中国科技用户研究的题材，然后直接生成研究简报。只允许一次 bounded feed，Brief 必须继续使用同一个 finalist。
 ```
 
-如果 Radar 没有直接测量中文区饱和度或传播时差，就必须标成未知/假设，不能当作数据事实。
+Skill 只执行一次选题 feed，保留精确 Radar `id`，再基于同一题材完成 Brief，不进行第二次 broad/bounded 选题。
 
-### 3. 选一个当前 Topic，并直接做成研究简报
+## 输出中的证据边界
+
+每个当前性结论都必须来自本次 live Radar 响应、当前宿主的等价原生连接，或用户明确提供的当前 Radar 响应。不能用模型记忆、旧 JSON、缓存、日志、fixture、数据库或兄弟仓库快照冒充当前事实。
+
+最终回答应区分：
+
+1. **Radar 事实**：题目 ID、时间、新鲜度、来源、趋势字段和公开证据；
+2. **宿主编辑分析**：选题理由、受众收益、角度、Hook、叙事和建议；
+3. **未知与核验**：`must_verify`、风险和证据缺口；
+4. **可选 Premium Insight**：只有用户明确连接了账号绑定的原生 Premium 能力时才存在，仍属于模型分析，不是独立事实来源。
+
+当结论涉及受众、普通科技用户、中国市场适配度或传播潜力时，必须直接说明：Radar 未测量实际受众规模、内容/题材饱和度和未来传播量/virality。“适合中国用户”“受众可能更广”等是宿主模型的 editorial judgment，不是 Radar fact。
+
+## 安装
+
+正式安装包只从 GitHub Release 获取：
+
+<https://github.com/zxhwolfe-dev/aiworkstation-topic-intelligence/releases/latest>
+
+下载后安装 `topic-intelligence` ZIP。Codex 开发者也可以从源码执行：
+
+```bash
+python3 scripts/install_codex_skills.py install
+python3 scripts/install_codex_skills.py doctor
+```
+
+默认安装到 `$HOME/.agents/skills/topic-intelligence/`。helper 必须从当前加载的 Skill 根目录调用，规范形式是：
 
 ```text
-从当前 AI 热点里挑一个适合 2–3 分钟解释型内容的题材，给我受众收益、最强角度、前三秒、叙事结构、必须核验的事实、不能乱说的内容和素材建议。
+python3 <skill-local-helper> --timeout 30 feed --q AI --limit 12
+python3 <skill-local-helper> --timeout 30 sources
+python3 <skill-local-helper> --timeout 30 history <exact-feed-id>
 ```
 
-两个 Skill 都安装时：
+不得使用 `python`、仓库根 `scripts/topic_radar_client.py`、`history --topic-id`、管道、重定向、命令组合或自定义 Radar origin。
 
-```text
-creator-topic-opportunity-research
-  -> ati.topic-opportunity-handoff.v1
-  -> evidence-backed-content-brief
-```
+## 官网入口
 
-Creator 只选一个 finalist，并把同一个 live `id` 交给 Brief。Brief 不再重新选题。
+AI Workstation 的“全球热点选题雷达”页面右侧栏中，“本次来源覆盖”模块上方提供唯一产品入口。这个入口只负责获取 Skill，不把三种模式拆成三个按钮；用户直接用自然语言描述目标即可。
 
-如果只装 Brief，它会做一次 bounded live selection（通常最多 5 个候选），选最多一个，再按需要查 history，然后由**当前宿主模型**直接生成研究就绪的内容简报。
+## 成本与安全边界
 
-## v0.2.2：公开 Skill 的成本边界
-
-公开 Skill 应该可以放心传播，而不是每有一个人调用，就消耗你网站服务器的大模型额度。
-
-### 公开 bundled helper 只允许读取无模型成本的 Radar 数据
+公开 helper 只允许调用：
 
 ```text
 GET /api/v1/ai/topic-radar/feed
@@ -68,235 +86,42 @@ GET /api/v1/ai/topic-radar/sources
 GET /api/v1/ai/topic-radar/history?topic_id=...
 ```
 
-正常公开 Skill 流程：
+公开 Skill 不调用匿名 `/insight`，不内置共享 API key 或 bearer token，也不要求用户把私密凭据粘贴到聊天中。正常公开路径为：
 
 ```text
-AI Workstation 实时 Radar 事实
-            ↓
-用户当前的 ChatGPT / Codex / Agent 模型
-            ↓
-选题 / 解释 / 角度 / hook / must_verify / avoid_claims / 素材建议
+live Radar facts -> 用户当前宿主模型 -> 选题或研究 Brief
 ```
 
-因此：
+因此正常公开使用不会消耗 AI Workstation 服务器端 LLM quota。未来如提供 Premium Insight，必须通过账号绑定、明确认证且执行 quota 的原生连接。
 
-> **正常公开 Skill 使用 = 0 次 AI Workstation 服务器端 LLM 调用。**
+## 适合的实际案例
 
-公开 ZIP 不会：
+- 内容团队早会：每天只选三个值得继续研究的 AI 题材；
+- 中文创作者追踪海外早期机会：比较当前信号，但把跨市场时差标为 hypothesis；
+- 编辑拿到一个 Radar topic ID 后：只查该 finalist 的 history，整理研究问题和核验清单；
+- 研究人员准备视频或文章：一次选题后直接生成角度、Hook、叙事结构、素材需求和 `must_verify`；
+- 不触发场景：翻译、改写、摘要、普通事实问答和用户已给完整材料的标题润色。
 
-- 暴露匿名 `insight` CLI 命令；
-- 内置 AI Workstation API Key；
-- 放一个所有人共用的 bearer token；
-- 让用户把私人 Secret 粘贴到聊天里；
-- 偷偷扣网站免费用户/会员的大模型额度。
+## 发布和运营
 
-### 未来 Premium 能力仍然可以保留
+GitHub Release 是唯一正式下载源；每次发布同时提供 ZIP、`release-manifest.json` 和 `SHA256SUMS`。发布前必须通过完整 live Host Eval、逐 case semantic grader、人工 `must_show/must_not` 审核和 persistent evidence verifier。
 
-服务器端 Topic Insight 并不是永久删除，而是改成**账号绑定的 Premium 能力**。
+运营上建议只记录匿名指标：Release 下载、安装成功、首次成功 Radar 调用、三种模式比例、helper 失败率、Radar stale/partial 比例、Brief 完成率和回访率。不要收集 topic 内容、对话正文、凭据、token 或 session。
 
-未来如果 ChatGPT/其他宿主通过 AI Workstation App / Plugin / OAuth 等方式建立原生认证连接：
+遇到问题时先区分：helper 参数/路径错误、Radar 外部网络故障、宿主生命周期中断和语义工作流失败。未恢复断流、超时、缺少终态或非法 helper 调用都不能进入发布证据。
 
-```text
-用户连接 AI Workstation 账号
-      ↓
-识别 user_id / plan / quota
-      ↓
-由连接层扣会员/额度
-      ↓
-可选调用 Premium Topic Insight
-```
+## 历史版本边界
 
-这种情况下 `/insight` 可以作为增强能力。
+- **v0.3.0**：当前单 Skill 产品线，待完成新的 live Host Eval 和正式 evidence 后发布；
+- **v0.2.2 / v0.2.1**：不可变的双 Skill 历史线，其 Codex/Host Eval 不代表 ChatGPT Web UI 验证；
+- **v0.2.0**：最后一次真实 ChatGPT Web ZIP 上传、发现和运行验证版本。
 
-但 bundled public Skill **不是认证层**，不能自己带共享 Key 去调用收费模型。
-
-没有 Premium 连接也完全不影响公开 Skill 正常完成选题和 Brief；宿主模型直接做分析即可。
-
-## 两个 Skill
-
-### `creator-topic-opportunity-research`
-
-负责：
-
-- 当前升温 / early opportunity；
-- freshness / source coverage；
-- 平台和地区差异；
-- evidence breadth；
-- 跨市场假设；
-- 选中一个 finalist 后生成 handoff。
-
-### `evidence-backed-content-brief`
-
-把实时 Radar Topic 变成：
-
-- make / conditional / watch 判断；
-- 受众收益；
-- 最强角度；
-- 前三秒 / hook；
-- 2–3 分钟叙事结构；
-- research questions / search queries；
-- `must_verify`；
-- `avoid_claims`；
-- 素材需求；
-- 未知与风险。
-
-在公开模式下，这些编辑策划内容由**用户当前宿主模型**生成，不再由 AI Workstation 服务器模型生成。
-
-## v0.2.1 真实 ChatGPT 实测后修掉的问题
-
-1. **内容形式不等于 Radar 平台**
-
-   `短视频 / 2–3 分钟 / 中文 / 普通用户` 不允许误当成 `platform/source` 过滤条件。
-
-2. **用户明确说 AI，第一轮就查 AI**
-
-   不能：
-
-   ```text
-   AI
-   → 先查 generic technology
-   → 得到手机/二维码/数据库
-   → 第二次再收窄 AI
-   ```
-
-3. **Radar 事实和 AI 编辑判断分开**
-
-   “受众更大”“更适合中国用户”“更容易传播”等默认属于宿主分析，不是 Radar 测量事实。
-
-4. **handoff 后不再二次选题**
-
-   ```text
-   Creator 选 A
-   → handoff A
-   → Brief 继续 A
-   ```
-
-5. **公开 Brief 不再调用服务器模型**
-
-   由宿主模型直接完成内容策划。
-
-统一规则在：
-
-```text
-references/topic-intelligence-quality-contract.md
-```
-
-每个 Skill 包内也自带：
-
-```text
-references/quality-contract.md
-```
-
-## Standalone Skill 结构
-
-```text
-skill-name/
-  SKILL.md
-  agents/openai.yaml
-  scripts/topic_radar_client.py
-  references/handoff-contract.md
-  references/quality-contract.md
-  LICENSE
-```
-
-release builder 会强制检查这些 portable 文件与 canonical source 一致。
-
-## 安装
-
-### Codex
-
-```bash
-python3 scripts/install_codex_skills.py install
-python3 scripts/install_codex_skills.py doctor
-```
-
-默认：
-
-```text
-$HOME/.agents/skills/
-```
-
-### Standalone ZIP
-
-```bash
-python3 scripts/build_release.py --output dist
-```
-
-### ChatGPT
-
-v0.2.0 已经在 ChatGPT Web 做过真实 Creator-only / Brief-only / Both-Skills smoke：
-
-- ZIP 上传：PASS
-- Skill discovery：PASS
-- bundled runtime：PASS
-- live Radar：PASS
-- 双 Skill 组合：行为验证 PASS
-
-v0.2.1 和 v0.2.2 的 Codex/Host Eval 属于宿主/运行时验收，不冒充对应版本的 ChatGPT Web UI ZIP 上传验证。v0.2.2 另外持久化了完整 live suite、人工审核和 verifier evidence。
-
-详见：
-
-- [`docs/chatgpt-install.md`](docs/chatgpt-install.md)
-- [`docs/chatgpt-v0.2.0-smoke-result-2026-08-09.md`](docs/chatgpt-v0.2.0-smoke-result-2026-08-09.md)
-- [`docs/v0.2.1-non-ui-host-acceptance-2026-08-10.md`](docs/v0.2.1-non-ui-host-acceptance-2026-08-10.md)
-
-## 证据硬边界
-
-当前热点事实只能来自当前任务里的 live Radar 数据，不能用：
-
-- `../akaiagents` 本地旧快照；
-- SQLite；
-- fixtures；
-- cached/exported JSON；
-- logs / reports；
-- 旧 handoff；
-- 模型记忆冒充当前事实。
-
-最终输出要区分：
-
-1. **Radar 事实**；
-2. **宿主编辑分析**；
-3. **未知 / must_verify**；
-4. **可选 Premium Topic Insight**：只有已认证账号连接明确提供时才可使用，而且仍属于模型分析，不是独立事实来源。
-
-## 产品边界
-
-```text
-AI Workstation Global Topic Radar
-公开源 -> 聚合 -> 聚类 -> opportunity_score
--> trend/history -> source health
-                 |
-                 | public read API
-                 v
-Topic Intelligence Public Skills
-证据检查 -> 选题 -> handoff -> 宿主模型生成 Brief
-
-未来可选 Premium 连接
-用户认证 -> 会员/额度校验 -> Server Topic Insight
-```
-
-本仓库不负责网站账户、计费、会员数据库或服务器模型后端。
-
-## 验证
+## 本地验证
 
 ```bash
 python3 scripts/sync_skill_runtime.py --check
 python3 -m unittest discover -s tests -v
+python3 scripts/run_host_evals.py --suite v0.3.0 --dry-run
 ```
 
-测试会验证：
-
-- helper 三份一致；
-- ZIP 确定性；
-- 解压后 standalone runtime 可执行；
-- handoff identity；
-- Brief bounded fallback；
-- v0.2.1 ChatGPT-derived quality cases；
-- 公共 helper 没有 `insight` 命令；
-- 公共 helper 只发 GET 请求。
-
-## 当前状态
-
-- **v0.2.2**：当前包版本；公开模式由宿主模型完成 Brief，并通过确定性 helper、隔离 Host 执行和持久化 live evidence，不消耗 AI Workstation 服务器端 LLM Token。
-- **v0.2.1**：上一条 Host/Codex 验证版本；其 Host Eval 不代表 ChatGPT Web UI 验证。
-- **v0.2.0**：上一条公开不可变版本，也是最近一次在 ChatGPT Web 手工上传验证的版本。
+统一质量契约在 `references/topic-intelligence-quality-contract.md`，安装包中同步为 `references/quality-contract.md`。

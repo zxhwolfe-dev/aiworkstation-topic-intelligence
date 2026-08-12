@@ -13,20 +13,21 @@ from zipfile import ZIP_STORED, ZipFile, ZipInfo
 
 
 SKILL_NAMES = (
-    "creator-topic-opportunity-research",
-    "evidence-backed-content-brief",
+    "topic-intelligence",
 )
 REQUIRED_SKILL_FILES = (
     "SKILL.md",
     "agents/openai.yaml",
     "scripts/topic_radar_client.py",
-    "references/handoff-contract.md",
     "references/quality-contract.md",
+    "references/selection-workflow.md",
+    "references/brief-workflow.md",
 )
 CANONICAL_PORTABLE_FILES = {
     "scripts/topic_radar_client.py": "scripts/topic_radar_client.py",
-    "references/handoff-contract.md": "references/topic-opportunity-handoff.md",
     "references/quality-contract.md": "references/topic-intelligence-quality-contract.md",
+    "references/selection-workflow.md": "references/topic-intelligence-selection-workflow.md",
+    "references/brief-workflow.md": "references/topic-intelligence-brief-workflow.md",
 }
 VERSION_RE = re.compile(
     r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$"
@@ -148,7 +149,9 @@ def build_release(output_dir: Path, *, root: Path | None = None) -> dict[str, ob
         if not skill_dir.is_dir():
             raise ReleaseError(f"missing skill directory: {skill_name}")
         _validate_portable_runtime(repo, skill_dir)
-        filename = f"aiworkstation-topic-intelligence-{version}-{skill_name}.zip"
+        # The v0.3 product line has one public Skill and one archive. Keep the
+        # asset name short while retaining the product identity and version.
+        filename = f"{skill_name}-{version}.zip"
         expected_names.add(filename)
         destination = output / filename
         _write_skill_archive(skill_dir, destination, license_path=license_path)
@@ -183,7 +186,7 @@ def build_release(output_dir: Path, *, root: Path | None = None) -> dict[str, ob
     )
 
     # Clean only stale ZIPs produced by this builder; preserve unrelated files.
-    prefix = "aiworkstation-topic-intelligence-"
+    prefix = f"{SKILL_NAMES[0]}-"
     for path in output.iterdir():
         if (
             path.is_file()

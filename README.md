@@ -4,13 +4,13 @@
 
 [简体中文](README.zh-CN.md)
 
-Current package version: **v0.2.2**
+Current package version: **v0.3.0**
 
-v0.2.0 proved that the standalone Skills can upload/run in ChatGPT, execute their bundled runtime, reach the live AI Workstation Topic Radar, and compose Creator → Brief. v0.2.2 keeps that workflow and adds deterministic `python3` helper invocation, bounded Radar scans, strict runtime/evidence grading, isolated Skill fixtures and neutral Host workspaces, and persistent release evidence. **Normal public Skill usage must not consume AI Workstation server-side LLM quota.**
+v0.2.0 proved the original standalone packages could upload/run in ChatGPT and reach the live Radar. v0.3.0 presents that capability as one public Skill and one install package with three intent-driven modes. It keeps deterministic `python3` helper invocation, bounded Radar scans, strict runtime/evidence grading, isolated Skill fixtures and neutral Host workspaces, and persistent release evidence. **Normal public Skill usage must not consume AI Workstation server-side LLM quota.**
 
 Topic Intelligence sits on top of the existing AI Workstation Global Topic Radar. It does not build another crawler, score, database, or persistence layer.
 
-## What can I use it for?
+## One Skill, three automatic modes
 
 ### 1. What is worth researching today?
 
@@ -18,13 +18,7 @@ Topic Intelligence sits on top of the existing AI Workstation Global Topic Radar
 今天有哪些 AI 题材值得我继续研究或做内容？先检查 Radar 是否足够新，再给我最值得看的 3 个。
 ```
 
-Expected Skill:
-
-```text
-creator-topic-opportunity-research
-```
-
-The Skill reads live Radar evidence, checks freshness/source coverage, and uses the **host model** to explain which candidates may be worth researching.
+The `topic-intelligence` Skill reads live Radar evidence, checks freshness/source coverage, and uses the **host model** to explain which candidates may be worth researching. It stops at the requested shortlist and does not add an unsolicited brief.
 
 ### 2. Is there a cross-market early opportunity?
 
@@ -40,21 +34,19 @@ Cross-market timing or audience saturation remain hypotheses unless the current 
 从当前 AI 热点里挑一个适合 2–3 分钟解释型内容的题材，给我受众收益、最强角度、前三秒、叙事结构、必须核验的事实、不能乱说的内容和素材建议。
 ```
 
-Preferred workflow when both Skills are installed:
+The same Skill automatically selects the smallest workflow:
 
 ```text
-creator-topic-opportunity-research
-  -> ati.topic-opportunity-handoff.v1
-  -> evidence-backed-content-brief
+selection only
+supplied current topic -> brief
+one bounded selection -> brief for the same finalist
 ```
 
-The Creator Skill selects one finalist and preserves the exact live `id`. The Brief Skill continues from that handoff without selecting the topic again.
+The combined mode performs one bounded feed, preserves the exact live `id`, and does not reselect while writing the brief.
 
-If only the Brief Skill is installed, it can run one bounded live selection pass (normally no more than 5 candidates), select at most one, optionally inspect its history, and then use the **current ChatGPT/Codex/agent model** to produce the brief.
+## Public Skill cost boundary — v0.3.0
 
-## Public Skill cost boundary — v0.2.2
-
-The distributable public Skills are designed to spread without silently spending the publisher's model budget.
+The distributable public Skill is designed to spread without silently spending the publisher's model budget.
 
 ### Public bundled runtime
 
@@ -92,24 +84,13 @@ AI Workstation may still provide server-generated Topic Insight as a paid/accoun
 
 For example, a future AI Workstation App/Plugin/OAuth connection could expose Premium Insight. The public bundled helper is intentionally **not** that authentication layer.
 
-No authenticated Premium connection is required to use the public Skills. The host model completes the brief itself.
+No authenticated Premium connection is required to use the public Skill. The host model completes the brief itself.
 
-## The two Skills
+## The public Skill
 
-### `creator-topic-opportunity-research`
+### `topic-intelligence`
 
-Compare and prioritize live Radar candidates for creator/editorial decisions, including:
-
-- rising/early opportunities;
-- freshness and source coverage;
-- platform/region differences;
-- evidence breadth;
-- cross-market hypotheses;
-- one structured handoff to Brief.
-
-### `evidence-backed-content-brief`
-
-Turn a current Radar topic into a practical, evidence-bounded content plan with:
+Compare and prioritize live Radar candidates, or turn one current Radar topic into a practical, evidence-bounded content plan with:
 
 - recommendation and audience payoff;
 - strongest angle;
@@ -119,13 +100,14 @@ Turn a current Radar topic into a practical, evidence-bounded content plan with:
 - `must_verify`;
 - `avoid_claims`;
 - visual/material needs;
-- known unknowns and risks.
+- known unknowns and risks;
+- a single current-task selection-to-brief workflow when both are requested.
 
 In normal public mode these editorial fields are produced by the **host model**, not by an AI Workstation server model.
 
 ## Query-quality rules
 
-v0.2.2 also hardens real issues found in ChatGPT smoke testing and Host Eval:
+v0.3.0 carries forward the hardening from v0.2.2 and makes it the default public package:
 
 - content format/duration/language/audience are **not** Radar platform/source filters;
 - explicit topic scope must be preserved from the first query (`AI` should not first expand to generic technology);
@@ -138,7 +120,7 @@ Canonical rule set:
 references/topic-intelligence-quality-contract.md
 ```
 
-Each Skill carries the same contract at:
+The package carries the same contract at:
 
 ```text
 references/quality-contract.md
@@ -146,15 +128,16 @@ references/quality-contract.md
 
 ## Standalone runtime
 
-Each Skill release archive is self-contained:
+The single Skill release archive is self-contained:
 
 ```text
-skill-name/
+topic-intelligence/
   SKILL.md
   agents/openai.yaml
   scripts/topic_radar_client.py
-  references/handoff-contract.md
   references/quality-contract.md
+  references/selection-workflow.md
+  references/brief-workflow.md
   LICENSE
 ```
 
@@ -185,9 +168,9 @@ See [`docs/distribution.md`](docs/distribution.md).
 
 ### ChatGPT
 
-The published v0.2.0 ZIPs were manually tested in ChatGPT web in Creator-only, Brief-only, and both-Skills shapes. Package upload, Skill discovery, bundled runtime execution, live Radar access, and behavioral composition passed.
+The published v0.2.0 ZIPs were manually tested in ChatGPT web in Creator-only, Brief-only, and both-Skills shapes. v0.3.0 consolidates those user-facing workflows into one package; its Codex/Host Eval evidence does not claim a new ChatGPT Web upload test.
 
-The v0.2.1 and v0.2.2 Host/Codex Eval results are separate host/runtime acceptance, not claims that the corresponding ChatGPT Web ZIP upload UI was re-tested. The latest v0.2.2 evidence additionally persists the complete live suite, manual review, and verifier output.
+The v0.2.1 and v0.2.2 Host/Codex Eval results remain historical acceptance records, not claims that their ChatGPT Web ZIP upload UI was re-tested. v0.3.0 will carry its own Host Eval evidence before publication.
 
 See:
 
@@ -225,9 +208,9 @@ AI Workstation Global Topic Radar
                          |
                          | public read API
                          v
-AI Workstation Topic Intelligence public Skills
-  evidence checks -> creator decision -> handoff
-  -> host-model content brief
+AI Workstation Topic Intelligence public Skill
+  evidence checks -> automatic selection / supplied-topic brief
+  -> same-finalist host-model content brief when requested
 
 Future optional Premium connection
   authenticated user -> membership/quota enforcement
@@ -235,6 +218,8 @@ Future optional Premium connection
 ```
 
 The public Skill repository intentionally does not duplicate crawlers, clustering, score, persistence, billing, authentication, or the server model backend.
+
+For operating guidance, examples, the official download path, and anonymous metrics/privacy boundaries, see [`docs/topic-intelligence-operations.md`](docs/topic-intelligence-operations.md).
 
 ## Validation
 
@@ -249,14 +234,14 @@ The suite covers:
 - portable helper/reference parity;
 - deterministic standalone archives;
 - extracted ZIP execution outside the repository;
-- handoff identity rules;
-- bounded Brief fallback;
+- unified selection/brief mode rules;
+- bounded scan and no-reselection rules;
 - ChatGPT-derived v0.2.1 query/provenance/cost cases;
 - proof that the public helper exposes no `insight` command and emits only GET requests.
 
 Useful evidence:
 
-- [`evals/v0.2.1-skill-quality.json`](evals/v0.2.1-skill-quality.json)
+- [`evals/v0.3.0-skill-quality.json`](evals/v0.3.0-skill-quality.json)
 - [`evals/host-capabilities.json`](evals/host-capabilities.json)
 - [`docs/m3.1-final-acceptance-2026-08-09.md`](docs/m3.1-final-acceptance-2026-08-09.md)
 - [`docs/chatgpt-v0.2.0-smoke-result-2026-08-09.md`](docs/chatgpt-v0.2.0-smoke-result-2026-08-09.md)
@@ -271,6 +256,7 @@ Useful evidence:
 
 ## Status
 
-- **v0.2.2:** current package version; public mode uses host reasoning, deterministic bounded helper calls, isolated Host execution, and persistent live evidence without spending AI Workstation server-side LLM quota.
+- **v0.3.0:** current package line; one public Skill and one ZIP expose three intent-driven modes, with deterministic helper calls, isolated Host execution, and persistent live evidence.
+- **v0.2.2:** immutable two-Skill historical package line with persistent Host Eval evidence.
 - **v0.2.1:** prior immutable Host-validated package line; its Codex/Host Eval does not represent ChatGPT Web UI validation.
 - **v0.2.0:** previous immutable release and the most recent version manually uploaded in ChatGPT web.

@@ -23,7 +23,7 @@ A creator, researcher, or operator wants a short list of AI/technology topics wo
 ### Expected workflow
 
 ```text
-creator-topic-opportunity-research
+topic-intelligence:selection
 ```
 
 ### Minimum useful answer
@@ -55,7 +55,7 @@ A Chinese-language creator/operator wants to know whether an overseas topic may 
 ### Expected workflow
 
 ```text
-creator-topic-opportunity-research
+topic-intelligence:selection
 ```
 
 ### Minimum useful answer
@@ -83,26 +83,23 @@ The user wants the system to choose one current topic and continue directly into
 从当前 AI 热点里挑一个适合 2–3 分钟解释型内容的题材，给我受众收益、最强角度、前三秒、叙事结构、必须核验的事实、不能乱说的内容和素材建议。
 ```
 
-### Expected workflow when both Skills are available
+### Expected workflow
 
 ```text
-creator-topic-opportunity-research
-  -> ati.topic-opportunity-handoff.v1
-  -> evidence-backed-content-brief
+topic-intelligence:selection-and-brief
 ```
 
-The Opportunity Skill selects exactly one finalist. The handoff preserves the exact live feed `id`, parent freshness, observed topic fields, user constraints, and analysis/unknown/risk context. The Brief Skill consumes that same identity rather than rediscovering the topic by title.
+The unified Skill selects exactly one finalist, preserves the exact live feed `id`, parent freshness, observed topic fields, user constraints, and analysis/unknown/risk context, then builds the Brief from that same identity.
 
-### Brief-only fallback
+### Supplied-topic mode
 
-If only `evidence-backed-content-brief` is installed, the scenario may still complete through the bounded standalone fallback:
+If the user already supplies an exact current Radar ID or current topic snapshot, the same Skill skips selection:
 
 ```text
-evidence-backed-content-brief:bounded-selection
-  -> evidence-backed-content-brief
+topic-intelligence:brief
 ```
 
-The fallback should normally inspect no more than five live feed candidates, select at most one using the existing Radar score/stage/freshness/evidence plus user constraints, and call insight only after selection. It must not recreate a full cross-market opportunity study or invent another score.
+It preserves the supplied identity, uses history only when movement matters, and never calls anonymous server Insight. If the user asks to choose and brief in one request, it performs one bounded feed and does not reselect.
 
 ### Minimum useful answer
 
@@ -151,7 +148,8 @@ The strongest early signal is a user returning on another day to ask for a fresh
 Suggested early metrics:
 
 - `scan_to_followup_rate` — sessions where a shortlist produces a candidate-specific follow-up;
-- `scan_to_brief_rate` — scans that continue into `evidence-backed-content-brief`;
+- `scan_to_brief_rate` — scans that continue into the unified
+  `topic-intelligence:selection-and-brief` workflow;
 - `next_day_return_rate` — users who run another fresh current-topic task the next day;
 - `blocked_live_data_rate` — sessions blocked because live Radar evidence is unavailable;
 - `no_useful_candidate_rate` — scans where the user rejects all candidates.

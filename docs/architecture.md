@@ -2,7 +2,7 @@
 
 ## Goal
 
-Expose AI Workstation Global Topic Radar as reusable, evidence-aware Skills without reproducing its backend and without making anonymous Skill users consume AI Workstation server-side LLM quota.
+Expose AI Workstation Global Topic Radar as one reusable, evidence-aware Skill without reproducing its backend and without making anonymous Skill users consume AI Workstation server-side LLM quota.
 
 ## Layers
 
@@ -10,11 +10,10 @@ Expose AI Workstation Global Topic Radar as reusable, evidence-aware Skills with
 User / ChatGPT / Codex
           |
           v
-Topic Intelligence public Skills
+Topic Intelligence public Skill
 - intent routing
 - freshness/evidence policy
 - comparison reasoning
-- current-task handoff
 - host-model content brief
           |
           +----------------------------------+
@@ -73,14 +72,15 @@ It does **not** own website accounts, billing, membership, server quota, or Prem
 
 ## Public Skill runtime
 
-Each Skill directory is a complete portable unit:
+The Skill directory is a complete portable unit:
 
 ```text
-skill-name/
+topic-intelligence/
   SKILL.md
   agents/openai.yaml
   scripts/topic_radar_client.py
-  references/handoff-contract.md
+  references/selection-workflow.md
+  references/brief-workflow.md
   references/quality-contract.md
   LICENSE
 ```
@@ -153,37 +153,26 @@ The authenticated connection, not the portable Skill, must enforce usage rights 
 
 A Premium Insight response remains model-generated analysis, not independent evidence.
 
-## Skill composition
+## Automatic modes
 
 ```text
-creator-topic-opportunity-research
-  live feed/sources/history as needed
-  -> select one finalist
-  -> ati.topic-opportunity-handoff.v1
-       topic_id
-       snapshot freshness
-       observed topic fields
-       selection analysis / unknowns / risks
-  -> evidence-backed-content-brief
-       preserve same topic_id
-       history if movement matters
-       host-model research-ready brief
+topic-intelligence
+  -> selection only: one bounded feed, then stop
+  -> supplied current topic: preserve exact id, no selection feed
+  -> selection + brief: one bounded feed, preserve the finalist id,
+     then produce the host-model research-ready brief
 ```
 
-A valid current-task handoff must not trigger another broad/bounded topic-selection pass.
+A selection-followed-by-brief request must not trigger another broad/bounded
+topic-selection pass. Current-task state is not persistence; an old saved result
+cannot replace a new live check.
 
-The handoff is workflow context, not persistence. Old handoffs cannot replace a new live check.
+For a brief based on a supplied current topic:
 
-## Brief-only fallback
-
-If Brief is installed alone:
-
-1. resolve a user-supplied topic live, or run one bounded feed selection pass;
-2. preserve explicit subject/domain scope from the first query;
-3. normally inspect no more than five candidates;
-4. select at most one using existing Radar fields;
-5. use history only when movement matters;
-6. use the host model to build the brief.
+1. preserve the supplied stable ID and current snapshot;
+2. do not run a selection feed;
+3. use history only when movement matters;
+4. use the host model to build the brief.
 
 It must not:
 
@@ -217,8 +206,8 @@ Current validation includes:
 - standalone ZIP content/runtime checks;
 - byte-identical portable helper/reference copies;
 - extracted ZIP helper E2E;
-- handoff identity preservation;
-- Creator-only / Brief-only / composed scenarios;
+- exact topic identity preservation;
+- selection-only / supplied-topic brief / combined scenarios;
 - ChatGPT-derived query/provenance rules;
 - public helper CLI contains no `insight` command;
 - public helper requests are GET-only;

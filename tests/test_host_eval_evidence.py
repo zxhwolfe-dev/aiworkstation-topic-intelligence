@@ -19,6 +19,7 @@ from scripts.grade_host_eval import (
 ROOT = Path(__file__).resolve().parents[1]
 CREATOR = "creator-topic-opportunity-research"
 BRIEF = "evidence-backed-content-brief"
+UNIFIED = "topic-intelligence"
 TEST_COMMIT = "0" * 40
 
 
@@ -32,7 +33,7 @@ def _feed_payload() -> str:
         "status": "ok",
         "partial": False,
         "stale": False,
-        "items": [],
+        "items": [{"id": "topic:test-feed"}],
         "source_status": [],
     })
 
@@ -782,6 +783,166 @@ class HostEvalEvidenceTests(unittest.TestCase):
             ),
             "unobservable",
         )
+
+    def test_unified_three_modes_require_operation_specific_evidence(self) -> None:
+        selection = observe_evidence("\n".join((
+            _helper_event(UNIFIED),
+            _agent_message("Terminal shortlist"),
+        )))
+        self.assertEqual(
+            classify_case(
+                _quality_case(
+                    [f"{UNIFIED}:selection"],
+                    [UNIFIED],
+                    suite="v0.3.0",
+                ),
+                selection,
+            ),
+            "pass_expected_workflow_evidence_observed",
+        )
+
+        combined = observe_evidence("\n".join((
+            _helper_event(UNIFIED),
+            _agent_message("Terminal brief for topic:test-feed"),
+        )))
+        self.assertEqual(
+            classify_case(
+                _quality_case(
+                    [f"{UNIFIED}:selection-and-brief"],
+                    [UNIFIED],
+                    suite="v0.3.0",
+                ),
+                combined,
+            ),
+            "pass_expected_workflow_evidence_observed",
+        )
+
+    def test_supplied_snapshot_brief_needs_no_radar_call_but_preserves_id(self) -> None:
+        case = _quality_case(
+            [f"{UNIFIED}:brief"],
+            [UNIFIED],
+            suite="v0.3.0",
+            provided_topic_snapshot={
+                "id": "topic:supplied",
+                "generated_at": "2026-08-12T00:00:00Z",
+                "partial": False,
+                "stale": False,
+                "title": "Supplied current topic",
+                "summary": "A complete current-task topic summary.",
+                "evidence": [],
+            },
+        )
+        preserved = observe_evidence(_agent_message(
+            "Research-ready brief for topic:supplied"
+        ))
+        replaced = observe_evidence(_agent_message(
+            "Research-ready brief for topic:other"
+        ))
+        self.assertEqual(
+            classify_case(case, preserved),
+            "pass_expected_workflow_evidence_observed",
+        )
+        self.assertEqual(classify_case(case, replaced), "unobservable")
+
+    def test_supplied_snapshot_brief_rejects_reselection(self) -> None:
+        evidence = observe_evidence("\n".join((
+            _helper_event(UNIFIED),
+            _agent_message("Brief for topic:supplied"),
+        )))
+        self.assertEqual(
+            classify_case(
+                _quality_case(
+                    [f"{UNIFIED}:brief"],
+                    [UNIFIED],
+                    suite="v0.3.0",
+                    provided_topic_snapshot={
+                        "id": "topic:supplied",
+                        "generated_at": "2026-08-12T00:00:00Z",
+                        "partial": False,
+                        "stale": False,
+                        "title": "Supplied current topic",
+                        "summary": "A complete current-task topic summary.",
+                        "evidence": [],
+                    },
+                ),
+                evidence,
+            ),
+            "unobservable",
+        )
+
+    def test_supplied_snapshot_brief_accepts_only_matching_history(self) -> None:
+        case = _quality_case(
+            [f"{UNIFIED}:brief"],
+            [UNIFIED],
+            suite="v0.3.0",
+            provided_topic_snapshot={
+                "id": "topic:supplied",
+                "generated_at": "2026-08-12T00:00:00Z",
+                "partial": False,
+                "stale": False,
+                "title": "Supplied current topic",
+                "summary": "A complete current-task topic summary.",
+                "evidence": [],
+            },
+        )
+        matching = observe_evidence("\n".join((
+            _helper_event(
+                UNIFIED,
+                operation="history",
+                arguments=" topic:supplied",
+                output=json.dumps({"topic_id": "topic:supplied", "points": []}),
+            ),
+            _agent_message("Research-ready brief for topic:supplied"),
+        )))
+        wrong_id = observe_evidence("\n".join((
+            _helper_event(
+                UNIFIED,
+                operation="history",
+                arguments=" topic:other",
+                output=json.dumps({"topic_id": "topic:other", "points": []}),
+            ),
+            _agent_message("Research-ready brief for topic:supplied"),
+        )))
+        mismatched_response = observe_evidence("\n".join((
+            _helper_event(
+                UNIFIED,
+                operation="history",
+                arguments=" topic:supplied",
+                output=json.dumps({"topic_id": "topic:other", "points": []}),
+            ),
+            _agent_message("Research-ready brief for topic:supplied"),
+        )))
+        self.assertEqual(
+            classify_case(case, matching),
+            "pass_expected_workflow_evidence_observed",
+        )
+        self.assertEqual(classify_case(case, wrong_id), "unobservable")
+        self.assertEqual(classify_case(case, mismatched_response), "unobservable")
+
+    def test_combined_mode_requires_a_real_feed_topic_in_final_answer(self) -> None:
+        case = _quality_case(
+            [f"{UNIFIED}:selection-and-brief"],
+            [UNIFIED],
+            suite="v0.3.0",
+        )
+        preserved = observe_evidence("\n".join((
+            _helper_event(UNIFIED),
+            _agent_message("Research-ready brief for topic:test-feed"),
+        )))
+        omitted = observe_evidence("\n".join((
+            _helper_event(UNIFIED),
+            _agent_message("Research-ready brief without a stable topic identity"),
+        )))
+        marker_only = observe_evidence("\n".join((
+            _helper_event(UNIFIED),
+            _agent_message("topic-intelligence:selection-and-brief"),
+        )))
+        self.assertEqual(
+            classify_case(case, preserved),
+            "pass_expected_workflow_evidence_observed",
+        )
+        self.assertEqual(classify_case(case, omitted), "unobservable")
+        self.assertEqual(classify_case(case, marker_only), "unobservable")
 
     def test_started_and_completed_events_count_as_one_runtime_attempt(self) -> None:
         helper = f"/skills/{CREATOR}/scripts/topic_radar_client.py"

@@ -4,6 +4,21 @@ All notable public changes to AI Workstation Topic Intelligence are recorded her
 
 The project follows Semantic Versioning for distributable Skill releases.
 
+## [0.3.0] - Unreleased
+
+The v0.3.0 product line consolidates the public experience into one
+`topic-intelligence` Skill and one install archive. It automatically recognizes
+selection-only, supplied-topic brief, and selection-followed-by-brief requests.
+
+### Changed
+
+- Fixed helper execution to `python3` with deterministic argument ordering and bounded Radar scans.
+- Added strict operation-specific runtime/evidence grading and isolated Skill fixtures with neutral Host workspaces.
+- Preserved Radar facts, Host editorial analysis, and unknowns as separate layers; public usage does not consume AI Workstation server-side LLM quota.
+- Added persistent live Host Eval evidence as the release gate for the unified Skill package.
+
+The v0.2.0 line remains the last version with manual ChatGPT Web ZIP upload evidence. v0.2.1 and v0.2.2 Host Eval records do not claim ChatGPT Web UI validation.
+
 ## [0.2.2] - 2026-08-11
 
 v0.2.2 introduces a persistent live Host Eval evidence gate for release validation.

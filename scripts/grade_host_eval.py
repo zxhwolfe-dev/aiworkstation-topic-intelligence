@@ -26,9 +26,11 @@ HANDOFF_SCHEMA = "ati.topic-opportunity-handoff.v1"
 TOPIC_INTELLIGENCE_SKILLS = (
     "creator-topic-opportunity-research",
     "evidence-backed-content-brief",
+    "topic-intelligence",
 )
 CREATOR_SKILL = TOPIC_INTELLIGENCE_SKILLS[0]
 BRIEF_SKILL = TOPIC_INTELLIGENCE_SKILLS[1]
+UNIFIED_SKILL = TOPIC_INTELLIGENCE_SKILLS[2]
 HELPER_BASENAME = "topic_radar_client.py"
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 RADAR_OPERATIONS = {"feed", "sources", "history"}
@@ -42,7 +44,7 @@ FEED_VALUE_OPTIONS = {
     "--source", "--stage", "--signal", "--keywords", "--exclude-sources",
     "--min-score", "--max-age-hours", "--offset", "--limit",
 }
-SUPPORTED_QUALITY_SUITES = {"quality", "v0.2.1"}
+SUPPORTED_QUALITY_SUITES = {"quality", "v0.2.1", "v0.3.0"}
 PASS_GRADES = {
     "pass_no_skill_runtime_observed",
     "pass_expected_skill_runtime_observed",
@@ -149,7 +151,7 @@ def _named_skill_for_helper_path(path: str) -> str | None:
 
     normalized = path.replace("\\", "/").rstrip("/")
     match = re.search(
-        r"/(creator-topic-opportunity-research|evidence-backed-content-brief)/scripts/"
+        r"/(creator-topic-opportunity-research|evidence-backed-content-brief|topic-intelligence)/scripts/"
         + re.escape(HELPER_BASENAME)
         + r"$",
         normalized,
@@ -249,8 +251,26 @@ def _runtime_attempt(
         "helper_path": helper_path,
         "command": command,
         "operation": operation,
+        "topic_id": (
+            arguments[-1]
+            if operation == "history" and arguments
+            else None
+        ),
         "violation_reasons": sorted(set(violations)),
     }
+
+
+def _radar_response_topic_ids(operation: str, output: str) -> list[str]:
+    payload = json.loads(output)
+    if operation == "feed":
+        return [
+            str(item["id"])
+            for item in payload.get("items", [])
+            if isinstance(item, Mapping) and isinstance(item.get("id"), str)
+        ]
+    if operation == "history" and isinstance(payload.get("topic_id"), str):
+        return [str(payload["topic_id"])]
+    return []
 
 
 def _validated_operation_arguments(arguments: Sequence[str]) -> str | None:
@@ -438,6 +458,7 @@ def observe_evidence(
     definition_reads: set[str] = set()
     runtime_uses: set[str] = set()
     runtime_operations: set[str] = set()
+    runtime_operation_counts: dict[str, int] = {}
     agent_message_mentions: set[str] = set()
     handoff_schema_mention = False
     handoff_agent_message = False
@@ -451,6 +472,7 @@ def observe_evidence(
     anonymous_command_items: list[tuple[int, Mapping[str, Any]]] = []
     agent_message_positions: list[int] = []
     checkpoint_positions: list[int] = []
+    agent_message_texts: list[str] = []
 
     mentioned.update(_skills_in_text(stdout))
     mentioned.update(_skills_in_text(stderr))
@@ -476,6 +498,7 @@ def observe_evidence(
         elif item_type == "agent_message":
             agent_message_count += 1
             agent_message_positions.append(position)
+            agent_message_texts.append(joined)
             agent_message_mentions.update(_skills_in_text(joined))
             if HANDOFF_SCHEMA in joined:
                 handoff_schema_mention = True
@@ -546,12 +569,17 @@ def observe_evidence(
         if isinstance(skill, str):
             runtime_uses.add(skill)
             runtime_operations.add(f"{skill}:{operation}")
+            operation_key = f"{skill}:{operation}"
+            runtime_operation_counts[operation_key] = runtime_operation_counts.get(operation_key, 0) + 1
             runtime_positions_by_skill[skill].append(position)
             successful_runtime_attempts.append({
                 **attempt,
                 "status": item.get("status"),
                 "exit_code": item.get("exit_code"),
                 "event_position": position,
+                "response_topic_ids": _radar_response_topic_ids(
+                    operation, str(item.get("aggregated_output") or "")
+                ),
             })
 
     post_runtime_agent_message_skills = sorted(
@@ -573,6 +601,7 @@ def observe_evidence(
         "definition_read_skills": sorted(definition_reads),
         "runtime_use_skills": sorted(runtime_uses),
         "runtime_operations": sorted(runtime_operations),
+        "runtime_operation_counts": dict(sorted(runtime_operation_counts.items())),
         "runtime_attempt_count": runtime_attempt_count,
         "runtime_attempt_skills": sorted(runtime_attempt_skills),
         "successful_runtime_attempts": successful_runtime_attempts,
@@ -594,6 +623,7 @@ def observe_evidence(
         "post_runtime_agent_message_skills": post_runtime_agent_message_skills,
         "command_execution_count": command_execution_count,
         "agent_message_count": agent_message_count,
+        "agent_message_texts": agent_message_texts,
     }
 
 
@@ -646,6 +676,32 @@ def _skill_visibility_contract_is_valid(case: Mapping[str, Any]) -> bool:
     )
 
 
+def _provided_topic_snapshot(case: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    """Return a validated current-task snapshot supplied by the eval input."""
+
+    value = case.get("provided_topic_snapshot")
+    if not isinstance(value, Mapping):
+        return None
+    topic_id = value.get("id")
+    generated_at = value.get("generated_at")
+    evidence = value.get("evidence")
+    if (
+        not isinstance(topic_id, str)
+        or not topic_id.strip()
+        or not isinstance(generated_at, str)
+        or not generated_at.strip()
+        or not isinstance(value.get("partial"), bool)
+        or not isinstance(value.get("stale"), bool)
+        or not isinstance(value.get("title"), str)
+        or not str(value["title"]).strip()
+        or not isinstance(value.get("summary"), str)
+        or not str(value["summary"]).strip()
+        or not isinstance(evidence, list)
+    ):
+        return None
+    return value
+
+
 def _complete_case_lifecycle(case: Mapping[str, Any]) -> bool:
     return bool(
         case.get("runtime_status") == "completed"
@@ -672,6 +728,72 @@ def _quality_workflow_token_observed(
     operations = set(evidence.get("runtime_operations") or [])
     installed = set(case.get("installed_skills") or [])
     lifecycle_complete = _complete_case_lifecycle(case)
+
+    if token == f"{UNIFIED_SKILL}:selection":
+        return bool(
+            f"{UNIFIED_SKILL}:feed" in operations
+            and lifecycle_complete
+            and evidence.get("post_runtime_agent_message_skills")
+        )
+    if token == f"{UNIFIED_SKILL}:brief":
+        supplied = _provided_topic_snapshot(case)
+        attempts = evidence.get("successful_runtime_attempts") or []
+        history_attempts_match = bool(
+            supplied
+            and all(
+                attempt.get("operation") != "history"
+                or (
+                    attempt.get("topic_id") == supplied["id"]
+                    and attempt.get("response_topic_ids") == [supplied["id"]]
+                )
+                for attempt in attempts
+                if isinstance(attempt, Mapping)
+            )
+        )
+        supplied_snapshot_observed = bool(
+            supplied
+            and evidence.get("agent_message_texts")
+            and supplied["id"] in evidence["agent_message_texts"][-1]
+        )
+        if supplied is not None:
+            return bool(
+                lifecycle_complete
+                and supplied_snapshot_observed
+                and f"{UNIFIED_SKILL}:feed" not in operations
+                and history_attempts_match
+            )
+        return bool(
+            lifecycle_complete
+            and evidence.get("agent_message_count", 0) > 0
+            and bool({
+                f"{UNIFIED_SKILL}:history",
+                f"{UNIFIED_SKILL}:sources",
+            } & operations)
+            and f"{UNIFIED_SKILL}:feed" not in operations
+            and evidence.get("post_runtime_agent_message_skills")
+        )
+    if token == f"{UNIFIED_SKILL}:selection-and-brief":
+        counts = evidence.get("runtime_operation_counts") or {}
+        feed_ids = {
+            topic_id
+            for attempt in evidence.get("successful_runtime_attempts") or []
+            if isinstance(attempt, Mapping)
+            and attempt.get("operation") == "feed"
+            for topic_id in attempt.get("response_topic_ids") or []
+        }
+        final_message = (
+            evidence["agent_message_texts"][-1]
+            if evidence.get("agent_message_texts")
+            else ""
+        )
+        return bool(
+            counts.get(f"{UNIFIED_SKILL}:feed") == 1
+            and any(topic_id in final_message for topic_id in feed_ids)
+            and lifecycle_complete
+            and evidence.get("post_runtime_agent_message_skills")
+        )
+    if token == f"{UNIFIED_SKILL}:no-radar":
+        return bool(not evidence.get("runtime_attempt_count") and lifecycle_complete)
 
     if token in TOPIC_INTELLIGENCE_SKILLS:
         return token in runtime

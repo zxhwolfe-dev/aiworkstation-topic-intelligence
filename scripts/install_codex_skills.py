@@ -17,11 +17,12 @@ from typing import Optional
 
 
 SKILL_NAMES = (
-    "creator-topic-opportunity-research",
-    "evidence-backed-content-brief",
+    "topic-intelligence",
 )
 LEGACY_SKILL_NAMES = (
     "cross-market-trend-research",
+    "creator-topic-opportunity-research",
+    "evidence-backed-content-brief",
 )
 VERSION_RE = re.compile(
     r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$"
@@ -198,23 +199,26 @@ def doctor(target_root: Path, *, root: Optional[Path] = None) -> dict[str, objec
         metadata = source / "agents" / "openai.yaml"
         skill_md = source / "SKILL.md"
         runtime_helper = source / "scripts" / "topic_radar_client.py"
-        handoff_contract = source / "references" / "handoff-contract.md"
         quality_contract = source / "references" / "quality-contract.md"
+        selection_workflow = source / "references" / "selection-workflow.md"
+        brief_workflow = source / "references" / "brief-workflow.md"
         check: dict[str, object] = {
             **row,
             "skill_md": "ok" if skill_md.is_file() else "missing",
             "openai_metadata": "ok" if metadata.is_file() else "missing",
             "runtime_helper": "ok" if runtime_helper.is_file() else "missing",
-            "handoff_contract": "ok" if handoff_contract.is_file() else "missing",
             "quality_contract": "ok" if quality_contract.is_file() else "missing",
+            "selection_workflow": "ok" if selection_workflow.is_file() else "missing",
+            "brief_workflow": "ok" if brief_workflow.is_file() else "missing",
         }
         check["ok"] = (
             row["state"] == "installed"
             and check["skill_md"] == "ok"
             and check["openai_metadata"] == "ok"
             and check["runtime_helper"] == "ok"
-            and check["handoff_contract"] == "ok"
             and check["quality_contract"] == "ok"
+            and check["selection_workflow"] == "ok"
+            and check["brief_workflow"] == "ok"
         )
         skill_checks.append(check)
 

@@ -32,11 +32,12 @@ from scripts.grade_host_eval import PASS_GRADES, grade_report
 
 REPORT_SCHEMA = "ati.host-eval.v1"
 SUPPORTED_HOSTS = ("codex",)
-SUPPORTED_SUITES = ("trigger", "quality", "v0.2.1")
-TOPIC_INTELLIGENCE_SKILLS = (
+SUPPORTED_SUITES = ("trigger", "quality", "v0.2.1", "v0.3.0")
+LEGACY_TOPIC_INTELLIGENCE_SKILLS = (
     "creator-topic-opportunity-research",
     "evidence-backed-content-brief",
 )
+TOPIC_INTELLIGENCE_SKILLS = (*LEGACY_TOPIC_INTELLIGENCE_SKILLS, "topic-intelligence")
 HANDOFF_SCHEMA = "ati.topic-opportunity-handoff.v1"
 DEFAULT_TIMEOUT_SECONDS = 45.0
 DEFAULT_MAX_OUTPUT_CHARS = 200_000
@@ -87,6 +88,7 @@ class EvalCase:
     requires_live_network: bool | None
     source: Mapping[str, Any]
     installed_skills: tuple[str, ...] = ()
+    provided_topic_snapshot: Mapping[str, Any] | None = None
 
 
 def repository_root() -> Path:
@@ -140,10 +142,19 @@ def load_suite(root: Path, suite: str) -> list[EvalCase]:
             )
         return cases
 
-    if suite in {"quality", "v0.2.1"}:
-        path = root / "evals" / ("v0.2.1-skill-quality.json" if suite == "v0.2.1" else "m3-skill-quality.json")
+    if suite in {"quality", "v0.2.1", "v0.3.0"}:
+        filename = {
+            "quality": "m3-skill-quality.json",
+            "v0.2.1": "v0.2.1-skill-quality.json",
+            "v0.3.0": "v0.3.0-skill-quality.json",
+        }[suite]
+        path = root / "evals" / filename
         payload = _load_json(path)
-        expected_schema = "ati.v0.2.1-skill-quality.v1" if suite == "v0.2.1" else "ati.m3-skill-quality.v1"
+        expected_schema = {
+            "quality": "ati.m3-skill-quality.v1",
+            "v0.2.1": "ati.v0.2.1-skill-quality.v1",
+            "v0.3.0": "ati.v0.3.0-skill-quality.v1",
+        }[suite]
         if payload.get("schema") != expected_schema:
             raise HostEvalError(f"unexpected quality eval schema: {payload.get('schema')!r}")
         raw_cases = payload.get("cases")
@@ -172,6 +183,28 @@ def load_suite(root: Path, suite: str) -> list[EvalCase]:
                     f"{case_id}: installed_skills must be a non-empty unique list "
                     "of known Topic Intelligence Skills"
                 )
+            if suite == "v0.3.0" and tuple(installed_raw) != ("topic-intelligence",):
+                raise HostEvalError(
+                    f"{case_id}: v0.3.0 cases must install only topic-intelligence"
+                )
+            provided_snapshot = raw.get("provided_topic_snapshot")
+            if provided_snapshot is not None and (
+                not isinstance(provided_snapshot, dict)
+                or not isinstance(provided_snapshot.get("id"), str)
+                or not str(provided_snapshot["id"]).strip()
+                or not isinstance(provided_snapshot.get("generated_at"), str)
+                or not str(provided_snapshot["generated_at"]).strip()
+                or not isinstance(provided_snapshot.get("partial"), bool)
+                or not isinstance(provided_snapshot.get("stale"), bool)
+                or not isinstance(provided_snapshot.get("title"), str)
+                or not str(provided_snapshot["title"]).strip()
+                or not isinstance(provided_snapshot.get("summary"), str)
+                or not str(provided_snapshot["summary"]).strip()
+                or not isinstance(provided_snapshot.get("evidence"), list)
+            ):
+                raise HostEvalError(
+                    f"{case_id}: provided_topic_snapshot must be a complete current topic card"
+                )
             requires_live = raw.get("requires_live_network")
             if requires_live is not None and not isinstance(requires_live, bool):
                 raise HostEvalError(f"{case_id}: requires_live_network must be boolean when present")
@@ -183,6 +216,7 @@ def load_suite(root: Path, suite: str) -> list[EvalCase]:
                     expected_skill=None,
                     expected_workflow=tuple(workflow_raw),
                     installed_skills=tuple(installed_raw),
+                    provided_topic_snapshot=provided_snapshot,
                     requires_live_network=requires_live,
                     source=raw,
                 )
@@ -218,6 +252,25 @@ def select_cases(
     if missing:
         raise HostEvalError(f"unknown case id(s): {', '.join(missing)}")
     return selected
+
+
+def host_prompt(case: EvalCase) -> str:
+    """Render structured current-task inputs into the prompt seen by the Host."""
+
+    if case.provided_topic_snapshot is None:
+        return case.prompt
+    snapshot = json.dumps(
+        case.provided_topic_snapshot,
+        ensure_ascii=False,
+        indent=2,
+        sort_keys=True,
+    )
+    return (
+        f"{case.prompt}\n\n"
+        "Current-task supplied Radar snapshot (treat as user-provided current "
+        "evidence, preserve its exact id):\n"
+        f"```json\n{snapshot}\n```"
+    )
 
 
 def resolve_launcher(explicit: str | None) -> list[str]:
@@ -755,6 +808,11 @@ def run_case(
             "expected_skill": case.expected_skill,
             "expected_workflow": list(case.expected_workflow),
             "installed_skills": list(case.installed_skills),
+            "provided_topic_snapshot": (
+                dict(case.provided_topic_snapshot)
+                if case.provided_topic_snapshot is not None
+                else None
+            ),
             "requires_live_network": case.requires_live_network,
             "command": list(command),
             "runtime_status": "dry_run",
@@ -871,6 +929,11 @@ def run_case(
         "expected_skill": case.expected_skill,
         "expected_workflow": list(case.expected_workflow),
         "installed_skills": list(case.installed_skills),
+        "provided_topic_snapshot": (
+            dict(case.provided_topic_snapshot)
+            if case.provided_topic_snapshot is not None
+            else None
+        ),
         "requires_live_network": case.requires_live_network,
         "command": list(command),
         "runtime_status": runtime_status,
@@ -1165,7 +1228,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                             )
                     command = build_codex_command(
                         launcher,
-                        case.prompt,
+                        host_prompt(case),
                         sandbox=args.sandbox,
                         json_trace=True,
                         live_radar_network=args.live_radar_network,

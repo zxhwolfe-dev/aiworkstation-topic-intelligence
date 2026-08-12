@@ -172,6 +172,7 @@ def _verify_commit_binding(root: Path, evidence_dir: Path, evaluated_commit: str
 
 
 def verify(root: Path, version: str) -> Path:
+    evidence_suite = "v0.2.1" if version == "0.2.2" else "v0.3.0"
     evidence_dir = root / "release-evidence" / f"v{version}"
     missing = [name for name in REQUIRED_FILES if not (evidence_dir / name).is_file()]
     if missing:
@@ -214,8 +215,8 @@ def verify(root: Path, version: str) -> Path:
         or worktree.get("clean_after") is not True
     ):
         raise ReleaseEvidenceError("live Host Eval must run in a clean detached worktree")
-    if raw.get("suites") != ["v0.2.1"] or graded.get("suites") != ["v0.2.1"]:
-        raise ReleaseEvidenceError("evidence must cover exactly the v0.2.1 suite")
+    if raw.get("suites") != [evidence_suite] or graded.get("suites") != [evidence_suite]:
+        raise ReleaseEvidenceError(f"evidence must cover exactly the {evidence_suite} suite")
     commit = str(raw.get("commit") or "")
     _verify_commit_binding(root, evidence_dir, commit)
 
@@ -223,25 +224,32 @@ def verify(root: Path, version: str) -> Path:
     graded_cases = graded.get("cases")
     if not isinstance(raw_cases, list) or not raw_cases:
         raise ReleaseEvidenceError("host-eval.json contains no cases")
-    expected_cases = load_suite(root, "v0.2.1")
+    expected_cases = load_suite(root, evidence_suite)
     expected_ids = [case.case_id for case in expected_cases]
     raw_ids = [_case_id(case) for case in raw_cases]
     graded_ids = [
         _case_id(case) for case in graded_cases
     ] if isinstance(graded_cases, list) else []
     if raw_ids != expected_ids or len(set(raw_ids)) != len(raw_ids):
-        raise ReleaseEvidenceError("raw Host Eval case IDs do not exactly match v0.2.1 eval definitions")
+        raise ReleaseEvidenceError(
+            f"raw Host Eval case IDs do not exactly match {evidence_suite} eval definitions"
+        )
     if graded_ids != expected_ids or len(set(graded_ids)) != len(graded_ids):
         raise ReleaseEvidenceError("graded Host Eval case IDs do not exactly match raw/eval definitions")
     for submitted, expected in zip(raw_cases, expected_cases):
         required = {
             "id": expected.case_id,
-            "suite": "v0.2.1",
+            "suite": expected.suite,
             "prompt": expected.prompt,
             "expected_skill": expected.expected_skill,
             "expected_workflow": list(expected.expected_workflow),
             "requires_live_network": expected.requires_live_network,
             "installed_skills": list(expected.installed_skills),
+            "provided_topic_snapshot": (
+                dict(expected.provided_topic_snapshot)
+                if expected.provided_topic_snapshot is not None
+                else None
+            ),
         }
         if not isinstance(submitted, Mapping) or any(submitted.get(key) != value for key, value in required.items()):
             raise ReleaseEvidenceError(f"raw Host Eval case contract differs from eval definition: {expected.case_id}")

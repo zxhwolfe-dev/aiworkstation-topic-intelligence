@@ -1,6 +1,18 @@
 # Topic Intelligence Skill evals
 
-Topic Intelligence now has two complementary eval layers.
+Topic Intelligence keeps historical two-Skill evals and adds a current unified-Skill release gate.
+
+## Current v0.3.0 gate
+
+`v0.3.0-skill-quality.json` exercises the one public `topic-intelligence` Skill in seven fresh-host cases: selection only, supplied-current-topic brief, one-selection-followed-by-brief, provenance/unknowns, compact scan, no-reselection, and a non-trigger. The authoritative grader relies on validated helper operations, complete lifecycle evidence, or a complete current-task snapshot supplied by the eval contract; it never requires internal magic tokens in the user-facing answer.
+
+Run:
+
+```bash
+python3 scripts/run_host_evals.py --suite v0.3.0 --dry-run
+```
+
+The sections below describe immutable v0.2.x regression assets.
 
 ## 1. `cases.json` — trigger/routing boundary
 
@@ -61,7 +73,7 @@ The quality matrix grades:
 
 For synthetic failure states, use the fixture notes as evaluation semantics; do not manipulate production to force an outage or stale snapshot.
 
-## Explicit smoke tests
+## Historical explicit smoke tests
 
 Before implicit evals, verify explicit invocation works:
 

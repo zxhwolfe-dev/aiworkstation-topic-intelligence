@@ -18,6 +18,7 @@ from scripts.run_host_evals import (
     build_codex_command,
     build_report,
     classify_observation,
+    host_prompt,
     load_suite,
     observe_tokens,
     prepare_case_skill_environment,
@@ -32,6 +33,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CREATOR = "creator-topic-opportunity-research"
 BRIEF = "evidence-backed-content-brief"
 TEST_COMMIT = "0" * 40
+UNIFIED = "topic-intelligence"
 
 
 class HostEvalRunnerTests(unittest.TestCase):
@@ -55,6 +57,32 @@ class HostEvalRunnerTests(unittest.TestCase):
         ))
         self.assertEqual(cases[0].installed_skills, (BRIEF,))
         self.assertEqual(cases[5].installed_skills, (CREATOR, BRIEF))
+
+    def test_v030_cases_bind_one_skill_and_explicit_supplied_snapshots(self) -> None:
+        cases = load_suite(ROOT, "v0.3.0")
+        self.assertEqual(len(cases), 7)
+        self.assertTrue(all(case.installed_skills == (UNIFIED,) for case in cases))
+        supplied = {
+            case.case_id: case.provided_topic_snapshot
+            for case in cases
+            if case.provided_topic_snapshot is not None
+        }
+        self.assertEqual(
+            set(supplied),
+            {
+                "topic-intelligence-brief-for-supplied-topic",
+                "topic-intelligence-brief-without-reselection",
+            },
+        )
+        self.assertTrue(all(snapshot.get("id") for snapshot in supplied.values()))
+        self.assertTrue(all(snapshot.get("title") for snapshot in supplied.values()))
+        self.assertTrue(all(isinstance(snapshot.get("evidence"), list) for snapshot in supplied.values()))
+        rendered = host_prompt(next(
+            case for case in cases
+            if case.case_id == "topic-intelligence-brief-for-supplied-topic"
+        ))
+        self.assertIn("Current-task supplied Radar snapshot", rendered)
+        self.assertIn('"id": "topic:ai-example"', rendered)
 
     def test_quality_suite_rejects_duplicate_and_unknown_installed_skills(self) -> None:
         rows = ([BRIEF, BRIEF], [BRIEF, "unknown-topic-skill"])

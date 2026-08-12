@@ -14,11 +14,7 @@ from scripts.build_release import REQUIRED_SKILL_FILES, build_release
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILLS = (
-    "creator-topic-opportunity-research",
-    "evidence-backed-content-brief",
-)
-HANDOFF_SCHEMA = "ati.topic-opportunity-handoff.v1"
+SKILLS = ("topic-intelligence",)
 
 
 class _RadarHandler(BaseHTTPRequestHandler):
@@ -59,13 +55,13 @@ class _RadarHandler(BaseHTTPRequestHandler):
 
 
 class M3SkillQualityTests(unittest.TestCase):
-    def test_v0_2_release_history_is_preserved_on_v0_2_2_rc_line(self) -> None:
-        self.assertEqual((ROOT / "VERSION").read_text(encoding="utf-8").strip(), "0.2.2")
+    def test_v0_2_release_history_is_preserved_under_current_v0_3_line(self) -> None:
+        self.assertEqual((ROOT / "VERSION").read_text(encoding="utf-8").strip(), "0.3.0")
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         acceptance = (
             ROOT / "docs" / "m3.1-final-acceptance-2026-08-09.md"
         ).read_text(encoding="utf-8")
-        self.assertIn("## [0.2.2] - 2026-08-11", changelog)
+        self.assertIn("## [0.3.0]", changelog)
         self.assertIn("## [0.2.1] - 2026-08-10", changelog)
         self.assertIn("## [0.2.0] - 2026-08-09", changelog)
         self.assertIn("## [0.1.0] - 2026-08-09", changelog)
@@ -79,43 +75,17 @@ class M3SkillQualityTests(unittest.TestCase):
             self.assertTrue(bundled.is_file())
             self.assertEqual(bundled.read_bytes(), canonical, name)
 
-    def test_handoff_contract_is_identical_in_both_skills(self) -> None:
-        creator = (
-            ROOT / "skills" / SKILLS[0] / "references" / "handoff-contract.md"
-        ).read_text(encoding="utf-8")
-        brief = (
-            ROOT / "skills" / SKILLS[1] / "references" / "handoff-contract.md"
-        ).read_text(encoding="utf-8")
-        self.assertEqual(creator, brief)
-        self.assertIn(HANDOFF_SCHEMA, creator)
-        self.assertIn("topic_id == topic_snapshot.id", creator)
-        self.assertIn("current task/session workflow", creator)
-        self.assertIn("persisted handoff is never a substitute", creator)
-        self.assertIn("evidence-backed-content-brief:host-reasoning", creator)
-        self.assertIn("topic_snapshot.id == topic_id", creator)
-        self.assertIn("current-turn checkpoint", creator)
-
-    def test_creator_skill_produces_current_task_handoff(self) -> None:
+    def test_unified_skill_contract_has_composition_boundary(self) -> None:
         source = (ROOT / "skills" / SKILLS[0] / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("### Self-contained runtime", source)
-        self.assertIn("references/handoff-contract.md", source)
-        self.assertIn(HANDOFF_SCHEMA, source)
-        self.assertIn("Do not serialize the whole feed", source)
-        self.assertIn("valid only for the current task/session workflow", source)
-        self.assertIn("Do not assume a repository-root", source)
-        self.assertIn("do not call anonymous/public", source.lower())
+        self.assertIn("Mode 3: selection followed by brief", source)
+        self.assertIn("Do not run a second feed", source)
+        self.assertIn("preserve its exact feed", source)
 
-    def test_brief_skill_supports_handoff_bounded_selection_and_host_reasoning(self) -> None:
-        source = (ROOT / "skills" / SKILLS[1] / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("### Mode A — current-task Topic Opportunity handoff", source)
-        self.assertIn("### Mode B — user supplies a current topic ID or name", source)
-        self.assertIn("### Mode C — Brief-only bounded selection", source)
-        self.assertIn("normally no more than 5 candidates", source)
-        self.assertIn("Build the brief with host reasoning", source)
-        self.assertIn("do not run another candidate-selection feed pass", source)
-        self.assertIn("Never call anonymous/public server `/insight`", source)
-        self.assertIn("native AI Workstation connection", source)
-        self.assertIn("explicitly authenticated", source)
+    def test_unified_skill_defines_three_modes(self) -> None:
+        source = (ROOT / "skills" / SKILLS[0] / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("Mode 1: selection only", source)
+        self.assertIn("Mode 2: brief for a supplied current topic", source)
+        self.assertIn("Mode 3: selection followed by brief", source)
 
     def test_release_archives_include_required_standalone_runtime_files(self) -> None:
         with tempfile.TemporaryDirectory() as output_dir:

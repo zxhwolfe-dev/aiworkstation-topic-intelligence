@@ -23,15 +23,15 @@ python3 -m unittest discover -s tests -v
 
 Require:
 
-- both Skill-local helpers byte-match the canonical root helper;
-- both handoff references match;
-- both quality contracts match the canonical quality contract;
+- the single Skill-local helper byte-matches the canonical root helper;
+- selection and brief workflow references match;
+- the quality contract matches the canonical quality contract;
 - standalone ZIP E2E passes (or the documented environment-only loopback skip applies in a restricted sandbox);
-- current trigger and v0.2.1 quality contracts pass.
+- historical trigger/v0.2.1 regressions and the current v0.3.0 quality contract pass.
 
 ## 3. Public cost-boundary gate
 
-For v0.2.1+ public Skills, this is a release blocker.
+For v0.2.1+ public packages, this is a release blocker.
 
 The bundled helper must expose only:
 
@@ -45,18 +45,17 @@ Verify:
 
 ```bash
 python3 scripts/topic_radar_client.py --help
-python3 skills/creator-topic-opportunity-research/scripts/topic_radar_client.py --help
-python3 skills/evidence-backed-content-brief/scripts/topic_radar_client.py --help
+python3 skills/topic-intelligence/scripts/topic_radar_client.py --help
 ```
 
-All three helpers must:
+The helper must:
 
 - have no `insight` command;
 - have no model-specific timeout/credential option;
 - perform public operations with GET requests only;
 - contain no shared AI Workstation API key/bearer token.
 
-The public Skills and metadata must require host reasoning in normal mode and forbid anonymous/public server `/insight`.
+The public Skill and metadata must require host reasoning in normal mode and forbid anonymous/public server `/insight`.
 
 A Premium Topic Insight path is acceptable only when supplied by a **native authenticated AI Workstation connection** that identifies the user and enforces membership/quota/credits outside the portable Skill package.
 
@@ -68,12 +67,13 @@ python3 scripts/install_codex_skills.py status
 python3 scripts/install_codex_skills.py doctor
 ```
 
-Require both final Skill links to the intended checkout, no conflicting legacy link, supported Python, and these files present in both Skills:
+Require the final `topic-intelligence` link to the intended checkout, no conflicting legacy links, supported Python, and these files present:
 
 - `SKILL.md`;
 - `agents/openai.yaml`;
 - `scripts/topic_radar_client.py`;
-- `references/handoff-contract.md`;
+- `references/selection-workflow.md`;
+- `references/brief-workflow.md`;
 - `references/quality-contract.md`.
 
 `doctor.ok=true`.
@@ -96,7 +96,7 @@ Require:
 Review:
 
 ```text
-evals/v0.2.1-skill-quality.json
+evals/v0.3.0-skill-quality.json
 ```
 
 Require at minimum:
@@ -106,7 +106,7 @@ Require at minimum:
 - Radar facts separated from host editorial analysis;
 - Brief public mode creates a complete research-ready result with host reasoning;
 - public mode makes zero AI Workstation server-side LLM calls;
-- Creator → handoff → Brief does not reselect after a valid handoff;
+- selection → Brief preserves the same finalist and does not run a second feed;
 - Premium Insight requires an explicit authenticated native connection.
 
 Historical M3.1 cases remain regression evidence but do not override the newer public cost boundary.
@@ -116,18 +116,18 @@ Historical M3.1 cases remain regression evidence but do not override the newer p
 Use the **bundled helper from the Skill being tested**, not only the repository-root helper:
 
 ```bash
-python3 skills/creator-topic-opportunity-research/scripts/topic_radar_client.py feed --max-age-hours 24 --limit 3
-python3 skills/creator-topic-opportunity-research/scripts/topic_radar_client.py sources
-python3 skills/evidence-backed-content-brief/scripts/topic_radar_client.py history REAL_TOPIC_ID
+python3 skills/topic-intelligence/scripts/topic_radar_client.py --timeout 30 feed --q AI --limit 12
+python3 skills/topic-intelligence/scripts/topic_radar_client.py --timeout 30 sources
+python3 skills/topic-intelligence/scripts/topic_radar_client.py --timeout 30 history REAL_TOPIC_ID
 ```
 
 For public Skill release acceptance, **do not call server `/insight`**.
 
 Validate:
 
-- one Creator-only live current scan;
-- one Brief-only bounded selection/named-topic flow using host reasoning;
-- one both-Skills Opportunity → handoff → Brief flow with exact topic identity preservation;
+- one selection-only live current scan;
+- one supplied-topic or Brief planning flow using host reasoning;
+- one selection-followed-by-brief flow with exact topic identity preservation;
 - one blocked-live-data regression proving no local fallback;
 - no anonymous server-side model call in any of the above.
 
@@ -147,7 +147,8 @@ Each archive must contain one expected Skill root plus:
 - `SKILL.md`;
 - `agents/openai.yaml`;
 - `scripts/topic_radar_client.py`;
-- `references/handoff-contract.md`;
+- `references/selection-workflow.md`;
+- `references/brief-workflow.md`;
 - `references/quality-contract.md`;
 - `LICENSE`.
 
@@ -164,27 +165,27 @@ Extract each archive outside the checkout; verify `--help` works and does not sh
 
 ## 9. Fresh-session host acceptance
 
-Test:
+Test the one public Skill in all three automatic modes:
 
 ```text
-creator only
-brief only
-both Skills
+selection only
+supplied current topic -> brief
+selection -> brief
 ```
 
 Both-Skills conceptual path:
 
 ```text
-creator-topic-opportunity-research
-  -> ati.topic-opportunity-handoff.v1
-  -> evidence-backed-content-brief
+topic-intelligence
+  -> one bounded feed when selection is needed
+  -> same-finalist host-model brief when requested
 ```
 
 Require exact finalist identity preservation and host-generated Brief completion without anonymous server model calls.
 
-Run the v0.2.1 release-candidate suite live with `--strict-observation`. Save both the raw `ati.host-eval.v1` report and the `ati.host-evidence.v1` graded report. This is an observability gate only: manually review the raw traces/output against each case's `must_show` and `must_not` before approval.
+Run the v0.3.0 release-candidate suite live with `--strict-observation`. Save both the raw `ati.host-eval.v1` report and the `ati.host-evidence.v1` graded report. This is an observability gate only: manually review the raw traces/output against each case's `must_show` and `must_not` before approval.
 
-For every release after the immutable v0.2.1 line, persist those artifacts under `release-evidence/v<VERSION>/host-eval.json`, `host-evidence.json`, and structured `manual-review.json`. `scripts/verify_release_evidence.py` re-runs grading, binds raw/graded reports to the exact seven v0.2.1 case IDs, requires a live strict run at the current commit, and accepts runtime workflow evidence only from a successful Skill-helper `feed`/`sources`/`history` command without an explicit custom origin and with contract-valid Radar JSON. It also checks per-case `must_show`/`must_not` attestations, zero anonymous `/insight` calls, and no post-handoff reselection. The tag workflow hard-fails when this evidence is absent or incomplete. The v0.2.1 tag is the sole historical workflow exception.
+For every release after the immutable v0.2.1 line, persist those artifacts under `release-evidence/v<VERSION>/host-eval.json`, `host-evidence.json`, and structured `manual-review.json`. `scripts/verify_release_evidence.py` re-runs grading, binds raw/graded reports to the exact release-suite cases, requires a live strict run at the current commit, and accepts runtime workflow evidence only from a successful Skill-helper `feed`/`sources`/`history` command without an explicit custom origin and with contract-valid Radar JSON, or from a complete current-task topic snapshot explicitly supplied by the eval input. It also checks per-case `must_show`/`must_not` attestations, zero anonymous `/insight` calls, and no post-selection reselection. The tag workflow hard-fails when this evidence is absent or incomplete. The v0.2.1 tag is the sole historical workflow exception.
 
 If ChatGPT is a target surface, use a fresh uploaded release-candidate package; do not assume Codex proves ChatGPT behavior.
 
@@ -201,7 +202,7 @@ Tag only the validated `main` release commit. Never move/rewrite an existing pub
 
 ## 11. GitHub Release workflow
 
-Verify matching tag/version, tests, deterministic build, and publication of both Skill ZIPs, `release-manifest.json`, and `SHA256SUMS`.
+Verify matching tag/version, tests, deterministic build, and publication of the single Skill ZIP, `release-manifest.json`, and `SHA256SUMS`.
 
 ## 12. Post-release
 

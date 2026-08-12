@@ -1,0 +1,95 @@
+{
+  "schema": "ati.v0.3.0-skill-quality.v1",
+  "source": "unified-topic-intelligence-three-mode-release-gate",
+  "cases": [
+    {
+      "id": "topic-intelligence-selection-only",
+      "prompt": "今天有哪些 AI 题材值得继续研究或做内容？只给我最值得看的三个，不要写完整内容简报。",
+      "installed_skills": ["topic-intelligence"],
+      "expected_workflow": ["topic-intelligence:selection"],
+      "requires_live_network": true,
+      "must_show": ["one bounded feed", "three selected topics", "Radar facts separated from host judgment", "explicit unknowns"],
+      "must_not": ["unsolicited content brief", "generic unrestricted scan", "anonymous server insight", "audience size presented as Radar fact"]
+    },
+    {
+      "id": "topic-intelligence-brief-for-supplied-topic",
+      "prompt": "下面是本任务提供的当前 Radar 题目快照。请基于它做成研究就绪的内容简报；只有在确实需要判断走势时查询这个题目的 history，不要重新 feed 选题。",
+      "installed_skills": ["topic-intelligence"],
+      "expected_workflow": ["topic-intelligence:brief"],
+      "requires_live_network": true,
+      "provided_topic_snapshot": {
+        "id": "topic:ai-example",
+        "title": "Open-source compact AI agents gain tool-use reliability",
+        "summary": "Current public signals discuss smaller agent systems improving reliable tool execution.",
+        "generated_at": "2026-08-12T00:00:00Z",
+        "partial": false,
+        "stale": false,
+        "trend_stage": "rising",
+        "opportunity_score": 78,
+        "evidence": [
+          {"source": "github", "observed_at": "2026-08-12T00:00:00Z"}
+        ]
+      },
+      "must_show": ["same supplied topic identity", "research-ready brief", "must_verify", "avoid_claims", "host reasoning"],
+      "must_not": ["broad feed reselection", "silent topic replacement", "anonymous server insight", "future virality claimed as fact"]
+    },
+    {
+      "id": "topic-intelligence-selection-followed-by-brief",
+      "prompt": "从当前 AI 热点里挑一个题材，然后直接生成研究就绪内容简报。只允许一次 bounded feed，Brief 必须继续使用同一个 finalist。",
+      "installed_skills": ["topic-intelligence"],
+      "expected_workflow": ["topic-intelligence:selection-and-brief"],
+      "requires_live_network": true,
+      "must_show": ["one finalist", "exact Radar topic id preserved", "brief after selection", "Radar facts and host analysis separated"],
+      "must_not": ["second feed", "title-based rediscovery", "anonymous server insight", "audience saturation invented"]
+    },
+    {
+      "id": "topic-intelligence-provenance-and-unknowns",
+      "prompt": "为中国普通科技用户判断今天最值得研究的 AI 题材，并说明受众、饱和度和传播潜力的证据边界。",
+      "installed_skills": ["topic-intelligence"],
+      "expected_workflow": ["topic-intelligence:selection"],
+      "requires_live_network": true,
+      "must_show": ["live Radar evidence", "actual audience size not measured", "content/topic saturation not measured", "future reach/virality not measured", "China fit labeled host editorial judgment"],
+      "must_not": ["measured audience claim", "measured China suitability claim", "virality guarantee", "anonymous server insight"]
+    },
+    {
+      "id": "topic-intelligence-compact-scan",
+      "prompt": "给我一个 AI 选题 shortlist，先用紧凑的 bounded scan，普通任务不要拉取 100 个候选。",
+      "installed_skills": ["topic-intelligence"],
+      "expected_workflow": ["topic-intelligence:selection"],
+      "requires_live_network": true,
+      "must_show": ["python3 Skill-local helper", "feed limit no greater than 24", "bounded shortlist"],
+      "must_not": ["python helper invocation", "repository-root helper", "limit above 24 without explicit request", "shell composition"]
+    },
+    {
+      "id": "topic-intelligence-brief-without-reselection",
+      "prompt": "我已经给出一个当前 Radar 题目的完整快照（topic:ai-supplied）。请基于这个快照写研究计划；不要为了方便重新发现另一个题目。",
+      "installed_skills": ["topic-intelligence"],
+      "expected_workflow": ["topic-intelligence:brief"],
+      "requires_live_network": true,
+      "provided_topic_snapshot": {
+        "id": "topic:ai-supplied",
+        "title": "AI coding agents move toward longer autonomous tasks",
+        "summary": "Current public signals show coding agents being evaluated on longer multi-step work.",
+        "generated_at": "2026-08-12T00:00:00Z",
+        "partial": false,
+        "stale": false,
+        "trend_stage": "rising",
+        "opportunity_score": 81,
+        "evidence": [
+          {"source": "github", "observed_at": "2026-08-12T00:00:00Z"}
+        ]
+      },
+      "must_show": ["provided identity preserved", "evidence gaps disclosed", "research questions", "verification plan"],
+      "must_not": ["second topic selection", "unrelated feed", "anonymous server insight", "local snapshot substituted for supplied evidence"]
+    },
+    {
+      "id": "topic-intelligence-non-trigger",
+      "prompt": "把我已经写好的这段内容润色成更简洁的中文，不需要判断当前热点，也不要访问 Radar。",
+      "installed_skills": ["topic-intelligence"],
+      "expected_workflow": ["topic-intelligence:no-radar"],
+      "requires_live_network": false,
+      "must_show": ["ordinary rewriting completed without Radar"],
+      "must_not": ["invoke Topic Intelligence", "call feed, sources, or history", "claim current trend facts"]
+    }
+  ]
+}

@@ -9,8 +9,7 @@ from pathlib import Path
 
 
 SKILLS = (
-    "creator-topic-opportunity-research",
-    "evidence-backed-content-brief",
+    "topic-intelligence",
 )
 
 
@@ -25,16 +24,18 @@ def repository_root() -> Path:
 def mappings(root: Path | None = None) -> list[tuple[Path, Path]]:
     repo = (root or repository_root()).resolve()
     canonical_helper = repo / "scripts" / "topic_radar_client.py"
-    canonical_handoff = repo / "references" / "topic-opportunity-handoff.md"
     canonical_quality = repo / "references" / "topic-intelligence-quality-contract.md"
+    canonical_selection = repo / "references" / "topic-intelligence-selection-workflow.md"
+    canonical_brief = repo / "references" / "topic-intelligence-brief-workflow.md"
     rows: list[tuple[Path, Path]] = []
     for skill in SKILLS:
         skill_root = repo / "skills" / skill
         rows.extend(
             [
                 (canonical_helper, skill_root / "scripts" / "topic_radar_client.py"),
-                (canonical_handoff, skill_root / "references" / "handoff-contract.md"),
                 (canonical_quality, skill_root / "references" / "quality-contract.md"),
+                (canonical_selection, skill_root / "references" / "selection-workflow.md"),
+                (canonical_brief, skill_root / "references" / "brief-workflow.md"),
             ]
         )
     return rows

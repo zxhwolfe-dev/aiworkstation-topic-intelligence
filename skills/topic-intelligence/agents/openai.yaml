@@ -1,0 +1,7 @@
+interface:
+  display_name: "AI Topic Intelligence"
+  short_description: "Find live topics and build research-ready briefs"
+  default_prompt: "Use $topic-intelligence to find a current AI topic and turn it into a research-ready brief."
+policy:
+  allow_implicit_invocation: true
+
