@@ -64,7 +64,7 @@ e0c56957c95333ae8de28a2bfb71fcbaf59ec15bc65ace2f5d379a819a7fad68  aiworkstation-
 The verified v0.3.0 archive from two independent byte-for-byte identical builds is:
 
 ```text
-7c7a15ba5e551f451a8ba14200af9df8d225ac6bbf15b60407e235acf010ddee  topic-intelligence-0.3.0.zip
+935bab465811a3efabd50ee46c3166c702ad719d19fd66ade718d871b69b066e  topic-intelligence-0.3.0.zip
 ```
 
 ## Release workflow

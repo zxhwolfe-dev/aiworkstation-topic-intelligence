@@ -4,7 +4,7 @@ All notable public changes to AI Workstation Topic Intelligence are recorded her
 
 The project follows Semantic Versioning for distributable Skill releases.
 
-## [0.3.0] - Unreleased
+## [0.3.0] - 2026-08-12
 
 The v0.3.0 product line consolidates the public experience into one
 `topic-intelligence` Skill and one install archive. It automatically recognizes
