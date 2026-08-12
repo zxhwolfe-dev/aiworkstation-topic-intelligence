@@ -1,0 +1,54 @@
+name: Result quality
+description: Report a selection or brief result that did not meet the documented evidence boundary.
+title: "[Quality]: "
+labels: ["result-quality"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Summarize the problem. Do not publish complete conversations, private source material, credentials, or customer data.
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Mode
+      options:
+        - Selection only
+        - Supplied current topic to brief
+        - Selection followed by brief
+    validations:
+      required: true
+  - type: input
+    id: host_version
+    attributes:
+      label: Host and Skill version
+      placeholder: ChatGPT Web / v0.3.0
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      description: Describe the output shape or behavior you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual quality problem
+      description: Provide a short, redacted summary rather than a full transcript.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence_boundary
+    attributes:
+      label: Evidence-boundary concern
+      description: Did the result hide stale/partial data, mix Radar facts with editorial judgment, predict virality, change the topic, or miss must_verify/avoid_claims?
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Public-data confirmation
+      options:
+        - label: I removed secrets, personal data, client data, and complete conversation content.
+          required: true

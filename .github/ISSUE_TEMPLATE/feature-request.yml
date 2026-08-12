@@ -1,0 +1,44 @@
+name: Feature request
+description: Suggest a behavior grounded in a real creator, research, or editorial workflow.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the real workflow without including credentials, complete conversations, private source material, or customer data.
+  - type: textarea
+    id: scenario
+    attributes:
+      label: Real use case
+      description: Who is doing what, in which Host, and what outcome do they need?
+    validations:
+      required: true
+  - type: textarea
+    id: blocker
+    attributes:
+      label: Current obstacle
+      description: What cannot be completed with the current three modes?
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Suggested behavior
+      description: What should Topic Intelligence do differently?
+    validations:
+      required: true
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Privacy and telemetry impact
+      description: Would this require content, conversation, account, or usage data? Prefer privacy-preserving designs.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Public-data confirmation
+      options:
+        - label: I removed secrets, personal data, client data, and complete conversation content.
+          required: true

@@ -1,5 +1,9 @@
 # Public Submission Checklist
 
+Current status: **candidate prepared and validation-ready; public submission temporarily blocked** by the OpenAI Platform payment-method and developer-identity verification prerequisite.
+
+This is an external distribution prerequisite, not a Skill defect or a v0.3.0 release blocker. Do not create v0.3.1 for it. Retain the candidate and resume submission after the prerequisite is satisfied.
+
 ## Prepared in this repository
 
 - skills-only Plugin manifest;
@@ -15,8 +19,8 @@
 
 These steps cannot be completed by repository automation and must be rechecked against the current submission portal:
 
-1. select the publishing organization;
-2. complete the available developer or business identity verification for the `AI Workstation` publisher name;
+1. add the required OpenAI Platform payment method and complete developer-identity verification;
+2. select the publishing organization;
 3. confirm the submitter has the required plugin/app management permission;
 4. create a skills-only submission and upload the validated candidate bundle;
 5. verify every listing field, logo requirement, category, supported country/region, support URL, privacy URL, and terms URL shown by the portal;

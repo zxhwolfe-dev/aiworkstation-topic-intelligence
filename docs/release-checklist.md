@@ -207,3 +207,7 @@ Verify matching tag/version, tests, deterministic build, and publication of the 
 ## 12. Post-release
 
 Confirm release existence, hashes, license, runtime/helper/references, README/changelog accuracy, and that no experimental authenticated Premium transport is marketed as a bundled public Skill capability.
+
+When a target-surface validation occurs after publication, archive it as separate post-release manual UI evidence. Do not rewrite immutable `release-evidence/**`, historical Host Eval JSON, or manual-review JSON. Record user-visible behavior without claiming raw tool traces or exact internal command counts unless those were independently observed.
+
+For v0.3.0, the final published ZIP completed a post-release ChatGPT Web three-mode smoke on 2026-08-12. All three user-facing modes passed; the canonical record is [`chatgpt-v0.3.0-smoke-result-2026-08-12.md`](chatgpt-v0.3.0-smoke-result-2026-08-12.md). This validation did not change the ZIP, tag, version, or release evidence.

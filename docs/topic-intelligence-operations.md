@@ -4,9 +4,9 @@
 
 对外只维护一个官网入口、一个 `topic-intelligence` Skill、一个 GitHub Release ZIP。三种模式由用户的自然语言自动识别，不做三个产品入口。
 
-官网入口位于 AI Workstation 全球热点选题雷达页面右侧栏“本次来源覆盖”模块上方。按钮统一指向：
+官网入口位于 AI Workstation 全球热点选题雷达页面右侧栏“本次来源覆盖”模块上方。卡片在新页面打开独立产品页：
 
-<https://github.com/zxhwolfe-dev/aiworkstation-topic-intelligence/releases/latest>
+<https://aiworkstation.cn/topic-intelligence/>
 
 ## 用户使用
 
@@ -17,7 +17,7 @@
 ```
 
 ```text
-指定题材：基于我刚贴出的当前 Radar 卡片和其中的精确 topic ID 写研究就绪 Brief，不要重新 feed。
+指定题材：基于这个当前 Radar 题材写研究就绪 Brief，不要重新选题。
 ```
 
 ```text
@@ -63,12 +63,12 @@ GitHub Release 是唯一正式分发渠道，包含：
 
 ## 运营指标与隐私
 
-建议只记录匿名产品指标：下载量、安装成功率、首次成功 helper 调用、三种模式比例、helper 失败率、Radar stale/partial 比例、Brief 完成率和回访率。
+当前只记录最小获取漏斗：Topic Radar pageview、`skill_entry_open`、Topic Intelligence 产品页 pageview 和 `release_click`。Radar 事件继续使用 `topic_radar_usage`，产品页使用独立的 `topic_intelligence_acquisition`。GitHub Release ZIP 下载量单独查看，不能解释成安装、启用或真实使用。
 
-不收集 topic 内容、用户对话、凭据、token、session、原始 Radar 响应或可识别个人信息。故障分析只保留不含秘密的命令形状、状态码和生命周期摘要。
+当前没有、也不应偷偷采集 ZIP 是否安装成功、Host 内 Skill 是否启用、三种模式实际使用比例、helper 成功率、Brief 完成率或 ChatGPT/Codex 运行次数。不收集 Prompt、topic 内容、用户对话、凭据、token、session 或原始 Radar 响应。官网行为统计不是 Skill 使用统计；样本量足够后再评估是否需要更复杂、明确告知且尊重隐私的指标。
 
 每次版本发布前重新运行完整 live Host Eval、authoritative grader、逐 case must_show/must_not 人工审核和 verifier。任何非法 helper、非零退出、无效 JSON、未完成 turn、终止性断流或 server-side anonymous LLM 调用都阻塞发布。
 
 ## 版本迁移
 
-v0.2.0 是最后一次真实 ChatGPT Web ZIP 上传验证。v0.2.1、v0.2.2 是不可变的双 Skill 历史线，其 Host Eval 不代表 ChatGPT Web UI 验证。v0.3.0 使用单 Skill和新的完整 evidence，不能复用旧 evidence 或拼接旧 case。
+在 v0.3.0 正式发布时，v0.2.0 仍是已有记录中最后完成 ChatGPT Web 上传验证的版本。随后在 2026-08-12，最终 v0.3.0 Release ZIP 完成了发布后真实 ChatGPT Web Smoke，三种用户可见模式均通过。v0.2.1、v0.2.2 是不可变的双 Skill 历史线，其 Host Eval 不代表 ChatGPT Web UI 验证；v0.3.0 的 UI Smoke 也不替代其独立 Host Eval 和 release evidence。

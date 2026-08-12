@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability (email)
+    url: mailto:zxhwolfe@gmail.com?subject=Topic%20Intelligence%20security%20report
+    about: Report vulnerabilities privately. Do not open a public Issue.
+  - name: Privacy concern (email)
+    url: mailto:zxhwolfe@gmail.com?subject=Topic%20Intelligence%20privacy%20concern
+    about: Send privacy concerns privately without credentials or unnecessary sensitive data.

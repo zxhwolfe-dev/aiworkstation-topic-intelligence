@@ -1,0 +1,55 @@
+name: Installation failure
+description: Report a problem installing or discovering Topic Intelligence in a supported host.
+title: "[Install]: "
+labels: ["installation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not paste API keys, passwords, tokens, complete conversations, customer data, or other sensitive information. Redact errors before submitting.
+  - type: input
+    id: version
+    attributes:
+      label: Topic Intelligence version
+      description: Use the Release version and ZIP filename.
+      placeholder: v0.3.0 / topic-intelligence-0.3.0.zip
+    validations:
+      required: true
+  - type: dropdown
+    id: host
+    attributes:
+      label: Host
+      options:
+        - ChatGPT Web
+        - Codex
+        - Another compatible Agent Skills host
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Plan/workspace type if relevant, operating system, browser or host version. Do not include account identifiers.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Installation steps
+      description: List the steps you took and where the installation stopped.
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: Redacted error
+      description: Paste only the minimum redacted error text. Do not include a complete conversation or credentials.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Public-data confirmation
+      options:
+        - label: I removed secrets, personal data, client data, and complete conversation content.
+          required: true

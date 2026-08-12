@@ -19,7 +19,9 @@ selection-only, supplied-topic brief, and selection-followed-by-brief requests.
 - Rejected duplicate successful Radar requests and required selection workflows
   to use exactly one feed, so compact-scan claims remain trace-verifiable.
 
-The v0.2.0 line remains the last version with manual ChatGPT Web ZIP upload evidence. v0.2.1 and v0.2.2 Host Eval records do not claim ChatGPT Web UI validation.
+### Post-release validation
+
+On 2026-08-12, the final published v0.3.0 ZIP completed a post-release ChatGPT Web smoke with natural user prompts. Selection only, supplied-topic brief, and selection followed by brief all passed at the user-visible level. This is a documentation/evidence update only; the v0.3.0 ZIP contents did not change. Internal command counts and raw traces remain covered by the separate Codex Host Eval and release-evidence gates.
 
 ## [0.2.2] - 2026-08-11
 
@@ -78,7 +80,7 @@ No unreleased changes.
 
 ### Distribution
 
-- `v0.2.2` is the current package line; `v0.2.0` remains immutable and retains the last manual ChatGPT web-upload evidence, while v0.2.1 and v0.2.2 Host Eval results do not claim ChatGPT Web UI validation.
+- At that release stage, `v0.2.2` was the current package line and immutable v0.2.0 retained the latest recorded manual ChatGPT web-upload evidence; v0.2.1 and v0.2.2 Host Eval results did not claim ChatGPT Web UI validation. The final v0.3.0 ZIP later completed its own post-release three-mode ChatGPT Web smoke on 2026-08-12.
 - No Hosted MCP transport is required for public Radar connectivity because standalone ChatGPT Skills already reach the live public read endpoints.
 - A future authenticated App/Plugin/OAuth transport may be introduced only for Premium account-bound capabilities such as server Topic Insight.
 

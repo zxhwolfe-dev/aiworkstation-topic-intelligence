@@ -42,7 +42,7 @@ Selection only:
 Brief for a supplied topic:
 
 ```text
-请基于当前 Radar 题目 topic:ai-example 写研究就绪的内容简报；只有在确实需要判断走势时才查 history，不要重新 feed 选题。
+请基于这个当前 Radar 题材写研究就绪的内容简报；只有在确实需要判断走势时才查 history，不要重新选题。
 ```
 
 Selection followed by brief:
@@ -57,9 +57,13 @@ Selection followed by brief:
 
 The archive includes the Skill-local helper and references needed for standalone execution. The helper uses only public `feed`, `sources`, and `history` reads with `python3`; it does not expose anonymous `/insight`, shared credentials, or a custom Radar origin.
 
-Normal v0.3.0 usage is validated by strict Codex Host Eval and persistent release evidence. That evidence covers lifecycle, runtime commands, Radar contracts, semantic grading, and manual review. It does **not** claim that v0.3.0 has been re-uploaded and re-tested in the ChatGPT Web UI.
+Normal v0.3.0 usage is validated by strict Codex Host Eval and persistent release evidence. That evidence covers lifecycle, runtime commands, Radar contracts, semantic grading, and manual review.
 
-The v0.2.0 package line remains the last real ChatGPT Web ZIP upload validation. v0.2.1 and v0.2.2 Host Eval records must not be presented as ChatGPT UI tests.
+On 2026-08-12, the final published v0.3.0 Release ZIP also completed a real post-release ChatGPT Web smoke with natural user prompts. Selection only, supplied-topic brief, and selection followed by brief all passed at the user-visible level. See [`chatgpt-v0.3.0-smoke-result-2026-08-12.md`](chatgpt-v0.3.0-smoke-result-2026-08-12.md).
+
+An ordinary Mode 2 user does not need to obtain an exact Radar ID in another conversation and copy it into a new one. The ID is a traceability/evidence field, not a mandatory cross-conversation interaction step; an ID not being explicitly visible in the UI is not, by itself, a user-visible failure.
+
+The manual ChatGPT Web validation confirms user-visible behavior for all three modes. Internal command counts and raw runtime traces remain covered by the separate Codex Host Eval and release-evidence gates rather than by the Web UI smoke. v0.2.1 and v0.2.2 Host Eval records remain historical non-UI evidence and must not be presented as ChatGPT UI tests.
 
 ## Cost boundary
 

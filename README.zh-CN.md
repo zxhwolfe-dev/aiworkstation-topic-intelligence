@@ -1,84 +1,116 @@
 # AI Workstation Topic Intelligence
 
-**从实时 Radar 找到值得研究的题，再把当前题材变成研究就绪的内容简报。**
+**从实时 Radar 找到值得研究的题，再把一个当前题材变成研究就绪的内容简报。**
 
 [English](README.md)
 
-当前包版本：**v0.3.0**
+[![下载 v0.3.0](https://img.shields.io/badge/download-v0.3.0-2859dc)](https://github.com/zxhwolfe-dev/aiworkstation-topic-intelligence/releases/tag/v0.3.0)
+[![ChatGPT Web 验证](https://img.shields.io/badge/ChatGPT_Web-三模式_PASS-0b7a53)](docs/chatgpt-v0.3.0-smoke-result-2026-08-12.md)
 
-v0.3.0 对外只提供一个公开 Skill、一个安装包和一个官网入口。Skill 会根据自然语言自动识别三种模式：只选题、围绕用户给定题材做 Brief、先选题再基于同一个 finalist 做 Brief。
+当前稳定版本：**v0.3.0**。2026-08-12，最终 Release ZIP 已在真实 ChatGPT Web 中使用自然用户提示词完成三种用户可见模式 Smoke，并全部通过。
 
-它继续使用 AI Workstation 全球热点选题 Radar 的公开读取接口。正常公开使用由用户当前的 ChatGPT、Codex 或其他宿主模型完成编辑分析，不消耗 AI Workstation 服务器端 LLM quota。
+![AI Workstation 全球热点选题 Radar 与 Topic Intelligence Skill 入口](docs/assets/ai-topic-intelligence-showcase.png)
 
-## 三种自动模式
+## 60 秒上手
 
-### 只选题
-
-```text
-今天有哪些 AI 题材值得继续研究或做内容？先检查 Radar 新鲜度，再给我最值得看的 3 个，不要写完整简报。
-```
-
-Skill 做一次 bounded feed，返回候选、Radar 事实、选择理由和未知项，不主动追加 Brief。
-
-### 用户已经给出题材，生成 Brief
+1. 下载 [`topic-intelligence-0.3.0.zip`](https://github.com/zxhwolfe-dev/aiworkstation-topic-intelligence/releases/tag/v0.3.0)。
+2. ChatGPT：进入 **Plugins → Skills → Create**，上传 ZIP 并等待扫描完成；Codex 开发者可使用下方仓库安装器。
+3. 直接用自然语言提需求。一个 Skill 会自动识别只选题、围绕给定当前题材做 Brief、先选题再做同一题材 Brief。
+4. 首次可直接复制：
 
 ```text
-请基于我刚贴出的当前 Radar 卡片和精确 topic ID 写一份研究就绪的内容简报。只有在确实需要判断走势时才查这个题目的 history，不要重新选题。
+从当前 AI 热点里挑一个最适合做 2–3 分钟中文解释视频的题材，然后直接把它做成研究型内容简报。给我受众收益、最强角度、前三秒、叙事结构、must_verify、avoid_claims 和素材建议。
 ```
 
-Skill 保留用户给定的 topic identity。没有足够的当前快照时，会说明证据缺口，不会静默替换成另一个题材。
+ChatGPT Personal Skills 是否可用取决于当前套餐和工作区权限，详见 [ChatGPT 安装说明](docs/chatgpt-install.md)。
 
-### 先选题，再生成 Brief
+## 三个真实验证场景
+
+以下是用户可见验收摘要，不是伪造的会话逐字稿或截图。
+
+### `AI 题材研究推荐`——只选题
+
+用户要求检查当前 Radar 与新鲜度，只返回最值得继续研究的三个 AI 题材，不生成完整 Brief。Skill 使用了当前 Radar，披露新鲜度和来源覆盖，正好返回三个题材后停止。
+
+### `AI 产业对韩国影响`——用户给定题材直接做 Brief
+
+在一个没有前置上下文的新会话中，用户给出当前题材“AI 产业究竟给韩国普通人带来了什么？”，要求生成适合 2–3 分钟中文解释视频的研究型简报。Skill 保留该题材，直接给出受众收益、最强角度、前三秒、叙事结构、研究问题、`must_verify`、`avoid_claims` 和素材建议。普通用户不需要先跨会话取得并复制 Radar ID。
+
+### `本地AI智能体解析`——先选题，再直接做 Brief
+
+用户要求从当前 AI 热点中选择一个题材，并在同一轮完成 Brief。Skill 选择一个题材后继续使用同一个 finalist，完成全部要求字段，没有停在候选列表，也没有要求用户再回复“继续”。
+
+完整记录见 [v0.3.0 ChatGPT Web Smoke](docs/chatgpt-v0.3.0-smoke-result-2026-08-12.md)。
+
+## 一个 Skill，三种自动模式
 
 ```text
-从当前 AI 热点中挑一个适合中国科技用户研究的题材，然后直接生成研究简报。只允许一次 bounded feed，Brief 必须继续使用同一个 finalist。
+只选题
+用户给定当前题材 -> Brief
+一次 bounded 选题 -> 同一 finalist 的 Brief
 ```
 
-Skill 只执行一次选题 feed，保留精确 Radar `id`，再基于同一题材完成 Brief，不进行第二次 broad/bounded 选题。
+Topic Intelligence 从 [AI Workstation 全球热点选题 Radar](https://aiworkstation.cn/topic-radar/) 读取当前公开信号，由 ChatGPT、Codex 或其他兼容 Agent Skills Host 的当前宿主模型完成编辑分析。
 
-## 输出中的证据边界
+官网产品页提供按域名自动本地化的安装与反馈说明：
 
-每个当前性结论都必须来自本次 live Radar 响应、当前宿主的等价原生连接，或用户明确提供的当前 Radar 响应。不能用模型记忆、旧 JSON、缓存、日志、fixture、数据库或兄弟仓库快照冒充当前事实。
-
-最终回答应区分：
-
-1. **Radar 事实**：题目 ID、时间、新鲜度、来源、趋势字段和公开证据；
-2. **宿主编辑分析**：选题理由、受众收益、角度、Hook、叙事和建议；
-3. **未知与核验**：`must_verify`、风险和证据缺口；
-4. **可选 Premium Insight**：只有用户明确连接了账号绑定的原生 Premium 能力时才存在，仍属于模型分析，不是独立事实来源。
-
-当结论涉及受众、普通科技用户、中国市场适配度或传播潜力时，必须直接说明：Radar 未测量实际受众规模、内容/题材饱和度和未来传播量/virality。“适合中国用户”“受众可能更广”等是宿主模型的 editorial judgment，不是 Radar fact。
+- 中文：<https://aiworkstation.cn/topic-intelligence/>
+- English：<https://useaistation.com/topic-intelligence/>
 
 ## 安装
 
-正式安装包只从 GitHub Release 获取：
+### ChatGPT
 
-<https://github.com/zxhwolfe-dev/aiworkstation-topic-intelligence/releases/latest>
+使用具备 Personal Skills 上传能力的账号与工作区，上传正式 Release ZIP，不要自行重新打包。完整步骤与可用性边界见 [`docs/chatgpt-install.md`](docs/chatgpt-install.md)。
 
-下载后安装 `topic-intelligence` ZIP。Codex 开发者也可以从源码执行：
+### Codex / 开发者
 
 ```bash
 python3 scripts/install_codex_skills.py install
 python3 scripts/install_codex_skills.py doctor
 ```
 
-默认安装到 `$HOME/.agents/skills/topic-intelligence/`。helper 必须从当前加载的 Skill 根目录调用，规范形式是：
+默认安装位置为 `$HOME/.agents/skills/topic-intelligence/`。
 
-```text
-python3 <skill-local-helper> --timeout 30 feed --q AI --limit 12
-python3 <skill-local-helper> --timeout 30 sources
-python3 <skill-local-helper> --timeout 30 history <exact-feed-id>
-```
+### 兼容 Agent Skills Host
 
-不得使用 `python`、仓库根 `scripts/topic_radar_client.py`、`history --topic-id`、管道、重定向、命令组合或自定义 Radar origin。
+Host 需要能够读取 `SKILL.md`、执行安装包内的 Python helper，并访问公开 Radar HTTP 接口。不同 Host 的入口、生命周期、权限和 Skill 发现机制可能不同。
 
-## 官网入口
+## Brief 会包含什么
 
-AI Workstation 的“全球热点选题雷达”页面右侧栏中，“本次来源覆盖”模块上方提供唯一产品入口。这个入口只负责获取 Skill，不把三种模式拆成三个按钮；用户直接用自然语言描述目标即可。
+- 推荐结论与受众收益；
+- 最强角度和前三秒；
+- 叙事节奏与研究问题；
+- `must_verify` 与 `avoid_claims`；
+- 素材需求；
+- 已知未知项和证据风险。
 
-## 成本与安全边界
+这些编辑字段由当前**宿主模型**生成，不由 AI Workstation 服务器模型生成。
 
-公开 helper 只允许调用：
+## 证据与限制边界
+
+当前性结论必须来自本次 live Radar 响应、当前宿主的等价原生连接，或用户明确提供的当前响应。不能用模型记忆、fixture、旧 JSON、日志、SQLite 或兄弟仓库快照冒充当前证据。
+
+必须区分四层：
+
+1. **Radar 事实**：当前 ID、时间、新鲜度、来源覆盖、分数、阶段和 history；
+2. **宿主编辑分析**：选择、受众、角度、Hook、叙事和建议；
+3. **未知与核验**：当前证据尚未建立的主张；
+4. **可选认证 Premium Insight**：未来账号绑定的模型分析，仍不是独立事实证据。
+
+重要限制：
+
+- `partial` 或 `stale` Radar 响应必须披露；
+- Radar 不测量实际受众规模或内容饱和度；
+- Topic Intelligence 不预测未来传播量或 virality；
+- 数据源可用性和 Host 的 Skill 支持会有差异；
+- 用户可见 UI Smoke 不会展示每条底层命令或完整 raw trace。
+
+本次 ChatGPT Web 人工验证确认了三种模式的用户可见行为。底层命令次数和原始运行 trace 仍由独立的 Codex Host Eval 与 release-evidence 门禁覆盖，而不是由 Web UI Smoke 直接证明。
+
+## 公开 runtime 与成本边界
+
+安装包内 helper 只提供：
 
 ```text
 GET /api/v1/ai/topic-radar/feed
@@ -86,42 +118,53 @@ GET /api/v1/ai/topic-radar/sources
 GET /api/v1/ai/topic-radar/history?topic_id=...
 ```
 
-公开 Skill 不调用匿名 `/insight`，不内置共享 API key 或 bearer token，也不要求用户把私密凭据粘贴到聊天中。正常公开路径为：
+正常公开路径：
 
 ```text
-live Radar facts -> 用户当前宿主模型 -> 选题或研究 Brief
+live Radar facts -> 用户当前宿主模型 -> 选题 / Brief
 ```
 
-因此正常公开使用不会消耗 AI Workstation 服务器端 LLM quota。未来如提供 Premium Insight，必须通过账号绑定、明确认证且执行 quota 的原生连接。
+因此正常使用不会产生 AI Workstation 服务器端 LLM 调用。公开 ZIP 不提供匿名 `/insight`，不内置共享 API key 或 bearer token，也不要求用户粘贴私密凭据。未来 Premium Insight 必须通过明确认证、账号绑定且执行 quota 的原生连接。
 
-## 适合的实际案例
+## 独立安装包
 
-- 内容团队早会：每天只选三个值得继续研究的 AI 题材；
-- 中文创作者追踪海外早期机会：比较当前信号，但把跨市场时差标为 hypothesis；
-- 编辑拿到一个 Radar topic ID 后：只查该 finalist 的 history，整理研究问题和核验清单；
-- 研究人员准备视频或文章：一次选题后直接生成角度、Hook、叙事结构、素材需求和 `must_verify`；
-- 不触发场景：翻译、改写、摘要、普通事实问答和用户已给完整材料的标题润色。
+```text
+topic-intelligence/
+  SKILL.md
+  agents/openai.yaml
+  scripts/topic_radar_client.py
+  references/quality-contract.md
+  references/selection-workflow.md
+  references/brief-workflow.md
+  LICENSE
+```
 
-## 发布和运营
+v0.3.0 ZIP SHA256：
 
-GitHub Release 是唯一正式下载源；每次发布同时提供 ZIP、`release-manifest.json` 和 `SHA256SUMS`。发布前必须通过完整 live Host Eval、逐 case semantic grader、人工 `must_show/must_not` 审核和 persistent evidence verifier。
+```text
+935bab465811a3efabd50ee46c3166c702ad719d19fd66ade718d871b69b066e
+```
 
-运营上建议只记录匿名指标：Release 下载、安装成功、首次成功 Radar 调用、三种模式比例、helper 失败率、Radar stale/partial 比例、Brief 完成率和回访率。不要收集 topic 内容、对话正文、凭据、token 或 session。
+GitHub Release 是唯一正式下载源，同时提供 `release-manifest.json` 和 `SHA256SUMS`。
 
-遇到问题时先区分：helper 参数/路径错误、Radar 外部网络故障、宿主生命周期中断和语义工作流失败。未恢复断流、超时、缺少终态或非法 helper 调用都不能进入发布证据。
-
-## 历史版本边界
-
-- **v0.3.0**：当前已发布的单 Skill 产品线，具备独立的完整 live Host Eval evidence 和 verifier 通过记录；
-- **v0.2.2 / v0.2.1**：不可变的双 Skill 历史线，其 Codex/Host Eval 不代表 ChatGPT Web UI 验证；
-- **v0.2.0**：最后一次真实 ChatGPT Web ZIP 上传、发现和运行验证版本。
-
-## 本地验证
+## 开发与验证
 
 ```bash
 python3 scripts/sync_skill_runtime.py --check
+python3 scripts/sync_plugin_candidate.py --check
 python3 -m unittest discover -s tests -v
+python3 -m compileall -q scripts skills
 python3 scripts/run_host_evals.py --suite v0.3.0 --dry-run
 ```
 
-统一质量契约在 `references/topic-intelligence-quality-contract.md`，安装包中同步为 `references/quality-contract.md`。
+统一质量契约位于 [`references/topic-intelligence-quality-contract.md`](references/topic-intelligence-quality-contract.md)，版本绑定的 Host Eval evidence 位于 [`release-evidence/v0.3.0/`](release-evidence/v0.3.0/)。
+
+## 反馈与分发状态
+
+安装失败、结果质量和功能建议可使用仓库的结构化 Issue Form。不要在公开 Issue 粘贴密钥、完整对话、客户资料或其他敏感信息。
+
+OpenAI Developer Showcase 当前状态仅为 **submitted**，不代表 accepted 或 endorsed。Plugin 候选包已准备并通过仓库侧验证；公开 Plugin Directory 提交目前因 OpenAI Platform 付款方式和开发者身份验证前置条件暂时阻塞。这是外部分发条件，不是 Skill 缺陷，也不是 v0.3.0 发布 blocker。
+
+## License
+
+Apache-2.0，见 [`LICENSE`](LICENSE)。

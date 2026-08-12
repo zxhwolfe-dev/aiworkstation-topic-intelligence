@@ -1,5 +1,7 @@
 # AI Topic Intelligence
 
+> Status: candidate prepared and validation-ready. Public Plugin Directory submission is temporarily blocked by the OpenAI Platform payment-method and developer-identity verification prerequisite. This external prerequisite is not a Skill defect or a v0.3.0 release blocker, and no v0.3.1 is required.
+
 ## Short description
 
 Find live topic opportunities and build research-ready content briefs.
@@ -19,7 +21,7 @@ The public Skill requires no AI Workstation API key and does not consume AI Work
 - Name: `AI Topic Intelligence`
 - Developer: `AI Workstation`
 - Category: `Productivity`
-- Website: `https://aiworkstation.cn/topic-radar/`
+- Website: `https://aiworkstation.cn/topic-intelligence/`
 - Support: `https://aiworkstation.cn/support/`
 - Privacy: `https://aiworkstation.cn/privacy/`
 - Terms: `https://aiworkstation.cn/terms/`
@@ -31,3 +33,5 @@ The public Skill requires no AI Workstation API key and does not consume AI Work
 1. `Find three current AI topics worth researching. Do not write a full brief.`
 2. `Turn this current Radar topic into a research-ready content brief.`
 3. `Select one current AI topic, then build a brief for the same finalist.`
+
+This listing is retained for future submission after the external prerequisite is satisfied. It does not claim current public Plugin Directory availability or approval.
