@@ -78,7 +78,7 @@ Pushing a matching tag runs `.github/workflows/release.yml` and must complete th
 5. deterministic build and manifest/checksum generation;
 6. GitHub Release publication of the single ZIP, manifest, and `SHA256SUMS`.
 
-The v0.2.0 release remains the last manual ChatGPT Web ZIP upload validation. v0.2.1 and v0.2.2 Host Eval evidence is not ChatGPT Web UI evidence. v0.3.0 must carry its own Host Eval evidence and still must not claim a new ChatGPT Web upload test without one.
+The v0.2.0 release remains the last manual ChatGPT Web ZIP upload validation. v0.2.1 and v0.2.2 Host Eval evidence is not ChatGPT Web UI evidence. v0.3.0 carries its own complete live Host Eval evidence, but still does not claim a new ChatGPT Web upload test. Every future release must likewise carry version-bound Host Eval evidence unless a stronger release contract explicitly replaces it.
 
 ## Installation channels
 

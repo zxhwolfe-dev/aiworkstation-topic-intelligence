@@ -170,7 +170,7 @@ See [`docs/distribution.md`](docs/distribution.md).
 
 The published v0.2.0 ZIPs were manually tested in ChatGPT web in Creator-only, Brief-only, and both-Skills shapes. v0.3.0 consolidates those user-facing workflows into one package; its Codex/Host Eval evidence does not claim a new ChatGPT Web upload test.
 
-The v0.2.1 and v0.2.2 Host/Codex Eval results remain historical acceptance records, not claims that their ChatGPT Web ZIP upload UI was re-tested. v0.3.0 will carry its own Host Eval evidence before publication.
+The v0.2.1 and v0.2.2 Host/Codex Eval results remain historical acceptance records, not claims that their ChatGPT Web ZIP upload UI was re-tested. v0.3.0 was published with its own complete live Host Eval evidence and verifier approval.
 
 See:
 

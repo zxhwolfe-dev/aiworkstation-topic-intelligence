@@ -112,7 +112,7 @@ GitHub Release 是唯一正式下载源；每次发布同时提供 ZIP、`releas
 
 ## 历史版本边界
 
-- **v0.3.0**：当前单 Skill 产品线，待完成新的 live Host Eval 和正式 evidence 后发布；
+- **v0.3.0**：当前已发布的单 Skill 产品线，具备独立的完整 live Host Eval evidence 和 verifier 通过记录；
 - **v0.2.2 / v0.2.1**：不可变的双 Skill 历史线，其 Codex/Host Eval 不代表 ChatGPT Web UI 验证；
 - **v0.2.0**：最后一次真实 ChatGPT Web ZIP 上传、发现和运行验证版本。
 
