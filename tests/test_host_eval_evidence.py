@@ -817,6 +817,61 @@ class HostEvalEvidenceTests(unittest.TestCase):
             "pass_expected_workflow_evidence_observed",
         )
 
+    def test_duplicate_successful_radar_request_is_noncompliant(self) -> None:
+        helper = f"/skills/{UNIFIED}/scripts/topic_radar_client.py"
+        first = _helper_command_event(
+            f"python3 {helper} --timeout 30 feed --q AI --limit 12"
+        )
+        reordered_duplicate = _helper_command_event(
+            f"python3 {helper} --timeout=45 feed --limit 12 --q AI"
+        )
+        evidence = observe_evidence("\n".join((
+            first,
+            _agent_message("The display was truncated, so I will run it again."),
+            reordered_duplicate,
+            _agent_message("I ran one bounded scan."),
+        )))
+
+        self.assertEqual(evidence["runtime_attempt_count"], 2)
+        self.assertEqual(len(evidence["successful_runtime_attempts"]), 1)
+        self.assertEqual(len(evidence["invalid_runtime_attempts"]), 1)
+        self.assertIn("duplicate_runtime_request", evidence["runtime_violation_reasons"])
+        self.assertEqual(
+            classify_case(
+                _quality_case(
+                    [f"{UNIFIED}:selection"],
+                    [UNIFIED],
+                    suite="v0.3.0",
+                ),
+                evidence,
+            ),
+            "fail_noncompliant_skill_runtime_attempt_observed",
+        )
+
+    def test_selection_requires_exactly_one_successful_feed(self) -> None:
+        helper = f"/skills/{UNIFIED}/scripts/topic_radar_client.py"
+        evidence = observe_evidence("\n".join((
+            _helper_command_event(
+                f"python3 {helper} --timeout 30 feed --q AI --limit 12"
+            ),
+            _helper_command_event(
+                f"python3 {helper} --timeout 30 feed --q robotics --limit 12"
+            ),
+            _agent_message("Terminal shortlist"),
+        )))
+        self.assertEqual(evidence["invalid_runtime_attempts"], [])
+        self.assertEqual(
+            classify_case(
+                _quality_case(
+                    [f"{UNIFIED}:selection"],
+                    [UNIFIED],
+                    suite="v0.3.0",
+                ),
+                evidence,
+            ),
+            "unobservable",
+        )
+
     def test_supplied_snapshot_brief_needs_no_radar_call_but_preserves_id(self) -> None:
         case = _quality_case(
             [f"{UNIFIED}:brief"],

@@ -16,6 +16,8 @@ selection-only, supplied-topic brief, and selection-followed-by-brief requests.
 - Added strict operation-specific runtime/evidence grading and isolated Skill fixtures with neutral Host workspaces.
 - Preserved Radar facts, Host editorial analysis, and unknowns as separate layers; public usage does not consume AI Workstation server-side LLM quota.
 - Added persistent live Host Eval evidence as the release gate for the unified Skill package.
+- Rejected duplicate successful Radar requests and required selection workflows
+  to use exactly one feed, so compact-scan claims remain trace-verifiable.
 
 The v0.2.0 line remains the last version with manual ChatGPT Web ZIP upload evidence. v0.2.1 and v0.2.2 Host Eval records do not claim ChatGPT Web UI validation.
 

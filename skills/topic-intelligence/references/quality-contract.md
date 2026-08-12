@@ -38,6 +38,12 @@ call is a standalone direct command. Do not use shell composition, pipes,
 redirection, command substitution, backticks, here-docs, `jq`, another Python
 process, custom origins, or syntax probing.
 
+Do not repeat an already successful helper request merely to re-read, reformat,
+or recover display-truncated output. Use the JSON returned by the completed
+command and disclose genuinely unavailable fields as unknown. A selection-only
+or selection-followed-by-brief task has exactly one successful `feed`; a second
+successful feed is not a compact bounded scan even when its arguments match.
+
 For ordinary selection, the initial candidate set defaults to 12 and must not
 exceed 24. Do not fetch 100 candidates to choose a small shortlist.
 

@@ -69,6 +69,9 @@ Requirements:
 - pass the history topic ID as the sole positional argument, never
   `history --topic-id <id>`;
 - run each helper call as one standalone direct command;
+- never repeat an already successful helper request merely to re-read, reformat,
+  or recover display-truncated output; use the JSON already returned by that
+  command, and report genuinely unavailable fields as unknown;
 - never combine it with `|`, `&&`, `;`, redirection, command substitution,
   backticks, a here-doc, `jq`, or another Python process;
 - read the helper's JSON directly from stdout;
@@ -78,7 +81,8 @@ Requirements:
 - never use `--base-url` or an origin override in the official public workflow.
 
 For ordinary selection, start with `--limit 12` and never exceed 24 unless the
-user explicitly asks for a large list, export, or larger sample.
+user explicitly asks for a large list, export, or larger sample. Selection-only
+and selection-followed-by-brief modes each use exactly one successful `feed`.
 
 ## Live evidence gate
 

@@ -45,6 +45,12 @@ class SkillQualityContractTests(unittest.TestCase):
             self.assertIn("standalone direct command", normalized)
             self.assertIn("another Python process", normalized)
             self.assertIn("never use a repository-root", normalized.lower())
+            self.assertTrue(
+                "never repeat" in normalized.lower()
+                or "do not repeat" in normalized.lower()
+            )
+            self.assertIn("display-truncated output", normalized)
+            self.assertIn("exactly one successful", normalized)
         self.assertIn("never `python`", skill)
         self.assertIn("never exceed 24", skill)
 

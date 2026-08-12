@@ -250,6 +250,7 @@ def _runtime_attempt(
         "skill": skill,
         "helper_path": helper_path,
         "command": command,
+        "request_arguments": list(arguments),
         "operation": operation,
         "topic_id": (
             arguments[-1]
@@ -271,6 +272,35 @@ def _radar_response_topic_ids(operation: str, output: str) -> list[str]:
     if operation == "history" and isinstance(payload.get("topic_id"), str):
         return [str(payload["topic_id"])]
     return []
+
+
+def _runtime_request_signature(attempt: Mapping[str, Any]) -> tuple[Any, ...]:
+    """Return a helper-path-independent signature for one Radar request."""
+
+    arguments = list(attempt.get("request_arguments") or [])
+    while arguments and str(arguments[0]).startswith("--timeout"):
+        option = str(arguments.pop(0))
+        if option == "--timeout" and arguments:
+            arguments.pop(0)
+    operation = str(attempt.get("operation") or "")
+    if arguments and arguments[0] == operation:
+        arguments.pop(0)
+
+    if operation == "feed":
+        normalized: list[tuple[str, str | None]] = []
+        while arguments:
+            option = str(arguments.pop(0))
+            if option == "--new-only":
+                normalized.append((option, None))
+                continue
+            if "=" in option:
+                name, value = option.split("=", 1)
+            else:
+                name = option
+                value = str(arguments.pop(0)) if arguments else ""
+            normalized.append((name, value))
+        return (attempt.get("skill"), operation, tuple(sorted(normalized)))
+    return (attempt.get("skill"), operation, tuple(str(value) for value in arguments))
 
 
 def _validated_operation_arguments(arguments: Sequence[str]) -> str | None:
@@ -519,6 +549,7 @@ def observe_evidence(
     invalid_runtime_attempts: list[dict[str, Any]] = []
     failed_runtime_attempts: list[dict[str, Any]] = []
     successful_runtime_attempts: list[dict[str, Any]] = []
+    successful_request_signatures: set[tuple[Any, ...]] = set()
     runtime_violation_reasons: set[str] = set()
     runtime_attempt_skills: set[str] = set()
     runtime_positions_by_skill: dict[str, list[int]] = {
@@ -565,6 +596,18 @@ def observe_evidence(
             failed_runtime_attempts.append(failed)
             runtime_violation_reasons.update(failure_reasons)
             continue
+
+        request_signature = _runtime_request_signature(attempt)
+        if request_signature in successful_request_signatures:
+            invalid_runtime_attempts.append({
+                **attempt,
+                "status": item.get("status"),
+                "exit_code": item.get("exit_code"),
+                "violation_reasons": ["duplicate_runtime_request"],
+            })
+            runtime_violation_reasons.add("duplicate_runtime_request")
+            continue
+        successful_request_signatures.add(request_signature)
 
         if isinstance(skill, str):
             runtime_uses.add(skill)
@@ -730,8 +773,10 @@ def _quality_workflow_token_observed(
     lifecycle_complete = _complete_case_lifecycle(case)
 
     if token == f"{UNIFIED_SKILL}:selection":
+        counts = evidence.get("runtime_operation_counts") or {}
         return bool(
             f"{UNIFIED_SKILL}:feed" in operations
+            and counts.get(f"{UNIFIED_SKILL}:feed") == 1
             and lifecycle_complete
             and evidence.get("post_runtime_agent_message_skills")
         )
@@ -940,7 +985,8 @@ def grade_report(payload: Mapping[str, Any]) -> dict[str, Any]:
             "passive Skill names/file reads are discovery evidence, not invocation; "
             "every attempted Skill-local helper call must be a standalone, compliant "
             "python3 feed/sources/history invocation that completes successfully with "
-            "validated Radar JSON; any noncompliant or unsuccessful attempt fails the "
+            "validated Radar JSON; duplicate successful requests, noncompliant calls, "
+            "or unsuccessful attempts fail the "
             "case, and handoff use requires the schema in an agent message"
         ),
     }
