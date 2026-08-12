@@ -1,0 +1,491 @@
+{
+  "cases": [
+    {
+      "collector_route_observation": "fail_unobservable",
+      "evidence": {
+        "agent_message_count": 3,
+        "agent_message_skill_mentions": [
+          "topic-intelligence"
+        ],
+        "agent_message_texts": [
+          "item_0\nagent_message\n我会用 `topic-intelligence` 技能拉取当前 topic radar，只筛出最值得继续看的三个 AI 题材，不展开成完整简报。",
+          "item_4\nagent_message\n我已经载入了该技能的选择流程。接下来只做一次 AI feed 查询，然后按 Radar 分数、趋势阶段、新鲜度和证据覆盖来筛选三个。",
+          "item_6\nagent_message\n今天（2026-08-12）我会优先看这三个。Radar 快照：`2026-08-12 05:35:27 UTC`，`partial=false`，`stale=false`，主要来源健康；但多数候选仍是单来源早期信号。\n\n1. **AI产业给韩国人带来什么**  \n   **Radar facts**：机会分 `55`，`rising`，B站热搜 + TrendRadar 双来源，排名 #1，24h 分数变化 `+5`。  \n   **Host editorial analysis**：最适合做成中文内容，因为它不是单纯产品新闻，而是“AI产业如何改变一个国家的就业、教育、制造业和年轻人机会”的社会化议题。  \n   **must_verify**：原始 B站内容、韩国 AI 产业/就业数据、是否只是单条视频带动的短热点。\n\n2. **Go is an ideal language for AI-assisted software engineering**  \n   **Radar facts**：机会分 `37`，`rising`，Hacker News 单来源，当前 rank #7，heat `317`，最佳 rank #6。  \n   **Host editorial analysis**：适合技术向内容，角度可以是“AI 编程时代，为什么 Go 反而更吃香”。这个题材比单个工具发布更耐研究。  \n   **must_verify**：Google 原文论点、HN 讨论反驳点、Go 在 agentic coding / 后端工程里的真实优势。\n\n3. **美团：做医药商家 AI 转型小帮手**  \n   **Radar facts**：机会分 `32`，`rising`，IT之家单来源，rank #1，新近出现。  \n   **Host editorial analysis**：值得看是因为它落在“AI + 本地生活/医药零售”这个更接近真实商业落地的方向，不只是大模型叙事。  \n   **must_verify**：美团原始表述、具体 AI 能力、是否已有商家案例或只是战略口径。\n\n补充限制：Radar 不衡量真实受众规模、内容饱和度或未来传播效果；上面关于“适合中文内容/更耐研究”的判断是我的编辑判断，不是 Radar 事实。"
+        ],
+        "brief_host_reasoning_checkpoint_observed": false,
+        "command_execution_count": 8,
+        "creator_runtime_before_checkpoint": false,
+        "definition_read_skills": [
+          "topic-intelligence"
+        ],
+        "failed_runtime_attempts": [],
+        "handoff_agent_message_observed": false,
+        "handoff_checkpoint_topic_id": null,
+        "handoff_checkpoint_topic_ids": [],
+        "handoff_schema_mention_observed": false,
+        "invalid_runtime_attempts": [],
+        "mentioned_skills": [
+          "topic-intelligence"
+        ],
+        "post_handoff_agent_message_observed": false,
+        "post_runtime_agent_message_skills": [
+          "topic-intelligence"
+        ],
+        "runtime_attempt_count": 1,
+        "runtime_attempt_skills": [
+          "topic-intelligence"
+        ],
+        "runtime_operation_counts": {
+          "topic-intelligence:feed": 1
+        },
+        "runtime_operations": [
+          "topic-intelligence:feed"
+        ],
+        "runtime_use_skills": [
+          "topic-intelligence"
+        ],
+        "runtime_violation_reasons": [],
+        "successful_runtime_attempts": [
+          {
+            "command": "/bin/bash -lc 'python3 /tmp/ati-host-eval-home-a2csrkn4/.agents/skills/topic-intelligence/scripts/topic_radar_client.py --timeout 30 feed --q AI --limit 12'",
+            "event_position": 11,
+            "exit_code": 0,
+            "helper_path": "/tmp/ati-host-eval-home-a2csrkn4/.agents/skills/topic-intelligence/scripts/topic_radar_client.py",
+            "operation": "feed",
+            "request_arguments": [
+              "--timeout",
+              "30",
+              "feed",
+              "--q",
+              "AI",
+              "--limit",
+              "12"
+            ],
+            "response_topic_ids": [
+              "topic:d4a978a6f965f6fc1675",
+              "topic:1838a0cf5e0693e160c8",
+              "topic:374ff9c1bae21777e5f7",
+              "topic:806155155dc11082e7df",
+              "topic:c79403bd480023397aab",
+              "topic:c747db15a183cf791956",
+              "topic:4c07e20bc2ad3e9938a3",
+              "topic:4613eaef4fa3de9fef62",
+              "topic:9af482c7a566f7486328",
+              "topic:2337fa7f6f6eb5e938a2",
+              "topic:5b1f3af9b691e03f4255",
+              "topic:c3d534bc09a6862f81c3"
+            ],
+            "skill": "topic-intelligence",
+            "status": "completed",
+            "topic_id": null,
+            "violation_reasons": []
+          }
+        ]
+      },
+      "evidence_grade": "pass_expected_workflow_evidence_observed",
+      "id": "topic-intelligence-selection-only",
+      "runtime_status": "completed",
+      "suite": "v0.3.0"
+    },
+    {
+      "collector_route_observation": "fail_unobservable",
+      "evidence": {
+        "agent_message_count": 3,
+        "agent_message_skill_mentions": [
+          "topic-intelligence"
+        ],
+        "agent_message_texts": [
+          "item_0\nagent_message\n我会使用 `topic-intelligence` 技能，因为当前任务是把已给定的 Radar 题目转成研究就绪内容简报，并且需要遵守“不重新 feed 选题”的约束。",
+          "item_2\nagent_message\n我已读到技能主说明。接下来只读取简报流程和质量约束，不会调用 feed；这个输入快照本身已经是当前证据。",
+          "item_5\nagent_message\n**Radar facts**\n\n- 题目：Open-source compact AI agents gain tool-use reliability\n- Stable Radar ID：`topic:ai-example`\n- 生成时间：`2026-08-12T00:00:00Z`\n- 新鲜度：`stale: false`，`partial: false`\n- Opportunity score：`78`\n- Trend stage：`rising`\n- 证据来源：GitHub，观测时间 `2026-08-12T00:00:00Z`\n- 已知摘要：当前公开信号在讨论更小型的 agent 系统如何提升可靠的工具执行能力。\n- 限制：当前快照只显示 GitHub 来源；没有论文、产品发布、社区讨论、下载量、真实用户采用率或 benchmark 细节。\n\n**Host editorial analysis**\n\n选题价值在于它把“更强大模型”之外的叙事转向“更可靠的小型 agent 工程”。适合做成一篇面向开发者、AI 产品经理或技术决策者的研究型内容：为什么 compact agent 正在获得关注，它们靠什么提高 tool-use reliability，以及这对本地化、低成本、私有部署和自动化工作流意味着什么。\n\n注意：Radar 不测量实际受众规模、不测量内容/选题饱和度，也不预测未来传播或转化效果。任何“受众更广”“更适合某市场”的判断都只是编辑判断，不是 Radar 事实。\n\n**recommendation**\n\n建议做成一篇“工程趋势拆解”：\n\n标题方向：  \n`小型开源 AI Agent 正在变可靠：工具调用能力为何成为新竞争点`\n\n核心角度：  \n不是所有 agent 进步都来自更大的模型。当前更值得研究的是 compact agent 如何通过工具协议、调用约束、状态管理、错误恢复、测试框架和更清晰的执行链路，提高真实任务中的可靠性。\n\n开场 hook：  \n过去一年，agent 的主要问题不是“能不能调用工具”，而是“能不能稳定、可复现、可控地调用工具”。现在，一批更小、更容易部署的开源 agent 项目正在把竞争点从炫技 demo 拉回工程可靠性。\n\n叙事 beats：\n\n1. 问题背景：agent 工具调用常见失败模式，包括参数错误、上下文丢失、重复调用、权限边界不清、工具结果误读。\n2. 趋势信号：Radar 显示该题处于 `rising`，机会分 `78`，当前 GitHub 信号集中在小型 agent 与可靠工具执行。\n3. 技术路径：compact agent 可能通过 schema validation、planner/executor 分离、retry policy、tool sandbox、trace logging、eval harness 提升可靠性。\n4. 为什么是“小型”：部署成本低、可审计性更强、局部任务更容易约束，适合企业内部工具流和边缘/本地自动化。\n5. 风险反面：GitHub 热度不等于生产可用；可靠性必须看测试、失败恢复、权限控制和长期维护。\n6. 结论：下一阶段 agent 竞争可能不是“谁更像通用助手”，而是谁能在窄任务里稳定执行工具。\n\n**Research Questions**\n\n- 哪些开源 compact agent 项目近期强调 tool-use reliability？\n- 它们如何定义“可靠”：成功率、重试率、trace 可解释性、schema 严格性，还是 benchmark？\n- 是否有真实 benchmark、issue 讨论、release note 或 case study 支撑？\n- 这些项目依赖哪些工具协议或框架，例如 MCP、function calling、LangChain/LangGraph、AutoGen、CrewAI、smolagents 等？\n- 小型 agent 与大型通用 agent 在成本、延迟、可控性、部署复杂度上有哪些实际差异？\n- 哪些失败模式仍未解决？\n\n**Preferred Source Types**\n\n- GitHub repo：README、release notes、issues、PR、stars/forks 变化只能作为辅助信号\n- 官方文档：tool calling、agent runtime、eval、sandbox、tracing 设计\n- Benchmark/eval 报告：工具调用成功率、任务完成率、错误分类\n- 开发者博客或技术复盘：真实部署经验优先\n- 安全资料：权限隔离、工具注入、prompt injection、数据泄露风险\n\n**Search Queries**\n\n- `compact AI agents tool use reliability GitHub`\n- `open source AI agent tool calling reliability eval`\n- `small language model agents tool execution`\n- `AI agent tool use benchmark reliability`\n- `MCP agent tool calling reliability open source`\n- `agent framework retry schema validation tool calls`\n\n**unknowns / must_verify**\n\n- 必须核实具体项目名称，当前快照没有列出 repo。\n- 必须核实“可靠性提升”是否有量化指标，而不是 README 宣称。\n- 必须核实 GitHub 信号是否来自多个独立项目，还是单一项目事件。\n- 必须核实 license、维护频率、最近 release、issue 响应速度。\n- 必须避免声称“已经生产可用”“替代大型 agent”“行业普遍采用”，除非找到独立证据。\n- 不要把 opportunity score `78` 解读为流量保证、商业成功概率或受众规模。\n\n**Visual / Material Plan**\n\n- 一张架构图：compact agent、planner、tool router、schema validator、executor、trace/eval loop。\n- 一张对照表：demo agent vs reliable tool-use agent。\n- 一个失败案例框：错误参数、工具结果误读、无限重试、权限越界。\n- 一个核查清单：repo 活跃度、eval、失败恢复、日志、权限、license、部署方式。"
+        ],
+        "brief_host_reasoning_checkpoint_observed": false,
+        "command_execution_count": 6,
+        "creator_runtime_before_checkpoint": false,
+        "definition_read_skills": [
+          "topic-intelligence"
+        ],
+        "failed_runtime_attempts": [],
+        "handoff_agent_message_observed": false,
+        "handoff_checkpoint_topic_id": null,
+        "handoff_checkpoint_topic_ids": [],
+        "handoff_schema_mention_observed": false,
+        "invalid_runtime_attempts": [],
+        "mentioned_skills": [
+          "topic-intelligence"
+        ],
+        "post_handoff_agent_message_observed": false,
+        "post_runtime_agent_message_skills": [],
+        "runtime_attempt_count": 0,
+        "runtime_attempt_skills": [],
+        "runtime_operation_counts": {},
+        "runtime_operations": [],
+        "runtime_use_skills": [],
+        "runtime_violation_reasons": [],
+        "successful_runtime_attempts": []
+      },
+      "evidence_grade": "pass_expected_workflow_evidence_observed",
+      "id": "topic-intelligence-brief-for-supplied-topic",
+      "runtime_status": "completed",
+      "suite": "v0.3.0"
+    },
+    {
+      "collector_route_observation": "fail_unobservable",
+      "evidence": {
+        "agent_message_count": 5,
+        "agent_message_skill_mentions": [
+          "topic-intelligence"
+        ],
+        "agent_message_texts": [
+          "item_0\nagent_message\n我会使用 `topic-intelligence` 技能来完成：先用一次 bounded feed 选出当前 AI 热点 finalist，然后用同一个 finalist 生成研究就绪简报。",
+          "item_2\nagent_message\n技能说明要求我还要读取质量契约、选择流程和简报流程。我先把这些约束读完，再只发起一次符合要求的 feed。",
+          "item_6\nagent_message\n约束已经确认：这是“选择后生成 Brief”的模式，只能成功调用一次 `feed`，不能二次选择。我现在用 `q=AI` 拉 12 个候选，并会保留最终题材的原始 Radar ID。",
+          "item_8\nagent_message\n我已经拿到一次有效 feed，接下来不再调用 Radar。现在在这些候选里挑一个最适合做内容简报的 finalist，并把 brief 直接写出来。",
+          "item_9\nagent_message\n选定 finalist：`topic:806155155dc11082e7df` — 「AI产业给韩国人带来什么」\n\n**Radar facts**\n- snapshot: `generated_at=2026-08-12T05:35:27Z`, `stale=false`, `partial=false`, `snapshot_age_seconds=265`\n- stage/score: `rising`, `opportunity_score=55`, `rank=1`\n- evidence: `signal_count=2`, `source_count=2`, source spread `0h`\n- region/category: `GLOBAL` / `娱乐`\n- observed platforms: `bilibili`, `bilibili-hot-search`\n- source status: healthy\n- source surface: B站热搜 + TrendRadar，都是同一热题的公开趋势信号\n\n**Host editorial analysis**\n- 这是一个“问题式”热题，最适合做解释型内容，不适合直接写成硬新闻复述。\n- 中文受众里可把它做成“AI 产业如何重估一个出口型国家”的切口，这属于编辑判断，不是 Radar 事实。\n- Radar 不衡量真实受众规模、题材饱和度或未来传播/爆款概率。\n\n**研究就绪简报**\n- Angle: 韩国不是主角，而是 AI 产业链里最容易被重新定价的一环。\n- Audience payoff: 看懂芯片、模型、应用、就业、政策怎样同时改写一个成熟经济体。\n- Why now: 题材刚起热，且有双源确认，适合先做观点解释而不是等热度退掉。\n- Hook: “AI 产业到底给韩国人带来的，是机会、压力，还是两者同时发生？”\n- Narrative beats: 1 热点为什么冒出来 2 韩国在 AI 链条里的位置 3 哪些行业先感受到变化 4 赢家与承压者 5 对中国读者意味着什么\n- Research questions: 热度由哪条新闻或视频触发？具体指向芯片、平台、企业还是就业？韩国本地数据能否证明真实影响？\n- Preferred sources: 韩国官方统计与产业部门、公司财报/电话会、当地主流媒体、半导体行业报告、劳动与教育数据、学术/智库材料\n- must_verify: 热点触发点、任何数字化结论、韩国 AI 产业链的真实受益/受压环节\n- avoid_claims: 不要写成“韩国已经赢了/输了 AI 竞赛”，不要把热搜等同于全民关心，不要暗示爆款概率\n- Visual/material plan: 一张亚洲 AI 产业链示意图，标出韩国在芯片/平台/应用中的位置；配 2-3 个关键数据图表，避免装饰性大图"
+        ],
+        "brief_host_reasoning_checkpoint_observed": false,
+        "command_execution_count": 10,
+        "creator_runtime_before_checkpoint": false,
+        "definition_read_skills": [
+          "topic-intelligence"
+        ],
+        "failed_runtime_attempts": [],
+        "handoff_agent_message_observed": false,
+        "handoff_checkpoint_topic_id": null,
+        "handoff_checkpoint_topic_ids": [],
+        "handoff_schema_mention_observed": false,
+        "invalid_runtime_attempts": [],
+        "mentioned_skills": [
+          "topic-intelligence"
+        ],
+        "post_handoff_agent_message_observed": false,
+        "post_runtime_agent_message_skills": [
+          "topic-intelligence"
+        ],
+        "runtime_attempt_count": 1,
+        "runtime_attempt_skills": [
+          "topic-intelligence"
+        ],
+        "runtime_operation_counts": {
+          "topic-intelligence:feed": 1
+        },
+        "runtime_operations": [
+          "topic-intelligence:feed"
+        ],
+        "runtime_use_skills": [
+          "topic-intelligence"
+        ],
+        "runtime_violation_reasons": [],
+        "successful_runtime_attempts": [
+          {
+            "command": "/bin/bash -lc 'python3 /tmp/ati-host-eval-home-y12x9u_l/.agents/skills/topic-intelligence/scripts/topic_radar_client.py --timeout 30 feed --q AI --limit 12'",
+            "event_position": 14,
+            "exit_code": 0,
+            "helper_path": "/tmp/ati-host-eval-home-y12x9u_l/.agents/skills/topic-intelligence/scripts/topic_radar_client.py",
+            "operation": "feed",
+            "request_arguments": [
+              "--timeout",
+              "30",
+              "feed",
+              "--q",
+              "AI",
+              "--limit",
+              "12"
+            ],
+            "response_topic_ids": [
+              "topic:d4a978a6f965f6fc1675",
+              "topic:1838a0cf5e0693e160c8",
+              "topic:374ff9c1bae21777e5f7",
+              "topic:806155155dc11082e7df",
+              "topic:c79403bd480023397aab",
+              "topic:c747db15a183cf791956",
+              "topic:4c07e20bc2ad3e9938a3",
+              "topic:4613eaef4fa3de9fef62",
+              "topic:9af482c7a566f7486328",
+              "topic:2337fa7f6f6eb5e938a2",
+              "topic:5b1f3af9b691e03f4255",
+              "topic:c3d534bc09a6862f81c3"
+            ],
+            "skill": "topic-intelligence",
+            "status": "completed",
+            "topic_id": null,
+            "violation_reasons": []
+          }
+        ]
+      },
+      "evidence_grade": "pass_expected_workflow_evidence_observed",
+      "id": "topic-intelligence-selection-followed-by-brief",
+      "runtime_status": "completed",
+      "suite": "v0.3.0"
+    },
+    {
+      "collector_route_observation": "fail_unobservable",
+      "evidence": {
+        "agent_message_count": 4,
+        "agent_message_skill_mentions": [
+          "topic-intelligence"
+        ],
+        "agent_message_texts": [
+          "item_0\nagent_message\n我会使用 `topic-intelligence` 技能，因为这个请求是在做“今天”的 AI 选题判断，需要基于当前话题热度而不是静态知识。先读取技能说明，再拉取可用的实时证据。",
+          "item_2\nagent_message\n我在补齐这套实时话题判断的约束，先把技能里的证据边界和选题流程读完，再取一次当前 Radar 结果。",
+          "item_5\nagent_message\n我现在只会跑一次 `AI` 主题 feed，按普通任务默认的 12 条候选来比较；不会额外拉大样本，以免把证据范围说得比实际更大。",
+          "item_7\nagent_message\n**Recommendation**\n\n今天最值得研究的 AI 题材：**“AI 产业给韩国人带来什么”**  \nRadar ID: `topic:806155155dc11082e7df`\n\n**Radar facts**\n\nRadar 快照生成于 **2026-08-12 13:35:27 北京时间**，状态 `ok`，`partial=false`，`stale=false`，但 `refreshing=true`，快照约 404 秒。该题材来自 **B站热搜** 与 **TrendRadar · bilibili 热搜** 两个信号，均显示排名第 1；`trend_stage=rising`，`opportunity_score=55`，在本次 AI 查询前 12 条里最高；`is_new_24h=true`，`score_change_24h=+5`，`source_count=2`。\n\n**Host editorial analysis**\n\n适合中国普通科技用户，理由是它不是纯模型、融资或编程语言新闻，而是“AI 产业如何影响普通人、就业、国家竞争、生活成本”的社会化议题。普通科技用户不一定关心 Go、Mistral 算力、Cognition 估值，但更容易关心“韩国这个近邻案例对中国有什么参照”。\n\n受众大致包括：B站科技区用户、关注 AI 就业影响的人、学生和职场新人、关心中日韩产业比较的泛科技用户。这个“适合中国用户”是我的编辑判断，不是 Radar 直接测量。\n\n饱和度边界：Radar **不测量真实内容饱和度**。目前只能说它已在 B站热搜出现，B站内可能已经开始拥挤；但在知乎、微博、抖音、小红书是否饱和，本次证据不能证明。更稳的切口是避开复述热搜，做“中国普通人能从韩国 AI 产业变化里看到什么”。\n\n传播潜力边界：Radar **不测量未来传播或爆款概率**。可以判断它有传播素材：近邻国家、产业竞争、就业影响、普通人收益与代价，适合做对比型标题和短视频。但这只是编辑推断，不是可保证的流量结论。\n\n**Unknowns / must_verify**\n\n需要核验原始 B站热搜内容、韩国 AI 产业数据来源、就业和收入影响是否有权威统计。不要直接宣称“韩国人已经因 AI 普遍涨薪/失业/受益”，除非找到可靠数据。  \n结论：今天优先研究它；备选题是 **Claude/Anthropic AI 水印**，但那个更偏写作者和职场合规，普通科技用户覆盖面略窄。"
+        ],
+        "brief_host_reasoning_checkpoint_observed": false,
+        "command_execution_count": 8,
+        "creator_runtime_before_checkpoint": false,
+        "definition_read_skills": [
+          "topic-intelligence"
+        ],
+        "failed_runtime_attempts": [],
+        "handoff_agent_message_observed": false,
+        "handoff_checkpoint_topic_id": null,
+        "handoff_checkpoint_topic_ids": [],
+        "handoff_schema_mention_observed": false,
+        "invalid_runtime_attempts": [],
+        "mentioned_skills": [
+          "topic-intelligence"
+        ],
+        "post_handoff_agent_message_observed": false,
+        "post_runtime_agent_message_skills": [
+          "topic-intelligence"
+        ],
+        "runtime_attempt_count": 1,
+        "runtime_attempt_skills": [
+          "topic-intelligence"
+        ],
+        "runtime_operation_counts": {
+          "topic-intelligence:feed": 1
+        },
+        "runtime_operations": [
+          "topic-intelligence:feed"
+        ],
+        "runtime_use_skills": [
+          "topic-intelligence"
+        ],
+        "runtime_violation_reasons": [],
+        "successful_runtime_attempts": [
+          {
+            "command": "/bin/bash -lc 'python3 /tmp/ati-host-eval-home-x6z59mb7/.agents/skills/topic-intelligence/scripts/topic_radar_client.py --timeout 30 feed --q AI --limit 12'",
+            "event_position": 12,
+            "exit_code": 0,
+            "helper_path": "/tmp/ati-host-eval-home-x6z59mb7/.agents/skills/topic-intelligence/scripts/topic_radar_client.py",
+            "operation": "feed",
+            "request_arguments": [
+              "--timeout",
+              "30",
+              "feed",
+              "--q",
+              "AI",
+              "--limit",
+              "12"
+            ],
+            "response_topic_ids": [
+              "topic:d4a978a6f965f6fc1675",
+              "topic:1838a0cf5e0693e160c8",
+              "topic:374ff9c1bae21777e5f7",
+              "topic:806155155dc11082e7df",
+              "topic:c79403bd480023397aab",
+              "topic:c747db15a183cf791956",
+              "topic:4c07e20bc2ad3e9938a3",
+              "topic:4613eaef4fa3de9fef62",
+              "topic:9af482c7a566f7486328",
+              "topic:2337fa7f6f6eb5e938a2",
+              "topic:5b1f3af9b691e03f4255",
+              "topic:c3d534bc09a6862f81c3"
+            ],
+            "skill": "topic-intelligence",
+            "status": "completed",
+            "topic_id": null,
+            "violation_reasons": []
+          }
+        ]
+      },
+      "evidence_grade": "pass_expected_workflow_evidence_observed",
+      "id": "topic-intelligence-provenance-and-unknowns",
+      "runtime_status": "completed",
+      "suite": "v0.3.0"
+    },
+    {
+      "collector_route_observation": "fail_unobservable",
+      "evidence": {
+        "agent_message_count": 3,
+        "agent_message_skill_mentions": [
+          "topic-intelligence"
+        ],
+        "agent_message_texts": [
+          "item_0\nagent_message\n我会使用 `topic-intelligence` 技能来做这个实时选题 shortlist，并按你的要求把扫描范围控制在紧凑上限内。先读取技能说明，确认可用的数据源和 bounded scan 流程。",
+          "item_2\nagent_message\n技能要求还要读质量契约和选题流程。我会按一次 `feed --q AI --limit 12` 执行，避免扩大候选池。",
+          "item_6\nagent_message\n用了一次 live Radar bounded scan：`q=AI`, `limit=12`，没有拉 100 个候选。快照生成于 `2026-08-12 13:42 UTC+8`，`partial=false`、`stale=false`、`refreshing=false`，样本池显示 `total=55` 个 AI 相关结果，本次只看前 12。\n\n**AI 选题 Shortlist**\n\n1. **AI 产业给韩国人带来什么**\n   - **Radar facts**：`topic:806155155dc11082e7df`，机会分 `55`，B 站热搜/TrendRadar 双来源，最佳排名 `#1`，`rising`。\n   - **Host editorial analysis**：最适合做中文视频/图文，角度可以是“AI 热潮到底给普通韩国打工人、创业者、学生带来了什么”。\n   - **recommendation**：优先级最高。先做 2-3 分钟解释型短视频或 B 站深度切片。\n   - **must_verify**：原始视频/热搜上下文、韩国就业/产业数据、是否只是单个内容带火。\n\n2. **Go 为什么适合 AI 辅助软件工程**\n   - **Radar facts**：`topic:d4a978a6f965f6fc1675`，机会分 `38`，Hacker News 来源，最佳排名 `#6`，heat `324`，`rising`。\n   - **Host editorial analysis**：适合开发者受众，能做成“AI 编程时代，Go 的优势被重新放大了吗？”\n   - **recommendation**：做技术向内容，适合知乎、B 站、公众号。\n   - **must_verify**：Google 原文观点、HN 评论反对意见、Go 与 Python/TypeScript 在 AI 编程中的实际差异。\n\n3. **Claude 文本水印：你愿意公开承认自己用 AI 写作吗**\n   - **Radar facts**：相关候选包括 `topic:4613eaef4fa3de9fef62`，机会分 `24`，Business Insider；另有 Fast Company 相近话题 `topic:c3d534bc09a6862f81c3`，机会分 `23`。\n   - **Host editorial analysis**：虽然单条分数不高，但议题张力强：AI 写作、署名、职场伦理、平台检测都会牵涉进来。\n   - **recommendation**：适合做评论型内容，标题可以偏冲突：“AI 水印来了，谁最害怕？”\n   - **must_verify**：Anthropic 具体实现、是否默认开启、哪些产品/模型覆盖。\n\n4. **AI 医学研究“100% 人写”翻车：号称不用 AI，结果全是 AI**\n   - **Radar facts**：`topic:4c07e20bc2ad3e9938a3`，Hacker News 来源，最佳排名 `#18`，heat `109`，机会分约 `29`；部分字段在本次工具输出中被截断，细节未知。\n   - **Host editorial analysis**：适合做“AI 内容信任危机”案例，和医疗、论文、同行评审结合，传播点强。\n   - **recommendation**：作为第三方案例选题不错，但不要先下结论。\n   - **must_verify**：404 Media 原文、涉事公司声明、医学研究服务具体业务范围。\n\n5. **中国长安汽车与华为 AI 大模型合作**\n   - **Radar facts**：`topic:f7eab0bfcc69c8c298cf`，机会分 `31`，IT之家单来源，最佳排名 `#3`，`rising`。\n   - **Host editorial analysis**：适合汽车科技/产业号，角度是“车企和华为合作从智能座舱走向汽车垂直大模型？”\n   - **recommendation**：可做快讯型内容，不建议做强判断。\n   - **must_verify**：双方公告原文、合作范围、是否涉及量产车型和时间表。\n\n**优先级建议**\n\n先做 `AI 产业给韩国人带来什么`，因为它是本次 scan 里唯一明显多来源且机会分最高的候选。第二梯队选 `Go + AI 辅助编程` 或 `Claude 水印`：前者更垂直、更适合技术受众；后者更大众、更适合观点传播。\n\n注意：Radar 不测真实受众规模、不测内容饱和度，也不预测未来播放量/传播效果；上面的“适合中文平台/受众可能更广”是我的编辑判断，不是 Radar 事实。"
+        ],
+        "brief_host_reasoning_checkpoint_observed": false,
+        "command_execution_count": 8,
+        "creator_runtime_before_checkpoint": false,
+        "definition_read_skills": [
+          "topic-intelligence"
+        ],
+        "failed_runtime_attempts": [],
+        "handoff_agent_message_observed": false,
+        "handoff_checkpoint_topic_id": null,
+        "handoff_checkpoint_topic_ids": [],
+        "handoff_schema_mention_observed": false,
+        "invalid_runtime_attempts": [],
+        "mentioned_skills": [
+          "topic-intelligence"
+        ],
+        "post_handoff_agent_message_observed": false,
+        "post_runtime_agent_message_skills": [
+          "topic-intelligence"
+        ],
+        "runtime_attempt_count": 1,
+        "runtime_attempt_skills": [
+          "topic-intelligence"
+        ],
+        "runtime_operation_counts": {
+          "topic-intelligence:feed": 1
+        },
+        "runtime_operations": [
+          "topic-intelligence:feed"
+        ],
+        "runtime_use_skills": [
+          "topic-intelligence"
+        ],
+        "runtime_violation_reasons": [],
+        "successful_runtime_attempts": [
+          {
+            "command": "/bin/bash -lc 'python3 /tmp/ati-host-eval-home-y_2we9zc/.agents/skills/topic-intelligence/scripts/topic_radar_client.py --timeout 30 feed --q AI --limit 12'",
+            "event_position": 11,
+            "exit_code": 0,
+            "helper_path": "/tmp/ati-host-eval-home-y_2we9zc/.agents/skills/topic-intelligence/scripts/topic_radar_client.py",
+            "operation": "feed",
+            "request_arguments": [
+              "--timeout",
+              "30",
+              "feed",
+              "--q",
+              "AI",
+              "--limit",
+              "12"
+            ],
+            "response_topic_ids": [
+              "topic:d4a978a6f965f6fc1675",
+              "topic:1838a0cf5e0693e160c8",
+              "topic:806155155dc11082e7df",
+              "topic:f7eab0bfcc69c8c298cf",
+              "topic:c747db15a183cf791956",
+              "topic:4613eaef4fa3de9fef62",
+              "topic:374ff9c1bae21777e5f7",
+              "topic:c79403bd480023397aab",
+              "topic:4c07e20bc2ad3e9938a3",
+              "topic:2337fa7f6f6eb5e938a2",
+              "topic:c3d534bc09a6862f81c3",
+              "topic:9af482c7a566f7486328"
+            ],
+            "skill": "topic-intelligence",
+            "status": "completed",
+            "topic_id": null,
+            "violation_reasons": []
+          }
+        ]
+      },
+      "evidence_grade": "pass_expected_workflow_evidence_observed",
+      "id": "topic-intelligence-compact-scan",
+      "runtime_status": "completed",
+      "suite": "v0.3.0"
+    },
+    {
+      "collector_route_observation": "fail_unobservable",
+      "evidence": {
+        "agent_message_count": 3,
+        "agent_message_skill_mentions": [
+          "topic-intelligence"
+        ],
+        "agent_message_texts": [
+          "item_0\nagent_message\n我会使用 `topic-intelligence`，因为你给的是当前 Radar 题目快照，目标是基于现有证据产出研究计划，而不是重新选题。",
+          "item_2\nagent_message\n我需要先读该技能的质量约束和 brief 工作流，然后直接基于你提供的 `topic:ai-supplied` 快照写计划；不会调用 feed 重新发现题目。",
+          "item_5\nagent_message\n**Radar facts**\n\n题目：`AI coding agents move toward longer autonomous tasks`  \n稳定 ID：`topic:ai-supplied`  \n时间：`generated_at = 2026-08-12T00:00:00Z`，`stale = false`，`partial = false`  \n趋势：`trend_stage = rising`，`opportunity_score = 81`  \n证据：1 条，来源为 GitHub，观测时间 `2026-08-12T00:00:00Z`  \n摘要：公开信号显示，coding agents 正在被用于更长、多步骤工作的评测。\n\n**研究目标**\n\n验证并解释“AI 编程代理正在从短任务补全，转向更长周期、自主、多步骤工程任务”的趋势是否成立、它具体体现在哪些评测方式和产品能力上，以及这对开发者、团队流程和工具市场意味着什么。\n\n**核心研究问题**\n\n1. “更长 autonomous tasks”具体指什么：多文件修改、跨仓库理解、长时间执行、调试闭环、测试修复、PR 级任务，还是端到端项目交付？\n2. GitHub 上的信号来自哪里：benchmark、issue、agent framework、eval repo、真实项目集成，还是厂商 demo？\n3. 新一代 coding agent 评测与传统 SWE-bench、HumanEval、单轮代码生成评测有什么差异？\n4. 长任务能力的瓶颈是什么：上下文管理、工具调用、测试可靠性、权限控制、成本、错误恢复，还是安全边界？\n5. 哪些参与者最值得观察：OpenAI Codex、Anthropic Claude Code、Google Jules、Cursor、Devin、SWE-agent、OpenHands、Aider、GitHub Copilot agent 模式等。\n6. 对普通开发团队的实际影响是什么：能否承担 backlog、bugfix、迁移、测试补齐、重构、文档同步等低到中风险任务？\n\n**资料搜集计划**\n\n优先查一手资料：\n\n- GitHub repos：相关 agent benchmark、eval harness、issue/PR 讨论、stars 和 recent commits。\n- 官方博客/文档：各 coding agent 产品对“long-running tasks”“autonomous engineering”“agent mode”的定义。\n- Benchmark 论文或技术报告：重点看任务长度、成功率、环境隔离、人工介入比例。\n- 开发者实测：只作为补充，不当作事实基准，重点提取失败模式。\n- 安全与权限资料：sandbox、repo write access、CI 权限、secret handling、human review workflow。\n\n建议搜索方向：\n\n```text\nAI coding agents long horizon tasks benchmark\nSWE-bench long running coding agents\nautonomous coding agent multi step GitHub evaluation\nOpenHands SWE-agent long horizon software engineering\nClaude Code Codex Jules agent mode GitHub tasks\n```\n\n**建议角度**\n\n主角度：  \n“AI 编程代理的竞争，正在从‘会不会写代码’转向‘能不能独立推进一段真实工程工作’。”\n\n这个角度比单纯比较模型更稳，因为它能覆盖评测变化、产品形态变化和开发流程变化。\n\n**文章 / 报告结构**\n\n1. 开场：从短代码补全到长任务代理，说明变化不是“代码更聪明”这么简单，而是任务边界变大。\n2. 定义问题：什么叫长任务，和传统 coding benchmark 区分开。\n3. 证据层：梳理 GitHub、benchmark、产品文档中出现的公开信号。\n4. 能力层：拆解长任务需要的核心能力，如 repo 理解、计划、执行、测试、回滚、汇报。\n5. 风险层：解释为什么长任务更容易暴露幻觉、误改、权限和成本问题。\n6. 应用层：列出当前最适合交给 coding agent 的任务类型，以及仍应由人主导的任务。\n7. 结论：未来评测重点会更接近真实软件工程流程，而不是单题代码生成。\n\n**must_verify**\n\n- 具体 benchmark 名称、最新分数和发布日期。\n- 各产品是否真的支持异步长任务、PR 创建、测试运行、环境隔离。\n- GitHub 信号是否来自真实用户采用，还是集中在 demo / eval 项目。\n- “long-horizon”或“autonomous”是否为厂商措辞，还是有可复现实验定义。\n- 是否存在近期失败案例、安全事件或权限争议。\n\n**avoid_claims**\n\n- 不要说“AI coding agents 已经能替代程序员”。\n- 不要把 `opportunity_score = 81` 解读为流量保证。\n- 不要声称 Radar 测量了真实受众规模、内容饱和度或未来传播效果；它没有。\n- 不要仅凭 GitHub 单一来源断言整个行业已全面转向。\n- 不要把厂商演示等同于稳定生产能力。\n\n**unknowns / risks**\n\n当前快照只有 1 条 GitHub 来源，证据宽度有限。需要补充官方文档、论文、benchmark 和开发者实测，才能写成强结论。这里的“适合技术读者”“有传播潜力”只能作为主编判断，不是 Radar 事实。"
+        ],
+        "brief_host_reasoning_checkpoint_observed": false,
+        "command_execution_count": 6,
+        "creator_runtime_before_checkpoint": false,
+        "definition_read_skills": [
+          "topic-intelligence"
+        ],
+        "failed_runtime_attempts": [],
+        "handoff_agent_message_observed": false,
+        "handoff_checkpoint_topic_id": null,
+        "handoff_checkpoint_topic_ids": [],
+        "handoff_schema_mention_observed": false,
+        "invalid_runtime_attempts": [],
+        "mentioned_skills": [
+          "topic-intelligence"
+        ],
+        "post_handoff_agent_message_observed": false,
+        "post_runtime_agent_message_skills": [],
+        "runtime_attempt_count": 0,
+        "runtime_attempt_skills": [],
+        "runtime_operation_counts": {},
+        "runtime_operations": [],
+        "runtime_use_skills": [],
+        "runtime_violation_reasons": [],
+        "successful_runtime_attempts": []
+      },
+      "evidence_grade": "pass_expected_workflow_evidence_observed",
+      "id": "topic-intelligence-brief-without-reselection",
+      "runtime_status": "completed",
+      "suite": "v0.3.0"
+    },
+    {
+      "collector_route_observation": "fail_unobservable",
+      "evidence": {
+        "agent_message_count": 1,
+        "agent_message_skill_mentions": [],
+        "agent_message_texts": [
+          "item_0\nagent_message\n请把你已经写好的内容发我，我会直接润色成更简洁的中文，不判断热点，也不访问 Radar。"
+        ],
+        "brief_host_reasoning_checkpoint_observed": false,
+        "command_execution_count": 0,
+        "creator_runtime_before_checkpoint": false,
+        "definition_read_skills": [],
+        "failed_runtime_attempts": [],
+        "handoff_agent_message_observed": false,
+        "handoff_checkpoint_topic_id": null,
+        "handoff_checkpoint_topic_ids": [],
+        "handoff_schema_mention_observed": false,
+        "invalid_runtime_attempts": [],
+        "mentioned_skills": [],
+        "post_handoff_agent_message_observed": false,
+        "post_runtime_agent_message_skills": [],
+        "runtime_attempt_count": 0,
+        "runtime_attempt_skills": [],
+        "runtime_operation_counts": {},
+        "runtime_operations": [],
+        "runtime_use_skills": [],
+        "runtime_violation_reasons": [],
+        "successful_runtime_attempts": []
+      },
+      "evidence_grade": "pass_expected_workflow_evidence_observed",
+      "id": "topic-intelligence-non-trigger",
+      "runtime_status": "completed",
+      "suite": "v0.3.0"
+    }
+  ],
+  "commit": "e7762eb14b10541b13c5abf0838839f8b21f1d9c",
+  "dry_run": false,
+  "grading_note": "passive Skill names/file reads are discovery evidence, not invocation; every attempted Skill-local helper call must be a standalone, compliant python3 feed/sources/history invocation that completes successfully with validated Radar JSON; duplicate successful requests, noncompliant calls, or unsuccessful attempts fail the case, and handoff use requires the schema in an agent message",
+  "host": "codex",
+  "schema": "ati.host-evidence.v1",
+  "skill_version": "0.3.0",
+  "source_generated_at": "2026-08-12T05:45:50.575426+00:00",
+  "source_schema": "ati.host-eval.v1",
+  "strict_observation": true,
+  "suites": [
+    "v0.3.0"
+  ],
+  "summary": {
+    "evidence_grades": {
+      "pass_expected_workflow_evidence_observed": 7
+    },
+    "total": 7
+  }
+}

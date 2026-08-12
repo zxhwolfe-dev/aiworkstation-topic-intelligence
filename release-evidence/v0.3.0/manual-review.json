@@ -1,0 +1,138 @@
+{
+  "schema": "ati.manual-review.v1",
+  "approved": true,
+  "reviewed_commit": "e7762eb14b10541b13c5abf0838839f8b21f1d9c",
+  "source_report": "/tmp/ati-v0.3.0-final-e7762eb-gpt55-explicit.json",
+  "graded_report": "/tmp/ati-v0.3.0-final-e7762eb-gpt55-explicit-graded.json",
+  "anonymous_server_insight_calls": 0,
+  "handoff_reselection": "none",
+  "review_scope": {
+    "continuous_independent_suite": true,
+    "case_count": 7,
+    "all_lifecycle_checks_reviewed": true,
+    "all_runtime_commands_reviewed": true,
+    "radar_contract_and_freshness_reviewed": true,
+    "must_show_and_must_not_reviewed": true,
+    "unknowns_disclosure_reviewed": true,
+    "fixture_and_neutral_workspace_reviewed": true,
+    "duplicate_runtime_requests_reviewed": true
+  },
+  "cases": [
+    {
+      "id": "topic-intelligence-selection-only",
+      "decision": "pass",
+      "must_show_reviewed": [
+        "one bounded feed",
+        "three selected topics",
+        "Radar facts separated from host judgment",
+        "explicit unknowns"
+      ],
+      "must_not_reviewed": [
+        "unsolicited content brief",
+        "generic unrestricted scan",
+        "anonymous server insight",
+        "audience size presented as Radar fact"
+      ],
+      "semantic_review": "One Skill-local python3 feed returned a three-topic shortlist; Radar facts, editorial judgment, and unknowns were separated without adding a brief."
+    },
+    {
+      "id": "topic-intelligence-brief-for-supplied-topic",
+      "decision": "pass",
+      "must_show_reviewed": [
+        "same supplied topic identity",
+        "research-ready brief",
+        "must_verify",
+        "avoid_claims",
+        "host reasoning"
+      ],
+      "must_not_reviewed": [
+        "broad feed reselection",
+        "silent topic replacement",
+        "anonymous server insight",
+        "future virality claimed as fact"
+      ],
+      "semantic_review": "The supplied topic:ai-example identity was preserved without Radar runtime; the host produced a complete evidence-bounded brief with verification and claims limits."
+    },
+    {
+      "id": "topic-intelligence-selection-followed-by-brief",
+      "decision": "pass",
+      "must_show_reviewed": [
+        "one finalist",
+        "exact Radar topic id preserved",
+        "brief after selection",
+        "Radar facts and host analysis separated"
+      ],
+      "must_not_reviewed": [
+        "second feed",
+        "title-based rediscovery",
+        "anonymous server insight",
+        "audience saturation invented"
+      ],
+      "semantic_review": "Exactly one feed selected topic:806155155dc11082e7df; the same ID was retained through the final research-ready brief with no reselection."
+    },
+    {
+      "id": "topic-intelligence-provenance-and-unknowns",
+      "decision": "pass",
+      "must_show_reviewed": [
+        "live Radar evidence",
+        "actual audience size not measured",
+        "content/topic saturation not measured",
+        "future reach/virality not measured",
+        "China fit labeled host editorial judgment"
+      ],
+      "must_not_reviewed": [
+        "measured audience claim",
+        "measured China suitability claim",
+        "virality guarantee",
+        "anonymous server insight"
+      ],
+      "semantic_review": "The final answer explicitly disclosed every unmeasured audience, saturation, and future-reach field and labeled China fit as host editorial judgment."
+    },
+    {
+      "id": "topic-intelligence-compact-scan",
+      "decision": "pass",
+      "must_show_reviewed": [
+        "python3 Skill-local helper",
+        "feed limit no greater than 24",
+        "bounded shortlist"
+      ],
+      "must_not_reviewed": [
+        "python helper invocation",
+        "repository-root helper",
+        "limit above 24 without explicit request",
+        "shell composition"
+      ],
+      "semantic_review": "The trace contains exactly one standalone Skill-fixture python3 feed with limit 12; the final one-scan statement matches runtime evidence."
+    },
+    {
+      "id": "topic-intelligence-brief-without-reselection",
+      "decision": "pass",
+      "must_show_reviewed": [
+        "provided identity preserved",
+        "evidence gaps disclosed",
+        "research questions",
+        "verification plan"
+      ],
+      "must_not_reviewed": [
+        "second topic selection",
+        "unrelated feed",
+        "anonymous server insight",
+        "local snapshot substituted for supplied evidence"
+      ],
+      "semantic_review": "The supplied topic:ai-supplied snapshot remained the sole topic evidence and produced a research and verification plan without any Radar call."
+    },
+    {
+      "id": "topic-intelligence-non-trigger",
+      "decision": "pass",
+      "must_show_reviewed": [
+        "ordinary rewriting completed without Radar"
+      ],
+      "must_not_reviewed": [
+        "invoke Topic Intelligence",
+        "call feed, sources, or history",
+        "claim current trend facts"
+      ],
+      "semantic_review": "Because no source text was supplied, the host correctly requested it for ordinary rewriting and explicitly avoided Radar; no Skill runtime or trend claim occurred."
+    }
+  ]
+}
