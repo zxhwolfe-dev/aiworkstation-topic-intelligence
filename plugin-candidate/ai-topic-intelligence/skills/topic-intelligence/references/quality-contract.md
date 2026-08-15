@@ -113,7 +113,14 @@ faithful summaries of what Radar observed. Rewritten angles or titles, candidate
 comparisons, judgments about verification effort or technical value, audience
 fit, and every other host inference belong only under **Host editorial
 analysis** or **recommendation**. Do not place host-authored framing in a Radar
-column or section even when the adjacent numeric fields are accurate.
+column or section even when the adjacent numeric fields are accurate. End the
+Radar section before any candidate comparison or recommendation. Within that
+section, tables may contain only exact IDs, verbatim returned titles, returned
+fields or links, and factual source/freshness limitations; columns such as
+advantages, disadvantages, fit, value, effort, or usefulness are forbidden.
+Any label that says **Radar title** or **original title** requires a verbatim
+copy. A shortened, translated, or rewritten title is host-authored and must be
+labeled and placed in the host-analysis or recommendation section.
 
 When conclusions involve audience, ordinary technology users, China-market fit,
 or distribution potential, explicitly disclose all of the following: Radar does

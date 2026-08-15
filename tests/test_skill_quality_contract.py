@@ -82,7 +82,10 @@ class SkillQualityContractTests(unittest.TestCase):
         self.assertIn("host-authored framing", contract)
         self.assertIn("verification effort", contract)
         self.assertIn("technical value", contract)
-        self.assertIn("returned title", selection)
+        self.assertIn("verbatim returned titles", selection)
+        self.assertIn("End this section before ranking or comparing candidates", selection)
+        self.assertIn("advantages, disadvantages", selection)
+        self.assertIn("Never shorten, translate, or paraphrase", selection)
 
     def test_quality_contract_blocks_reselection_after_composition(self) -> None:
         content = CANONICAL.read_text(encoding="utf-8")

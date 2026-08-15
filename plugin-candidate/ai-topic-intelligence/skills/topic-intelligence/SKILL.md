@@ -130,6 +130,13 @@ preferring primary sources.
   and trend fields; never invent another score.
 - Call history only for a finalist when movement changes the decision.
 - Label cross-market lead/lag as a hypothesis unless directly evidenced.
+- End **Radar observations** before comparing candidates. A table inside that
+  section may contain only exact IDs, verbatim Radar titles, returned fields or
+  links, and factual source/freshness limits—never advantages, disadvantages,
+  verification effort, editorial usefulness, or audience judgments.
+- If a label says **Radar title** or **original title**, copy the returned title
+  verbatim. Put every shortened, translated, or rewritten title under **Host
+  editorial analysis** or **recommendation** and label it as host-authored.
 
 ## Brief invariants
 

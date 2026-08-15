@@ -9,7 +9,7 @@
       "expected_workflow": ["topic-intelligence:selection"],
       "requires_live_network": true,
       "must_show": ["one bounded feed", "three selected topics", "Radar observations separated from host judgment", "explicit unknowns"],
-      "must_not": ["unsolicited content brief", "generic unrestricted scan", "anonymous server insight", "audience size presented as Radar fact"]
+      "must_not": ["host judgment inside Radar observations", "host-rewritten angle presented as a Radar title", "unsolicited content brief", "generic unrestricted scan", "anonymous server insight", "audience size presented as Radar fact"]
     },
     {
       "id": "topic-intelligence-brief-for-supplied-topic",
@@ -40,7 +40,7 @@
       "expected_workflow": ["topic-intelligence:selection-and-brief"],
       "requires_live_network": true,
       "must_show": ["one finalist", "exact Radar topic id preserved", "brief after selection", "Radar observations and host analysis separated"],
-      "must_not": ["second feed", "title-based rediscovery", "anonymous server insight", "audience saturation invented"]
+      "must_not": ["host judgment inside Radar observations", "host-rewritten angle presented as a Radar title", "second feed", "title-based rediscovery", "anonymous server insight", "audience saturation invented"]
     },
     {
       "id": "topic-intelligence-provenance-and-unknowns",
@@ -49,7 +49,7 @@
       "expected_workflow": ["topic-intelligence:selection"],
       "requires_live_network": true,
       "must_show": ["live Radar evidence", "actual audience size not measured", "content/topic saturation not measured", "future reach/virality not measured", "China fit labeled host editorial judgment"],
-      "must_not": ["host judgment inside Radar observations", "measured audience claim", "measured China suitability claim", "virality guarantee", "anonymous server insight"]
+      "must_not": ["host judgment inside Radar observations", "host-rewritten angle presented as a Radar title", "measured audience claim", "measured China suitability claim", "virality guarantee", "anonymous server insight"]
     },
     {
       "id": "topic-intelligence-compact-scan",
@@ -58,7 +58,7 @@
       "expected_workflow": ["topic-intelligence:selection"],
       "requires_live_network": true,
       "must_show": ["python3 Skill-local helper", "feed limit no greater than 24", "bounded shortlist"],
-      "must_not": ["host-rewritten angle presented as a Radar title", "python or python2 interpreter", "repository-root helper", "limit above 24 without explicit request", "shell composition"]
+      "must_not": ["host judgment inside Radar observations", "host-rewritten angle presented as a Radar title", "python or python2 interpreter", "repository-root helper", "limit above 24 without explicit request", "shell composition"]
     },
     {
       "id": "topic-intelligence-brief-without-reselection",

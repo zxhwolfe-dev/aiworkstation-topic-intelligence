@@ -63,14 +63,21 @@ class SkillEvalTests(unittest.TestCase):
         )
 
         by_id = {case.case_id: case for case in cases}
-        self.assertIn(
-            "host judgment inside Radar observations",
-            by_id["topic-intelligence-provenance-and-unknowns"].source["must_not"],
-        )
-        self.assertIn(
-            "host-rewritten angle presented as a Radar title",
-            by_id["topic-intelligence-compact-scan"].source["must_not"],
-        )
+        for case_id in (
+            "topic-intelligence-selection-only",
+            "topic-intelligence-selection-followed-by-brief",
+            "topic-intelligence-provenance-and-unknowns",
+            "topic-intelligence-compact-scan",
+        ):
+            with self.subTest(case_id=case_id):
+                self.assertIn(
+                    "host judgment inside Radar observations",
+                    by_id[case_id].source["must_not"],
+                )
+                self.assertIn(
+                    "host-rewritten angle presented as a Radar title",
+                    by_id[case_id].source["must_not"],
+                )
 
     def test_quality_suite_rejects_contradictory_review_criteria(self) -> None:
         original = self.ROOT / "evals" / "v0.3.1-skill-quality.json"

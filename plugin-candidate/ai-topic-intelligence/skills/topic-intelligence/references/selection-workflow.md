@@ -33,11 +33,20 @@ sequence merely because unrelated titles look similar.
 
 ## Selection output
 
-For a shortlist, report snapshot status, Radar observations, host interpretation,
-recommendation, next verification step, unknowns, and risks. Under **Radar
-observations**, use the returned title or label it explicitly as the Radar title;
-put a rewritten content angle in **Host editorial analysis** or
-**recommendation**. Candidate comparisons and judgments about verification
-effort, technical value, audience fit, or editorial usefulness are host analysis,
-never Radar observations. For a sole finalist, include its exact Radar `id` so a
-following brief can preserve identity.
+For a shortlist, report in this order:
+
+1. **Radar observations** — snapshot status, exact IDs, verbatim returned titles,
+   returned fields and links, and factual source/freshness limitations only.
+   End this section before ranking or comparing candidates. Do not put
+   advantages, disadvantages, verification effort, technical value, audience
+   fit, editorial usefulness, or a recommendation in this section.
+2. **Host editorial analysis** — candidate comparison, audience/format fit,
+   verification effort, and rewritten content angles.
+3. **recommendation** — the selected order or finalist and why.
+4. **unknowns / must_verify** — next verification steps, unknowns, and risks.
+
+When a column or field is labeled **Radar title** or **original title**, copy the
+returned title verbatim. Never shorten, translate, or paraphrase text under that
+label. A host-authored shorthand or angle must be labeled as such and appear only
+in the host-analysis or recommendation section. For a sole finalist, include its
+exact Radar `id` so a following brief can preserve identity.
