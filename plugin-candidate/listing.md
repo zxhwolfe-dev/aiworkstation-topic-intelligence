@@ -1,24 +1,22 @@
-# AI Topic Intelligence
-
-> Status: candidate prepared and validation-ready. Public Plugin Directory submission is temporarily blocked by the OpenAI Platform payment-method and developer-identity verification prerequisite. This external prerequisite is not a Skill defect or a v0.3.0 release blocker, and no v0.3.1 is required.
+# Topic Intelligence
 
 ## Short description
 
-Find live topic opportunities and build research-ready content briefs.
+Find current topics worth researching and turn one into a research-ready content brief.
 
-## Long description
+## Description
 
-AI Topic Intelligence is a skills-only workflow for creators, researchers, and editors. It reads current public signals from the AI Workstation Global Topic Radar, keeps Radar facts separate from host-model editorial judgment, and automatically chooses the smallest useful workflow:
+Topic Intelligence uses current public signals from the AI Workstation Global Topic Radar to help creators, researchers, and editors:
 
-- shortlist current topics worth researching;
-- turn a supplied current Radar topic into a research-ready brief;
-- select one topic and continue into a brief for the same finalist.
+- shortlist topics worth deeper research;
+- brief a supplied current topic;
+- select one topic and continue into a brief for that same topic.
 
-The public Skill requires no AI Workstation API key and does not consume AI Workstation server-side LLM quota. It exposes only public read-only Radar `feed`, `sources`, and `history` operations. Actual audience size, topic saturation, and future virality remain unknown unless separate evidence establishes them.
+Current facts, editorial analysis, and items requiring verification remain clearly separated. The Skill requires no AI Workstation API key and does not predict audience size, content saturation, or future reach.
 
 ## Listing fields
 
-- Name: `AI Topic Intelligence`
+- Name: `Topic Intelligence`
 - Developer: `AI Workstation`
 - Category: `Productivity`
 - Website: `https://aiworkstation.cn/topic-intelligence/`
@@ -32,6 +30,4 @@ The public Skill requires no AI Workstation API key and does not consume AI Work
 
 1. `Find three current AI topics worth researching. Do not write a full brief.`
 2. `Turn this current Radar topic into a research-ready content brief.`
-3. `Select one current AI topic, then build a brief for the same finalist.`
-
-This listing is retained for future submission after the external prerequisite is satisfied. It does not claim current public Plugin Directory availability or approval.
+3. `Select one current AI topic, then build a brief for the same topic.`

@@ -42,9 +42,7 @@ body:
     id: evidence_boundary
     attributes:
       label: Evidence-boundary concern
-      description: Did the result hide stale/partial data, mix Radar facts with editorial judgment, predict virality, change the topic, or miss must_verify/avoid_claims?
-    validations:
-      required: true
+      description: Optional. Note any stale data, unsupported claims, topic changes, or missing verification items.
   - type: checkboxes
     id: safety
     attributes:

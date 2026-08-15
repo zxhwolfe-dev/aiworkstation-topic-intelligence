@@ -30,21 +30,40 @@ class M3AdoptionTests(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn("Business, Enterprise, Healthcare, and Edu", content)
-        self.assertIn("Do not market Topic Intelligence as a one-click install for every ChatGPT plan", content)
-        self.assertIn("Surface availability and installation state are independent", content)
+        self.assertIn("Do not assume every ChatGPT account has the upload entry", content)
         self.assertIn("topic-intelligence", content)
-        self.assertIn("three user modes", content)
+        self.assertIn("three requests", content)
 
     def test_website_entry_is_user_value_first_and_keeps_evidence_boundary(self) -> None:
         content = (self.ROOT / "docs" / "website-entry-copy.zh-CN.md").read_text(
             encoding="utf-8"
         )
-        self.assertIn("今天什么 AI 题材值得做？", content)
-        self.assertIn("看看今天值得研究的题材", content)
-        self.assertIn("获取 Topic Intelligence", content)
-        self.assertIn("事实、分析和建议分开", content)
-        self.assertIn("不会用模型记忆或本地旧数据冒充", content)
-        self.assertNotIn("保证抓住热点", content.split("## 首页不应该承诺的内容", 1)[0])
+        self.assertIn("把实时热点变成可执行的内容选题", content)
+        self.assertIn("使用 Topic Intelligence", content)
+        self.assertIn("不把模型记忆或旧快照冒充当前证据", content)
+        self.assertIn("不承诺受众规模、内容饱和度、未来传播量或“爆款”", content)
+        self.assertIn("Smoke、Host Eval、raw trace", content)
+
+    def test_public_copy_omits_internal_release_process(self) -> None:
+        surfaces = (
+            "README.md",
+            "README.zh-CN.md",
+            "docs/chatgpt-install.md",
+            "docs/releases/v0.3.0.md",
+            "plugin-candidate/listing.md",
+        )
+        content = "\n".join(
+            (self.ROOT / path).read_text(encoding="utf-8") for path in surfaces
+        )
+        for internal_term in (
+            "Host Eval",
+            "raw trace",
+            "validation-ready",
+            "temporarily blocked",
+            "Developer Showcase",
+            "Premium Insight",
+        ):
+            self.assertNotIn(internal_term, content)
 
     def test_v0_2_release_history_is_preserved_under_current_v0_3_line(self) -> None:
         version = (self.ROOT / "VERSION").read_text(encoding="utf-8").strip()

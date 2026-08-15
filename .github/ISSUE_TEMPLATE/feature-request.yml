@@ -1,5 +1,5 @@
 name: Feature request
-description: Suggest a behavior grounded in a real creator, research, or editorial workflow.
+description: Suggest an improvement for a real creator, research, or editorial workflow.
 title: "[Feature]: "
 labels: ["enhancement"]
 body:
@@ -11,28 +11,21 @@ body:
     id: scenario
     attributes:
       label: Real use case
-      description: Who is doing what, in which Host, and what outcome do they need?
+      description: What are you trying to accomplish, and in which host?
     validations:
       required: true
   - type: textarea
     id: blocker
     attributes:
       label: Current obstacle
-      description: What cannot be completed with the current three modes?
+      description: What is difficult or impossible today?
     validations:
       required: true
   - type: textarea
     id: behavior
     attributes:
       label: Suggested behavior
-      description: What should Topic Intelligence do differently?
-    validations:
-      required: true
-  - type: textarea
-    id: privacy
-    attributes:
-      label: Privacy and telemetry impact
-      description: Would this require content, conversation, account, or usage data? Prefer privacy-preserving designs.
+      description: What outcome would make the workflow better?
     validations:
       required: true
   - type: checkboxes

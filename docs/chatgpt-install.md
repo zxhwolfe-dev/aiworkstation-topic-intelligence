@@ -1,76 +1,45 @@
-# ChatGPT Skill installation
+# Install Topic Intelligence in ChatGPT
 
-Last verified against official OpenAI documentation: **2026-08-09**.
-
-Topic Intelligence v0.3.0 is one public Skill and one install archive:
-
-- `topic-intelligence`
-- Current package version: **v0.3.0**
-
-The three user modes are inferred from the request. Users do not need to install or select separate Creator and Brief Skills.
+Topic Intelligence is distributed as one ZIP containing one Skill. The Skill understands three requests: select topics, brief a supplied current topic, or select one topic and continue into a brief.
 
 ## Availability
 
-OpenAI's current Help Center says Personal Skills are generally available for ChatGPT Business, Enterprise, Healthcare, and Edu users. Workspace permissions can further control whether users may create, upload, share, publish, or install Skills.
+Personal Skills availability depends on the current ChatGPT plan and workspace permissions. OpenAI currently documents availability for Business, Enterprise, Healthcare, and Edu workspaces; administrators may further control who can create, upload, share, publish, or install Skills.
 
-Do not market Topic Intelligence as a one-click install for every ChatGPT plan.
+Do not assume every ChatGPT account has the upload entry. Check the current [OpenAI Skills documentation](https://help.openai.com/en/articles/20001066) for authoritative availability.
 
-Official source: <https://help.openai.com/en/articles/20001066>
+## Install
 
-## Upload path
+1. Download `topic-intelligence-0.3.0.zip` from the official [GitHub Release](https://github.com/zxhwolfe-dev/aiworkstation-topic-intelligence/releases/tag/v0.3.0).
+2. Open **Plugins → Skills → Create** in ChatGPT.
+3. Choose **Upload from your computer** and select the ZIP.
+4. Wait for ChatGPT to finish its review, then confirm Topic Intelligence appears in the workspace.
 
-For an eligible account/workspace:
+Use the official ZIP without repackaging it.
 
-1. Open the ChatGPT sidebar.
-2. Select **Plugins**.
-3. Open **Skills**.
-4. Select **Create**.
-5. Choose **Upload from your computer**.
-6. Upload the `topic-intelligence` ZIP from the official GitHub Release.
-7. Let ChatGPT finish its scan/review before using it.
+## Try it
 
-Surface availability and installation state are independent. Confirm the Skill is visible in the current workspace before testing.
-
-## First-use examples
-
-Selection only:
+Topic selection:
 
 ```text
-今天有哪些 AI 题材值得继续研究或做内容？只给我最值得看的三个，不要写完整简报。
+Find three current AI topics worth researching. Check freshness first and do not write a full brief.
 ```
 
-Brief for a supplied topic:
+Brief a topic:
 
 ```text
-请基于这个当前 Radar 题材写研究就绪的内容简报；只有在确实需要判断走势时才查 history，不要重新选题。
+Turn this current Radar topic into a research-ready content brief without selecting a different topic.
 ```
 
-Selection followed by brief:
+Selection and brief:
 
 ```text
-从当前 AI 热点挑一个题材，然后直接生成研究简报。只允许一次 bounded feed，并保留同一个 finalist 的 Radar id。
+Choose one current AI topic, then build a research-ready brief for that same topic.
 ```
 
-翻译、改写、摘要、普通事实问答和完整材料润色不应触发 Topic Intelligence。
+## Important limits
 
-## Package and evidence boundary
-
-The archive includes the Skill-local helper and references needed for standalone execution. The helper uses only public `feed`, `sources`, and `history` reads with `python3`; it does not expose anonymous `/insight`, shared credentials, or a custom Radar origin.
-
-Normal v0.3.0 usage is validated by strict Codex Host Eval and persistent release evidence. That evidence covers lifecycle, runtime commands, Radar contracts, semantic grading, and manual review.
-
-On 2026-08-12, the final published v0.3.0 Release ZIP also completed a real post-release ChatGPT Web smoke with natural user prompts. Selection only, supplied-topic brief, and selection followed by brief all passed at the user-visible level. See [`chatgpt-v0.3.0-smoke-result-2026-08-12.md`](chatgpt-v0.3.0-smoke-result-2026-08-12.md).
-
-An ordinary Mode 2 user does not need to obtain an exact Radar ID in another conversation and copy it into a new one. The ID is a traceability/evidence field, not a mandatory cross-conversation interaction step; an ID not being explicitly visible in the UI is not, by itself, a user-visible failure.
-
-The manual ChatGPT Web validation confirms user-visible behavior for all three modes. Internal command counts and raw runtime traces remain covered by the separate Codex Host Eval and release-evidence gates rather than by the Web UI smoke. v0.2.1 and v0.2.2 Host Eval records remain historical non-UI evidence and must not be presented as ChatGPT UI tests.
-
-## Cost boundary
-
-Normal public usage follows:
-
-```text
-public Radar feed/sources/history -> current ChatGPT host model -> answer
-```
-
-It must not call anonymous AI Workstation `/insight`, embed a shared API key, or ask the user to paste private credentials. Normal public use should not consume AI Workstation server-side LLM quota. Any future Premium Insight requires an explicitly authenticated native account connection with quota enforcement.
+- Current claims require current Radar evidence.
+- Incomplete or older source coverage should be disclosed.
+- Radar does not measure actual audience size, topic saturation, or future reach.
+- Topic Intelligence requires no AI Workstation API key. Never paste credentials or private conversations into prompts or public issues.

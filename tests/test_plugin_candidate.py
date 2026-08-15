@@ -19,6 +19,9 @@ class PluginCandidateTests(unittest.TestCase):
         self.assertTrue(all(len(value) <= 128 for value in manifest["interface"]["defaultPrompt"]))
         self.assertEqual(manifest["interface"]["privacyPolicyURL"], "https://aiworkstation.cn/privacy/")
         self.assertEqual(manifest["interface"]["termsOfServiceURL"], "https://aiworkstation.cn/terms/")
+        self.assertEqual(manifest["homepage"], "https://aiworkstation.cn/topic-intelligence/")
+        self.assertEqual(manifest["interface"]["websiteURL"], "https://aiworkstation.cn/topic-intelligence/")
+        self.assertEqual(manifest["interface"]["displayName"], "Topic Intelligence")
 
     def test_submission_cases_have_five_positive_and_three_negative(self) -> None:
         payload = json.loads((ROOT / "plugin-candidate/submission-tests.json").read_text(encoding="utf-8"))
