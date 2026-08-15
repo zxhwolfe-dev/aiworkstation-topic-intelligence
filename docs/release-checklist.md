@@ -27,7 +27,12 @@ Require:
 - selection and brief workflow references match;
 - the quality contract matches the canonical quality contract;
 - standalone ZIP E2E passes (or the documented environment-only loopback skip applies in a restricted sandbox);
-- historical trigger/v0.2.1 regressions and the current v0.3.0 quality contract pass.
+- historical v0.2.1 regressions and the current unified trigger/v0.3.1 quality contract pass.
+- current README, website-entry specification, release note, Plugin listing,
+  localized showcase image, and Plugin screenshot describe the same Skill
+  acquisition journey and evidence boundary;
+- current public acquisition copy does not expose review status, host-eval
+  evidence, raw traces, or unsupported installation surfaces.
 
 ## 3. Public cost-boundary gate
 
@@ -96,14 +101,14 @@ Require:
 Review:
 
 ```text
-evals/v0.3.0-skill-quality.json
+evals/v0.3.1-skill-quality.json
 ```
 
 Require at minimum:
 
 - content format/language/audience not misused as Radar platform/source filters;
 - explicit AI/domain constraint preserved from the first bounded query;
-- Radar facts separated from host editorial analysis;
+- Radar observations separated from host editorial analysis;
 - Brief public mode creates a complete research-ready result with host reasoning;
 - public mode makes zero AI Workstation server-side LLM calls;
 - selection → Brief preserves the same finalist and does not run a second feed;
@@ -183,11 +188,12 @@ topic-intelligence
 
 Require exact finalist identity preservation and host-generated Brief completion without anonymous server model calls.
 
-Run the v0.3.0 release-candidate suite live with `--strict-observation`. Save both the raw `ati.host-eval.v1` report and the `ati.host-evidence.v1` graded report. This is an observability gate only: manually review the raw traces/output against each case's `must_show` and `must_not` before approval.
+Run the v0.3.1 release-candidate suite live with `--strict-observation`. Save both the raw `ati.host-eval.v1` report and the `ati.host-evidence.v1` graded report. This is an observability gate only: manually review the raw traces/output against each case's `must_show` and `must_not` before approval.
 
 For every release after the immutable v0.2.1 line, persist those artifacts under `release-evidence/v<VERSION>/host-eval.json`, `host-evidence.json`, and structured `manual-review.json`. `scripts/verify_release_evidence.py` re-runs grading, binds raw/graded reports to the exact release-suite cases, requires a live strict run at the current commit, and accepts runtime workflow evidence only from a successful Skill-helper `feed`/`sources`/`history` command without an explicit custom origin and with contract-valid Radar JSON, or from a complete current-task topic snapshot explicitly supplied by the eval input. It also checks per-case `must_show`/`must_not` attestations, zero anonymous `/insight` calls, and no post-selection reselection. The tag workflow hard-fails when this evidence is absent or incomplete. The v0.2.1 tag is the sole historical workflow exception.
 
-If ChatGPT is a target surface, use a fresh uploaded release-candidate package; do not assume Codex proves ChatGPT behavior.
+Only advertise installation surfaces that were verified for the current release.
+Do not infer one host's behavior from another host's acceptance evidence.
 
 ## 10. Tag
 

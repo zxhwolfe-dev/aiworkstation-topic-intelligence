@@ -36,7 +36,12 @@ jobs:
         run: |
           python3 scripts/sync_skill_runtime.py --check
           VERSION="$(cat VERSION)"
-          if [ "$VERSION" = "0.2.2" ]; then SUITE="v0.2.1"; else SUITE="v0.3.0"; fi
+          case "$VERSION" in
+            0.2.2) SUITE="v0.2.1" ;;
+            0.3.0) SUITE="v0.3.0" ;;
+            0.3.1) SUITE="v0.3.1" ;;
+            *) echo "No Host Eval suite for $VERSION" >&2; exit 2 ;;
+          esac
           python3 scripts/run_host_evals.py --suite "$SUITE" --dry-run
 
       - name: Verify persistent live Host Eval RC evidence for new releases

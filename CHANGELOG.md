@@ -4,6 +4,34 @@ All notable public changes to AI Workstation Topic Intelligence are recorded her
 
 The project follows Semantic Versioning for distributable Skill releases.
 
+## [0.3.1] - 2026-08-15
+
+### Fixed
+
+- Pinned normal Radar reads to the official origin, ignoring ambient origin
+  overrides and rejecting cross-origin redirects.
+- Tightened unified Skill triggering and clarified that Radar observations and
+  evidence links are research leads, not independent verification of external
+  claims.
+- Made supplied-name resolution preserve the same topic or report an evidence
+  gap instead of silently selecting a different topic.
+- Replaced the nonexistent snapshot-ID requirement with the actual freshness
+  fields and rejected saved snapshots older than the current one-hour boundary
+  for current-state claims.
+- Moved historical two-Skill fixtures out of the active discovery path and made
+  current trigger and quality gates evaluate only `topic-intelligence`.
+- Simplified installation copy to the standalone Skill paths users can use.
+- Aligned the Radar entry and product-page copy with the real acquisition
+  journey: get the Skill, install it, then ask the host for topics.
+- Refreshed the localized Radar showcase and synchronized the Plugin screenshot
+  with the same acquisition and evidence copy.
+
+### Validation
+
+- Added v0.3.1 relative-time Host Eval fixtures, contradictory-criterion checks,
+  environment-poisoning and redirect tests, Plugin validation, and website copy
+  contract coverage.
+
 ## [0.3.0] - 2026-08-12
 
 The v0.3.0 product line consolidates the public experience into one
@@ -42,10 +70,6 @@ v0.2.2 introduces a persistent live Host Eval evidence gate for release validati
 - Rejected repository-root and other non-Skill-local Radar helper execution, aligned the selection-only AI eval with Creator-only routing, and made the Creator-to-Brief handoff observable without redundant Radar calls.
 - Isolated each Host Eval case to its declared installed Skill set and unified runner and release verification around operation-specific authoritative evidence grades instead of user-visible workflow marker text.
 - Separated the evaluated RC source worktree from a neutral per-case Host workspace, bound runtime evidence to exact Skill fixture manifests, and rejected helpers discovered from repository or other non-fixture paths.
-
-## [Unreleased]
-
-No unreleased changes.
 
 ## [0.2.1] - 2026-08-10
 

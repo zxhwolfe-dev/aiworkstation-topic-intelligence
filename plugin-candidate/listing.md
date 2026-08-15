@@ -6,13 +6,16 @@ Find current topics worth researching and turn one into a research-ready content
 
 ## Description
 
-Topic Intelligence uses current public signals from the AI Workstation Global Topic Radar to help creators, researchers, and editors:
+Topic Intelligence uses current public observations and source links from the AI Workstation Global Topic Radar to help creators, researchers, and editors:
 
 - shortlist topics worth deeper research;
 - brief a supplied current topic;
 - select one topic and continue into a brief for that same topic.
 
-Current facts, editorial analysis, and items requiring verification remain clearly separated. The Skill requires no AI Workstation API key and does not predict audience size, content saturation, or future reach.
+Radar observations, editorial analysis, recommendations, and items requiring
+verification remain clearly separated. Evidence links are research leads rather
+than independent verification. The Skill requires no AI Workstation API key and
+does not predict audience size, content saturation, or future reach.
 
 ## Listing fields
 

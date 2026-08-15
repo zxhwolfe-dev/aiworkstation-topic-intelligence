@@ -10,6 +10,7 @@ Important query parameters currently include:
 
 - `q`
 - `platform`
+- `target_platform`
 - `region`
 - `category`
 - `source`
@@ -74,6 +75,11 @@ Do not expect a `topic_id` alias on feed items.
 
 `opportunity_score` is a deterministic Radar score. It is a source fact about the Radar's current scoring output, but it is not a guarantee of content performance.
 
+Topic titles, summaries, scores, and evidence links are observations returned by
+Radar. They are not independent verification of the external claims described by
+those sources; consumers should use the links as research leads and verify material
+claims from primary sources.
+
 ## Sources
 
 `GET /api/v1/ai/topic-radar/sources`
@@ -104,7 +110,7 @@ For example, a feed item's `trend.history_points` may be 6 and a history request
 
 The client should enforce stable topic identity, but Skills should compare timestamps/generation state rather than demanding exact count equality across requests made during refresh.
 
-## Insight
+## Account-bound Insight (outside the public Skill)
 
 `POST /api/v1/ai/topic-radar/insight?locale=zh|en`
 
@@ -114,7 +120,11 @@ JSON body:
 {"topic_id": "server-known-topic-id"}
 ```
 
-The existing response can include editorial verdict, readiness, audiences, three content angles, short-video handoff, verification tasks, claims to avoid, quality state, and model/provider metadata.
+The public Topic Intelligence helper does not call this endpoint. An authenticated
+native integration may expose it under the user's own account and quota. The
+existing response can include editorial verdict, readiness, audiences, three
+content angles, short-video handoff, verification tasks, claims to avoid, quality
+state, and model/provider metadata.
 
 ### Interpretation rule
 

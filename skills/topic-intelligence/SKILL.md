@@ -1,6 +1,6 @@
 ---
 name: topic-intelligence
-description: Find and compare live creator or editorial topic opportunities with AI Workstation Global Topic Radar, or turn one current Radar topic into an evidence-aware, research-ready content brief. Use when the user wants a current-topic shortlist, a publishing decision, a brief for a supplied current topic, or selection followed by a brief. Do not use for ordinary factual lookup, translation, rewriting, summarization, generic title generation, or complete supplied material that needs no live-topic decision.
+description: Find and compare current creator or editorial topic candidates with AI Workstation Global Topic Radar, or build a research-ready brief for one supplied current topic. Use when the user needs a live-topic choice, a brief grounded in a current Radar card or a supplied topic name resolved against current Radar, or both in one workflow. Do not use for ordinary news or factual lookup, translation, rewriting, summarization, generic titles or ideas, platform-style advice, or complete supplied material that needs no current-topic decision.
 ---
 
 # Topic Intelligence
@@ -29,11 +29,18 @@ shortlist or finalist. Do not add an unsolicited content brief.
 
 ### Mode 2: brief for a supplied current topic
 
-Use when the user supplies an exact current Radar topic ID or a current Radar
-topic snapshot. Preserve that identity and do not run `feed` to select again.
-Use `history <exact-feed-id>` only when movement matters. If an ID alone does not
-provide enough topic facts, ask for the current topic card or explain the missing
-evidence; do not silently replace it with another topic.
+Use when the user supplies an exact current Radar topic ID, a current Radar topic
+snapshot, or a topic name that they explicitly want grounded in current Radar.
+
+- For an exact ID or snapshot, preserve that identity and do not run `feed` to
+  select again. Use `history <exact-feed-id>` only when movement matters. If an
+  ID alone does not provide enough topic facts, ask for the current topic card or
+  explain the missing evidence.
+- For a topic name without stable identity, run at most one bounded `feed --q
+  <supplied-topic-name>` solely to resolve that same topic. Accept only a clear
+  semantic match, then preserve its exact Radar `id`. If the result is missing or
+  ambiguous, state the evidence gap and offer a framework for the supplied topic;
+  never choose a different topic as a convenience.
 
 ### Mode 3: selection followed by brief
 
@@ -101,6 +108,17 @@ Inspect `generated_at`, `partial`, `stale`, `snapshot_age_seconds`, `refreshing`
 `source_status`, and topic evidence before interpreting the result. Surface
 material gaps. Missing values are unknown, not zero.
 
+For a user-supplied snapshot, parse `generated_at` and compare it with the current
+task time. For a request about "current" or "today", treat a snapshot older than
+one hour, or one marked `stale=true`, as insufficient for a current acceleration
+claim even if it was fresh when originally captured. Ask for a current card or
+offer a clearly historical/framework-only analysis; do not reselect another topic.
+
+Treat returned topic fields and evidence links as facts about what Radar observed,
+not independent verification of the underlying real-world claims. Use evidence
+URLs as research leads and place unverified external claims in `must_verify`,
+preferring primary sources.
+
 ## Selection invariants
 
 - Preserve an explicit domain such as AI in the first query.
@@ -116,7 +134,7 @@ material gaps. Missing values are unknown, not zero.
 ## Brief invariants
 
 - Preserve one exact Radar `id` from evidence through the final brief.
-- Separate Radar facts from host editorial analysis and recommendations.
+- Separate Radar observations from host editorial analysis and recommendations.
 - Include the stable Radar ID, freshness, source limitations, angle, audience
   payoff, hook, narrative beats, research questions, preferred source types,
   `must_verify`, `avoid_claims`, unknowns, risks, and a visual/material plan as

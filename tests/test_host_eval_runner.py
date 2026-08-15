@@ -84,6 +84,22 @@ class HostEvalRunnerTests(unittest.TestCase):
         self.assertIn("Current-task supplied Radar snapshot", rendered)
         self.assertIn('"id": "topic:ai-example"', rendered)
 
+    def test_v031_cases_render_relative_snapshot_times_without_mutating_contract(self) -> None:
+        cases = load_suite(ROOT, "v0.3.1")
+        self.assertEqual(len(cases), 8)
+        supplied = next(
+            case for case in cases
+            if case.case_id == "topic-intelligence-brief-for-supplied-topic"
+        )
+        stale = next(
+            case for case in cases
+            if case.case_id == "topic-intelligence-stale-supplied-topic"
+        )
+        self.assertEqual(supplied.provided_topic_snapshot["generated_at"], "$CURRENT_TIME")
+        self.assertEqual(stale.provided_topic_snapshot["generated_at"], "$CURRENT_TIME_MINUS_2H")
+        self.assertNotIn("$CURRENT_TIME", host_prompt(supplied))
+        self.assertNotIn("$CURRENT_TIME_MINUS_2H", host_prompt(stale))
+
     def test_quality_suite_rejects_duplicate_and_unknown_installed_skills(self) -> None:
         rows = ([BRIEF, BRIEF], [BRIEF, "unknown-topic-skill"])
         for installed_skills in rows:
@@ -154,7 +170,7 @@ class HostEvalRunnerTests(unittest.TestCase):
             )
             self.assertIn((duplicate / "SKILL.md").resolve(), disabled)
             self.assertIn(
-                (ROOT / "skills" / BRIEF / "SKILL.md").resolve(), disabled
+                (ROOT / "legacy" / "skills" / BRIEF / "SKILL.md").resolve(), disabled
             )
             fixture_text = "\n".join(
                 path.read_bytes().decode("utf-8", errors="ignore")

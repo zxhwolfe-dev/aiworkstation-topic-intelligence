@@ -122,7 +122,7 @@ All bundled public helper HTTP operations are GET-only.
 Normal public Skill flow:
 
 ```text
-public Radar facts
+public Radar observations
       ↓
 current ChatGPT / Codex / agent host model
       ↓
@@ -186,7 +186,7 @@ It must not:
 
 Public mode separates:
 
-1. **Radar facts** — live feed/source/history data;
+1. **Radar observations** — live feed/source/history data and research leads;
 2. **Host editorial analysis** — selection, audience, hook, angle, narrative, research/visual plan;
 3. **Unknowns / verification** — unsupported claims and evidence gaps.
 

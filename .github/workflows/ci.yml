@@ -24,9 +24,9 @@ jobs:
       - name: Check bundled runtime synchronization
         run: python scripts/sync_skill_runtime.py --check
       - name: Compile Python sources
-        run: python -m compileall -q scripts skills
+        run: python -m compileall -q scripts skills legacy/skills
       - name: Validate Host Eval suites
-        run: python scripts/run_host_evals.py --suite v0.2.1 --dry-run && python scripts/run_host_evals.py --suite v0.3.0 --dry-run
+        run: python scripts/run_host_evals.py --suite trigger --dry-run && python scripts/run_host_evals.py --suite v0.2.1 --dry-run && python scripts/run_host_evals.py --suite v0.3.1 --dry-run
       - name: Validate real Host Eval gate implementation
         run: python -m unittest tests.test_host_eval_runner tests.test_topic_radar_client -q
       - name: Build release archives

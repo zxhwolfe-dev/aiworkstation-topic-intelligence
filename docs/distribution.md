@@ -1,8 +1,8 @@
 # Distribution
 
-AI Workstation Topic Intelligence v0.3.0 is distributed as one public Skill and one self-contained install archive over the existing Global Topic Radar.
+AI Workstation Topic Intelligence v0.3.1 is distributed as one public Skill and one self-contained install archive over the existing Global Topic Radar.
 
-Current package version: **v0.3.0**.
+Current package version: **v0.3.1**.
 
 A `VERSION` change does not publish anything by itself. Only a matching pushed `v*` tag starts the GitHub Release workflow.
 
@@ -11,7 +11,7 @@ A `VERSION` change does not publish anything by itself. Only a matching pushed `
 The builder produces:
 
 ```text
-topic-intelligence-0.3.0.zip
+topic-intelligence-0.3.1.zip
 release-manifest.json
 SHA256SUMS
 ```
@@ -34,7 +34,11 @@ The Skill infers three modes from natural language: selection only, brief for a 
 
 The bundled helper exposes only the public read operations `feed`, `sources`, and `history`. It uses `python3`, puts global options before the subcommand, defaults ordinary scans to `--limit 12`, and normally caps them at 24. It must read directly from the loaded Skill root and must not use a repository helper, shell composition, custom origin, or anonymous `/insight`.
 
-Normal public Brief generation uses live Radar facts and the host model, producing zero AI Workstation server-side LLM calls. Premium server-generated Topic Insight remains a separate account-bound capability that requires a native authenticated connection enforcing the user's quota.
+Normal public Brief generation uses live Radar observations and the host model,
+producing zero AI Workstation server-side LLM calls. Evidence links are research
+leads rather than independent verification. Premium server-generated Topic
+Insight remains a separate account-bound capability that requires a native
+authenticated connection enforcing the user's quota.
 
 ## Build and verify locally
 
@@ -73,13 +77,14 @@ Pushing a matching tag runs `.github/workflows/release.yml` and must complete th
 
 1. tag/version equality and tag ancestry on `main`;
 2. offline full unittest suite;
-3. runtime synchronization and v0.3.0 eval dry-run;
+3. runtime synchronization and v0.3.1 eval dry-run;
 4. persistent live Host Eval evidence and verifier;
 5. deterministic build and manifest/checksum generation;
 6. GitHub Release publication of the single ZIP, manifest, and `SHA256SUMS`.
 
-At the time v0.3.0 was published, v0.2.0 was the latest line with recorded ChatGPT Web upload evidence. A post-release manual ChatGPT Web smoke for the final v0.3.0 ZIP was subsequently completed on 2026-08-12, and all three user-facing modes passed. v0.2.1 and v0.2.2 Host Eval evidence remains non-UI historical evidence. Every future release must likewise carry version-bound Host Eval evidence unless a stronger release contract explicitly replaces it.
-
 ## Installation channels
 
-For Codex development, clone the repository and run the installer. For normal users, download the ZIP from the GitHub Release linked by the AI Workstation Radar page. ChatGPT uploads are surface- and workspace-dependent; follow [`chatgpt-install.md`](chatgpt-install.md) and do not market universal plan availability.
+For Codex development, clone the repository and run the installer. Standalone
+Skill users can download the ZIP from the latest GitHub Release. Compatible
+Agent Skills hosts may import the ZIP or Skill directory through their documented
+installation workflow; follow [`install.md`](install.md).

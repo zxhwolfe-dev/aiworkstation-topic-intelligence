@@ -9,13 +9,13 @@ Skill usage must not consume AI Workstation model quota.
 from __future__ import annotations
 
 import argparse
+from datetime import datetime
+from http.client import HTTPException
 import json
-import os
 import sys
-from urllib.parse import urlsplit
 from typing import Any, Callable, Mapping, Optional
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 from urllib.request import Request, urlopen
 
 
@@ -32,6 +32,34 @@ class TopicRadarError(RuntimeError):
 
 class TopicRadarProtocolError(TopicRadarError):
     """Raised when the public endpoint returns an unexpected JSON shape."""
+
+
+def _parse_timestamp(value: Any, *, context: str) -> datetime:
+    if not isinstance(value, str) or not value.strip():
+        raise TopicRadarProtocolError(f"{context}: expected non-empty ISO timestamp")
+    normalized = value.strip()
+    if normalized.endswith("Z"):
+        normalized = normalized[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError as exc:
+        raise TopicRadarProtocolError(f"{context}: expected valid ISO timestamp") from exc
+    if parsed.tzinfo is None:
+        raise TopicRadarProtocolError(f"{context}: timestamp must include timezone")
+    return parsed
+
+
+def _origin(value: str) -> tuple[str, str, int]:
+    parsed = urlsplit(value)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise ValueError("base_url must be an absolute http(s) URL")
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise ValueError("base_url contains an invalid port") from exc
+    if port is None:
+        port = 443 if parsed.scheme == "https" else 80
+    return parsed.scheme.lower(), parsed.hostname.lower(), port
 
 
 def _json_object(value: Any, *, context: str) -> dict[str, Any]:
@@ -62,8 +90,7 @@ def _validate_payload(kind: str, payload: Any) -> dict[str, Any]:
         for key in ("generated_at", "status", "partial", "stale"):
             if key not in obj:
                 raise TopicRadarProtocolError(f"feed: missing field {key!r}")
-        if not isinstance(obj["generated_at"], str) or not obj["generated_at"].strip():
-            raise TopicRadarProtocolError("feed: generated_at must be a non-empty string")
+        _parse_timestamp(obj["generated_at"], context="feed.generated_at")
         if not isinstance(obj["status"], str) or not obj["status"].strip():
             raise TopicRadarProtocolError("feed: status must be a non-empty string")
         _require_list(obj, "items", context="feed")
@@ -85,8 +112,7 @@ def _validate_payload(kind: str, payload: Any) -> dict[str, Any]:
     elif kind == "sources":
         if "generated_at" not in obj:
             raise TopicRadarProtocolError("sources: missing field 'generated_at'")
-        if not isinstance(obj["generated_at"], str) or not obj["generated_at"].strip():
-            raise TopicRadarProtocolError("sources: generated_at must be a non-empty string")
+        _parse_timestamp(obj["generated_at"], context="sources.generated_at")
         _require_list(obj, "sources", context="sources")
         if "snapshot_age_seconds" in obj and (isinstance(obj["snapshot_age_seconds"], bool) or not isinstance(obj["snapshot_age_seconds"], int) or obj["snapshot_age_seconds"] < 0):
             raise TopicRadarProtocolError("sources: snapshot_age_seconds must be a non-negative integer")
@@ -101,6 +127,7 @@ def _validate_payload(kind: str, payload: Any) -> dict[str, Any]:
                 raise TopicRadarProtocolError(f"history: point {index} is not an object")
             if not isinstance(item.get("observed_at"), str) or not item["observed_at"].strip():
                 raise TopicRadarProtocolError(f"history: point {index} missing string field 'observed_at'")
+            _parse_timestamp(item["observed_at"], context=f"history.points[{index}].observed_at")
             score = item.get("opportunity_score")
             if isinstance(score, bool) or not isinstance(score, (int, float)):
                 raise TopicRadarProtocolError(f"history: point {index} opportunity_score must be numeric")
@@ -118,11 +145,9 @@ class TopicRadarClient:
         timeout: float = DEFAULT_TIMEOUT,
         opener: Optional[Callable[..., Any]] = None,
     ) -> None:
-        configured_env = os.getenv("AIWORKSTATION_TOPIC_RADAR_BASE_URL", "").strip()
-        selected = (base_url or configured_env or DEFAULT_BASE_URL).rstrip("/")
+        selected = (base_url or DEFAULT_BASE_URL).rstrip("/")
         parsed = urlsplit(selected)
-        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-            raise ValueError("base_url must be an absolute http(s) URL")
+        _origin(selected)
         if parsed.username or parsed.password or parsed.query or parsed.fragment:
             raise ValueError("base_url must be a credential-free origin")
         if parsed.path not in {"", "/"}:
@@ -131,13 +156,8 @@ class TopicRadarClient:
             raise ValueError("timeout must be positive")
         self.base_url = selected
         self.uses_official_origin = selected == DEFAULT_BASE_URL
-        self.origin_source = "explicit" if base_url else ("environment" if configured_env else "default")
-        if configured_env and not base_url and selected != DEFAULT_BASE_URL:
-            print(
-                f"warning: using non-official Topic Radar origin {selected} from AIWORKSTATION_TOPIC_RADAR_BASE_URL; "
-                "use only for explicitly requested development/self-hosted testing",
-                file=sys.stderr,
-            )
+        self.origin_source = "explicit" if base_url else "default"
+        self._expected_origin = _origin(selected)
         self.timeout = float(timeout)
         self._opener = opener or urlopen
 
@@ -172,6 +192,17 @@ class TopicRadarClient:
 
         try:
             with self._opener(request, timeout=self.timeout) as response:
+                final_url = response.geturl() if hasattr(response, "geturl") else url
+                try:
+                    final_origin = _origin(final_url)
+                except ValueError as exc:
+                    raise TopicRadarProtocolError(
+                        "Topic Radar returned an invalid final response URL"
+                    ) from exc
+                if final_origin != self._expected_origin:
+                    raise TopicRadarProtocolError(
+                        "Topic Radar redirected to a different origin"
+                    )
                 try:
                     raw = response.read(MAX_RESPONSE_BYTES + 1)
                 except TypeError:  # tiny test doubles may expose read() only
@@ -190,6 +221,14 @@ class TopicRadarClient:
             raise TopicRadarError(f"Topic Radar request failed ({self.base_url}): {exc.reason}") from exc
         except TimeoutError as exc:
             raise TopicRadarError(f"Topic Radar request timed out ({self.base_url})") from exc
+        except HTTPException as exc:
+            raise TopicRadarError(
+                f"Topic Radar protocol failure ({self.base_url}): {exc}"
+            ) from exc
+        except OSError as exc:
+            raise TopicRadarError(
+                f"Topic Radar transport failure ({self.base_url}): {exc}"
+            ) from exc
 
         try:
             payload = json.loads(raw.decode("utf-8"))
@@ -215,7 +254,7 @@ class TopicRadarClient:
         new_only: bool = False,
         max_age_hours: Optional[int] = None,
         offset: int = 0,
-        limit: int = 24,
+        limit: int = 12,
     ) -> dict[str, Any]:
         if signal not in _ALLOWED_SIGNALS:
             raise ValueError(f"unsupported signal: {signal}")
@@ -291,6 +330,7 @@ def _build_parser() -> argparse.ArgumentParser:
     feed = sub.add_parser("feed", help="Read the current topic feed")
     feed.add_argument("--q", default="")
     feed.add_argument("--platform", default="")
+    feed.add_argument("--target-platform", default="")
     feed.add_argument("--region", default="")
     feed.add_argument("--category", default="")
     feed.add_argument("--source", default="")
@@ -302,11 +342,10 @@ def _build_parser() -> argparse.ArgumentParser:
     feed.add_argument("--new-only", action="store_true")
     feed.add_argument("--max-age-hours", type=int)
     feed.add_argument("--offset", type=int, default=0)
-    feed.add_argument("--limit", type=int, default=24)
+    feed.add_argument("--limit", type=int, default=12)
 
     sub.add_parser("sources", help="Read source health")
 
-    feed.add_argument("--target-platform", default="")
     history = sub.add_parser("history", help="Read one topic's trend history")
     history.add_argument("topic_id")
 

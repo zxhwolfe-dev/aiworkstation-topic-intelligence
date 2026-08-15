@@ -1,6 +1,6 @@
 {
   "name": "ai-topic-intelligence",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Find current topics worth researching and build actionable content briefs.",
   "author": {
     "name": "AI Workstation",
@@ -14,7 +14,7 @@
   "interface": {
     "displayName": "Topic Intelligence",
     "shortDescription": "Find current topics and build actionable briefs",
-    "longDescription": "Use current public Radar signals to shortlist topics, brief a supplied topic, or select one topic and continue into a research-ready brief.",
+    "longDescription": "Use current public Radar observations and source links to shortlist topics, brief a supplied topic, or select one topic and continue into a research-ready brief with explicit verification boundaries.",
     "developerName": "AI Workstation",
     "category": "Productivity",
     "capabilities": ["Research", "Write"],
@@ -26,6 +26,9 @@
       "Turn this current Radar topic into a research-ready content brief.",
       "Select one current AI topic, then build a brief for that same topic."
     ],
-    "brandColor": "#155EEF"
+    "brandColor": "#155EEF",
+    "composerIcon": "./assets/ai-workstation-icon.png",
+    "logo": "./assets/ai-workstation-icon.png",
+    "screenshots": ["./assets/topic-intelligence-showcase.png"]
   }
 }

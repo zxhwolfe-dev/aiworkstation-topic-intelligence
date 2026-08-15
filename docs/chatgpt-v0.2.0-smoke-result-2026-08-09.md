@@ -38,7 +38,7 @@ Observed:
 
 Quality observation:
 
-The answer sometimes presented host editorial judgments such as audience breadth or China-market suitability in prose close to Radar facts. v0.2.1 should make provenance boundaries more explicit.
+The answer sometimes presented host editorial judgments such as audience breadth or China-market suitability in prose close to Radar observations. v0.2.1 should make provenance boundaries more explicit.
 
 ## Shape B — Brief only
 
@@ -107,7 +107,7 @@ rather than claiming a hidden trace was observed.
 The three ChatGPT tests produced four concrete Skill-side improvements for the next patch line:
 
 1. **Constraint mapping** — content format, duration, language, audience and tone must not be converted into Radar platform/source filters.
-2. **Provenance visibility** — make Radar facts, server Topic Insight analysis and host editorial judgments easier to distinguish in the user-facing answer.
+2. **Provenance visibility** — make Radar observations, server Topic Insight analysis and host editorial judgments easier to distinguish in the user-facing answer.
 3. **No duplicate selection** — after a valid current-task Opportunity handoff, Brief must not re-run broad/bounded candidate selection unless freshness/identity validity requires it.
 4. **Insight reuse** — when server Insight is complete, adapt and prioritize it instead of generating a second unrelated creative plan from scratch.
 

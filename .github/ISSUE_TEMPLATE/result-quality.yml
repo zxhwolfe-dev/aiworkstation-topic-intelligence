@@ -21,7 +21,7 @@ body:
     id: host_version
     attributes:
       label: Host and Skill version
-      placeholder: ChatGPT Web / v0.3.0
+      placeholder: Host and exact release version
     validations:
       required: true
   - type: textarea

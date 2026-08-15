@@ -1,18 +1,24 @@
 # Topic Intelligence Skill evals
 
-Topic Intelligence keeps historical two-Skill evals and adds a current unified-Skill release gate.
+Topic Intelligence keeps historical two-Skill fixtures outside the active discovery
+path and uses the unified Skill for current trigger and release gates.
 
-## Current v0.3.0 gate
+## Current v0.3.1 gate
 
-`v0.3.0-skill-quality.json` exercises the one public `topic-intelligence` Skill in seven fresh-host cases: selection only, supplied-current-topic brief, one-selection-followed-by-brief, provenance/unknowns, compact scan, no-reselection, and a non-trigger. The authoritative grader relies on validated helper operations, complete lifecycle evidence, or a complete current-task snapshot supplied by the eval contract; it never requires internal magic tokens in the user-facing answer.
+`v0.3.1-skill-quality.json` exercises the one public `topic-intelligence` Skill in
+fresh-host cases covering the three modes, provenance, compact scanning,
+no-reselection, stale supplied evidence, and a non-trigger. Supplied-current
+fixtures use `$CURRENT_TIME`, which the runner replaces only in the host prompt;
+the stored case contract remains deterministic.
 
 Run:
 
 ```bash
-python3 scripts/run_host_evals.py --suite v0.3.0 --dry-run
+python3 scripts/run_host_evals.py --suite v0.3.1 --dry-run
 ```
 
-The sections below describe immutable v0.2.x regression assets.
+The sections below describe immutable v0.2.x regression assets under
+`legacy/skills/` and the historical quality suites.
 
 ## 1. `cases.json` — trigger/routing boundary
 
@@ -27,11 +33,10 @@ The goal is not to grade prose style. It checks whether the host:
 5. does not invent a second scoring system or promote model insight to source fact;
 6. refuses local/sibling snapshot fallback when live evidence is unavailable.
 
-The M2 trigger matrix contains **20 cases**:
+The active unified trigger matrix contains **20 cases**:
 
-- 6 `creator-topic-opportunity-research` positives;
-- 5 `evidence-backed-content-brief` positives;
-- 9 negative/boundary cases that should invoke neither Topic Intelligence Skill.
+- 11 `topic-intelligence` positives across selection and brief intent;
+- 9 negative/boundary cases that should not invoke Topic Intelligence.
 
 `expected_calls` describe logical endpoint use (`feed`, `sources`, `history`, `insight`), not a requirement to print internal commands to the user.
 

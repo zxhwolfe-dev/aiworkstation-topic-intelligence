@@ -44,7 +44,7 @@ FEED_VALUE_OPTIONS = {
     "--source", "--stage", "--signal", "--keywords", "--exclude-sources",
     "--min-score", "--max-age-hours", "--offset", "--limit",
 }
-SUPPORTED_QUALITY_SUITES = {"quality", "v0.2.1", "v0.3.0"}
+SUPPORTED_QUALITY_SUITES = {"quality", "v0.2.1", "v0.3.0", "v0.3.1"}
 PASS_GRADES = {
     "pass_no_skill_runtime_observed",
     "pass_expected_skill_runtime_observed",

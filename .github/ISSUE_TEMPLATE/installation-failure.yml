@@ -12,7 +12,7 @@ body:
     attributes:
       label: Topic Intelligence version
       description: Use the Release version and ZIP filename.
-      placeholder: v0.3.0 / topic-intelligence-0.3.0.zip
+      placeholder: Latest release tag / archive name
     validations:
       required: true
   - type: dropdown
@@ -20,7 +20,6 @@ body:
     attributes:
       label: Host
       options:
-        - ChatGPT Web
         - Codex
         - Another compatible Agent Skills host
     validations:

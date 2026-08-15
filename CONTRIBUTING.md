@@ -12,9 +12,10 @@ Before opening a pull request:
 
 ```bash
 python3 scripts/sync_skill_runtime.py --check
+python3 scripts/sync_plugin_candidate.py --check
 python3 -m unittest discover -s tests -v
 python3 -m compileall -q scripts skills
-python3 scripts/run_host_evals.py --suite v0.3.0 --dry-run
+python3 scripts/run_host_evals.py --suite v0.3.1 --dry-run
 ```
 
 Changes to Skill behavior require a new version-bound live Host Eval and release evidence before publication. Do not include credentials, private traces, user conversations, or production data in issues, fixtures, or commits.

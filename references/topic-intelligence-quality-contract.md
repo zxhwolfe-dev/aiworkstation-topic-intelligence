@@ -18,6 +18,12 @@ allowed sequence is: bounded selection → preserve the exact current-task topic
 identity and freshness → host-model Brief reasoning. This state is internal to
 the current turn, not a second public entry point or persisted evidence.
 
+A supplied topic name without stable Radar identity may use at most one bounded
+`feed --q <supplied-topic-name>` to resolve that same topic. It is not permission
+to select a more convenient topic: require a clear semantic match, preserve the
+resolved exact ID, and report an evidence gap when the result is absent or
+ambiguous.
+
 ## Portable runtime
 
 The only supported interpreter entry is `python3`. Resolve
@@ -67,6 +73,12 @@ current native-host data, or a current Radar response explicitly supplied by the
 user. Never fall back to model memory, local snapshots, repositories, databases,
 fixtures, caches, exports, logs, reports, or prior-task artifacts.
 
+For a supplied snapshot, require a parseable timezone-aware `generated_at`. For a
+request about "current" or "today", a snapshot older than one hour or marked
+`stale=true` cannot support a current acceleration claim. Do not silently run a
+selection feed to replace an exact supplied topic; request a current card or give
+only a clearly historical/framework analysis.
+
 Inspect freshness, partial/stale state, refresh state, source coverage, and topic
 evidence. Surface material gaps. Missing fields are unknown, not zero. A stale,
 partial, or unavailable response may support a research plan, but never a claim
@@ -84,9 +96,14 @@ that the topic is currently accelerating.
 
 ## Provenance and unknowns
 
+Treat topic fields, scores, and evidence links as Radar observations. They prove
+what Radar returned, not the underlying external claim. Use evidence URLs as
+research leads, prefer primary-source verification, and put unresolved claims in
+`must_verify`.
+
 Separate:
 
-- Radar facts;
+- Radar observations;
 - host editorial analysis;
 - recommendations;
 - unknowns and risks.
@@ -95,15 +112,17 @@ When conclusions involve audience, ordinary technology users, China-market fit,
 or distribution potential, explicitly disclose all of the following: Radar does
 not measure actual audience size; Radar does not measure content/topic saturation;
 Radar does not measure future reach/virality. "适合中国用户" and "受众可能更广"
-are host editorial judgments, not Radar fact. Use the labels **Radar facts**,
+are host editorial judgments, not Radar observations. Use the labels **Radar observations**,
 **Host editorial analysis**, **recommendation**, and **unknowns / must_verify** so
-the user can tell a verified fact from an editorial judgment.
+the user can distinguish what Radar returned, what the host inferred, and what
+still requires independent verification.
 
 ## Combined workflow state
 
 When one request asks for both a current selection and a research-ready brief,
-the host keeps the exact finalist ID, snapshot ID, and freshness fields in its
-current-turn reasoning before writing the final brief. It must not emit or ask
+the host keeps the exact finalist ID and available freshness fields (`generated_at`,
+`snapshot_age_seconds`, `partial`, `stale`, and `refreshing`) in its current-turn
+reasoning before writing the final brief. It must not emit or ask
 the user to manage an internal workflow payload, and it must not call another
 feed just to make the brief visible.
 

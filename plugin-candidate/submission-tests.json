@@ -5,7 +5,7 @@
       "id": "current-topic-shortlist",
       "prompt": "Which AI topics are worth researching today? Give me the three strongest candidates and stop before writing a brief.",
       "expected_behavior": "Run one bounded live feed through the bundled Skill-local helper, check freshness, and stop after selection.",
-      "expected_result_shape": ["three topics", "Radar facts", "host judgment", "unknowns"],
+      "expected_result_shape": ["three topics", "Radar observations", "host judgment", "unknowns"],
       "fixture": "Live public Radar feed; no stored snapshot may substitute for current evidence."
     },
     {
@@ -32,7 +32,7 @@
     {
       "id": "china-creator-boundary",
       "prompt": "Pick a topic for Chinese technology creators and explain what the Radar does not measure.",
-      "expected_behavior": "Use live Radar evidence and label China fit as host editorial judgment rather than Radar fact.",
+      "expected_behavior": "Use live Radar observations and label China fit as host editorial judgment rather than a Radar measurement.",
       "expected_result_shape": ["recommendation", "actual audience not measured", "saturation not measured", "future virality not measured"],
       "fixture": "Live public Radar feed."
     }
@@ -40,7 +40,7 @@
   "negative_cases": [
     {
       "id": "ordinary-rewrite",
-      "prompt": "Rewrite this completed paragraph in a clearer tone.",
+      "prompt": "Rewrite this completed paragraph in a clearer tone: 'Many teams are now beginning to experiment with agent tools in their everyday workflows.'",
       "expected_behavior": "Do not invoke Topic Intelligence or Radar; perform ordinary rewriting in the host.",
       "reason": "No current-topic discovery or brief workflow is requested."
     },

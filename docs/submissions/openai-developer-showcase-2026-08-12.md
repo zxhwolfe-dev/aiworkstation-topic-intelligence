@@ -1,5 +1,9 @@
 # OpenAI Developer Showcase submission archive — 2026-08-12
 
+> Historical submission record. The setup steps below describe the surface used
+> on 2026-08-12; for current installation and availability, use
+> [`docs/install.md`](../install.md).
+
 ## Public submission summary
 
 - Status: **submitted**
@@ -14,7 +18,7 @@
 
 ## Project description
 
-AI Workstation Topic Intelligence is one public Agent Skill for creators, researchers, and editors. It reads current public signals from AI Workstation Global Topic Radar, then uses the user’s current ChatGPT, Codex, or compatible host model to shortlist research opportunities or produce an evidence-aware content brief. Radar facts, host editorial judgment, and unknowns remain separate, and normal public use makes no AI Workstation server-side LLM call.
+AI Workstation Topic Intelligence is one public Agent Skill for creators, researchers, and editors. It reads current public signals from AI Workstation Global Topic Radar, then uses the user’s current ChatGPT, Codex, or compatible host model to shortlist research opportunities or produce an evidence-aware content brief. Radar observations, host editorial judgment, and unknowns remain separate, and normal public use makes no AI Workstation server-side LLM call.
 
 ## Tech stack
 
@@ -37,15 +41,13 @@ Codex is a supported Agent Skills host and the release-validation environment. T
 ## Setup steps
 
 1. Download `topic-intelligence-0.3.0.zip` from the official GitHub Release.
-2. Upload it to an eligible ChatGPT Personal Skills workspace, or install it into a compatible Agent Skills host.
+2. On that date, upload it through the eligible ChatGPT workspace Skill surface, or install it into a compatible Agent Skills host.
 3. Ask naturally for a shortlist, a brief for a supplied current topic, or selection followed by a brief.
 4. Keep `partial`/`stale` status and unknown claims visible in the result.
 
 ## Validation and distribution status
 
 The final v0.3.0 Release ZIP completed a real ChatGPT Web smoke on 2026-08-12. Mode 1, Mode 2, Mode 3, and Overall all passed at the user-visible level. Internal command counts and raw traces remain covered by separate Codex Host Eval and release-evidence gates.
-
-The Plugin candidate is prepared and validation-ready. Public Plugin Directory submission is temporarily blocked by the OpenAI Platform payment-method and developer-identity verification prerequisite. This is an external distribution prerequisite, not a Skill defect or a v0.3.0 release blocker.
 
 ## Status boundary
 

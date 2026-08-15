@@ -19,7 +19,7 @@ import sys
 import tempfile
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
@@ -32,12 +32,14 @@ from scripts.grade_host_eval import PASS_GRADES, grade_report
 
 REPORT_SCHEMA = "ati.host-eval.v1"
 SUPPORTED_HOSTS = ("codex",)
-SUPPORTED_SUITES = ("trigger", "quality", "v0.2.1", "v0.3.0")
+SUPPORTED_SUITES = ("trigger", "quality", "v0.2.1", "v0.3.0", "v0.3.1")
 LEGACY_TOPIC_INTELLIGENCE_SKILLS = (
     "creator-topic-opportunity-research",
     "evidence-backed-content-brief",
 )
 TOPIC_INTELLIGENCE_SKILLS = (*LEGACY_TOPIC_INTELLIGENCE_SKILLS, "topic-intelligence")
+CURRENT_TIME_PLACEHOLDER = "$CURRENT_TIME"
+STALE_TIME_PLACEHOLDER = "$CURRENT_TIME_MINUS_2H"
 HANDOFF_SCHEMA = "ati.topic-opportunity-handoff.v1"
 DEFAULT_TIMEOUT_SECONDS = 45.0
 DEFAULT_MAX_OUTPUT_CHARS = 200_000
@@ -142,11 +144,12 @@ def load_suite(root: Path, suite: str) -> list[EvalCase]:
             )
         return cases
 
-    if suite in {"quality", "v0.2.1", "v0.3.0"}:
+    if suite in {"quality", "v0.2.1", "v0.3.0", "v0.3.1"}:
         filename = {
             "quality": "m3-skill-quality.json",
             "v0.2.1": "v0.2.1-skill-quality.json",
             "v0.3.0": "v0.3.0-skill-quality.json",
+            "v0.3.1": "v0.3.1-skill-quality.json",
         }[suite]
         path = root / "evals" / filename
         payload = _load_json(path)
@@ -154,6 +157,7 @@ def load_suite(root: Path, suite: str) -> list[EvalCase]:
             "quality": "ati.m3-skill-quality.v1",
             "v0.2.1": "ati.v0.2.1-skill-quality.v1",
             "v0.3.0": "ati.v0.3.0-skill-quality.v1",
+            "v0.3.1": "ati.v0.3.1-skill-quality.v1",
         }[suite]
         if payload.get("schema") != expected_schema:
             raise HostEvalError(f"unexpected quality eval schema: {payload.get('schema')!r}")
@@ -183,9 +187,9 @@ def load_suite(root: Path, suite: str) -> list[EvalCase]:
                     f"{case_id}: installed_skills must be a non-empty unique list "
                     "of known Topic Intelligence Skills"
                 )
-            if suite == "v0.3.0" and tuple(installed_raw) != ("topic-intelligence",):
+            if suite in {"v0.3.0", "v0.3.1"} and tuple(installed_raw) != ("topic-intelligence",):
                 raise HostEvalError(
-                    f"{case_id}: v0.3.0 cases must install only topic-intelligence"
+                    f"{case_id}: {suite} cases must install only topic-intelligence"
                 )
             provided_snapshot = raw.get("provided_topic_snapshot")
             if provided_snapshot is not None and (
@@ -205,9 +209,29 @@ def load_suite(root: Path, suite: str) -> list[EvalCase]:
                 raise HostEvalError(
                     f"{case_id}: provided_topic_snapshot must be a complete current topic card"
                 )
+            if provided_snapshot is not None:
+                _validate_eval_timestamp(
+                    str(provided_snapshot["generated_at"]),
+                    context=f"{case_id}.provided_topic_snapshot.generated_at",
+                )
             requires_live = raw.get("requires_live_network")
             if requires_live is not None and not isinstance(requires_live, bool):
                 raise HostEvalError(f"{case_id}: requires_live_network must be boolean when present")
+            must_show = raw.get("must_show", [])
+            must_not = raw.get("must_not", [])
+            if (
+                not isinstance(must_show, list)
+                or not isinstance(must_not, list)
+                or not all(isinstance(item, str) and item.strip() for item in must_show + must_not)
+            ):
+                raise HostEvalError(f"{case_id}: must_show and must_not must contain non-empty strings")
+            normalized_show = {_criterion_key(item) for item in must_show}
+            normalized_not = {_criterion_key(item) for item in must_not}
+            contradictions = sorted((normalized_show & normalized_not) - {""})
+            if contradictions:
+                raise HostEvalError(
+                    f"{case_id}: contradictory must_show/must_not criterion: {contradictions[0]}"
+                )
             cases.append(
                 EvalCase(
                     suite=suite,
@@ -231,6 +255,24 @@ def _required_string(payload: Mapping[str, Any], key: str, *, context: str) -> s
     if not isinstance(value, str) or not value.strip():
         raise HostEvalError(f"{context}: missing non-empty string {key!r}")
     return value
+
+
+def _criterion_key(value: str) -> str:
+    return "".join(character for character in value.casefold() if character.isalnum())
+
+
+def _validate_eval_timestamp(value: str, *, context: str) -> None:
+    if value in {CURRENT_TIME_PLACEHOLDER, STALE_TIME_PLACEHOLDER}:
+        return
+    normalized = value[:-1] + "+00:00" if value.endswith("Z") else value
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError as exc:
+        raise HostEvalError(
+            f"{context}: expected ISO timestamp or a supported current-time placeholder"
+        ) from exc
+    if parsed.tzinfo is None:
+        raise HostEvalError(f"{context}: timestamp must include timezone")
 
 
 def select_cases(
@@ -259,8 +301,10 @@ def host_prompt(case: EvalCase) -> str:
 
     if case.provided_topic_snapshot is None:
         return case.prompt
+    now = datetime.now(timezone.utc)
+    rendered_snapshot = _render_time_placeholders(case.provided_topic_snapshot, now=now)
     snapshot = json.dumps(
-        case.provided_topic_snapshot,
+        rendered_snapshot,
         ensure_ascii=False,
         indent=2,
         sort_keys=True,
@@ -271,6 +315,21 @@ def host_prompt(case: EvalCase) -> str:
         "evidence, preserve its exact id):\n"
         f"```json\n{snapshot}\n```"
     )
+
+
+def _render_time_placeholders(value: Any, *, now: datetime) -> Any:
+    if value == CURRENT_TIME_PLACEHOLDER:
+        return now.isoformat()
+    if value == STALE_TIME_PLACEHOLDER:
+        return (now - timedelta(hours=2)).isoformat()
+    if isinstance(value, Mapping):
+        return {
+            str(key): _render_time_placeholders(item, now=now)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_render_time_placeholders(item, now=now) for item in value]
+    return value
 
 
 def resolve_launcher(explicit: str | None) -> list[str]:
@@ -353,6 +412,7 @@ def _potential_duplicate_skill_paths(
 
     roots = (
         source_root / "skills",
+        source_root / "legacy" / "skills",
         original_home / ".agents" / "skills",
         codex_home / "skills",
         codex_home / "plugins",
@@ -414,7 +474,7 @@ def prepare_case_skill_environment(
     skills_root = home / ".agents" / "skills"
     skills_root.mkdir(parents=True, exist_ok=False)
     for skill in case.installed_skills:
-        source = source_root / "skills" / skill
+        source = _skill_source_path(source_root, skill)
         if not (source / "SKILL.md").is_file():
             raise HostEvalError(
                 f"{case.case_id}: missing Skill at evaluated commit: {skill}"
@@ -447,7 +507,7 @@ def prepare_case_skill_environment(
         for skill in case.installed_skills
     }
     for skill in case.installed_skills:
-        source_manifest = _skill_file_manifest(source_root / "skills" / skill)
+        source_manifest = _skill_file_manifest(_skill_source_path(source_root, skill))
         if fixture_manifest[skill] != source_manifest:
             raise HostEvalError(
                 f"{case.case_id}: fixture manifest differs from evaluated Skill: {skill}"
@@ -464,6 +524,12 @@ def prepare_case_skill_environment(
     ):
         raise HostEvalError(f"{case.case_id}: fixture was included in disabled Skills")
     return environment, disabled, fixture_roots, fixture_manifest
+
+
+def _skill_source_path(source_root: Path, skill: str) -> Path:
+    if skill in LEGACY_TOPIC_INTELLIGENCE_SKILLS:
+        return source_root / "legacy" / "skills" / skill
+    return source_root / "skills" / skill
 
 
 def _git_output(cwd: Path, *args: str) -> str:

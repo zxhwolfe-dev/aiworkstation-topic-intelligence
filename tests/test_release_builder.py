@@ -190,7 +190,10 @@ class ReleaseBuilderTests(unittest.TestCase):
             self.assertEqual(manifest["version"], read_version(self.ROOT))
             self.assertEqual(manifest["license"], "Apache-2.0")
             self.assertEqual(len(manifest["artifacts"]), 1)
-            self.assertEqual(manifest["artifacts"][0]["file"], "topic-intelligence-0.3.0.zip")
+            self.assertEqual(
+                manifest["artifacts"][0]["file"],
+                f"topic-intelligence-{read_version(self.ROOT)}.zip",
+            )
             for item in manifest["artifacts"]:
                 with ZipFile(output / item["file"]) as archive:
                     names = archive.namelist()

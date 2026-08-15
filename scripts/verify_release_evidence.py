@@ -172,7 +172,17 @@ def _verify_commit_binding(root: Path, evidence_dir: Path, evaluated_commit: str
 
 
 def verify(root: Path, version: str) -> Path:
-    evidence_suite = "v0.2.1" if version == "0.2.2" else "v0.3.0"
+    suite_by_version = {
+        "0.2.2": "v0.2.1",
+        "0.3.0": "v0.3.0",
+        "0.3.1": "v0.3.1",
+    }
+    try:
+        evidence_suite = suite_by_version[version]
+    except KeyError as exc:
+        raise ReleaseEvidenceError(
+            f"no release-evidence suite is defined for v{version}"
+        ) from exc
     evidence_dir = root / "release-evidence" / f"v{version}"
     missing = [name for name in REQUIRED_FILES if not (evidence_dir / name).is_file()]
     if missing:

@@ -75,7 +75,7 @@ def _repo() -> tuple[tempfile.TemporaryDirectory, Path, str]:
         "evidence-backed-content-brief",
     ):
         shutil.copytree(
-            ROOT / "skills" / skill,
+            ROOT / "legacy" / "skills" / skill,
             root / "skills" / skill,
             ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
         )

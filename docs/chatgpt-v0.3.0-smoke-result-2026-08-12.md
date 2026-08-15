@@ -32,7 +32,7 @@ User-visible acceptance:
 - it disclosed freshness and source coverage;
 - it returned exactly three topics;
 - it did not append an unsolicited full research brief;
-- Radar facts, host editorial judgment, and unknowns retained reasonable boundaries.
+- Radar observations, host editorial judgment, and unknowns retained reasonable boundaries.
 
 Result: **Mode 1 user-visible smoke PASS**.
 
@@ -53,7 +53,7 @@ User-visible acceptance:
 - it directly produced the research-oriented content brief;
 - the result included audience payoff, strongest angle, opening three seconds, narrative structure, research questions, `must_verify`, `avoid_claims`, and material suggestions;
 - evidence gaps, source boundaries, and unknowns were disclosed;
-- audience size, content saturation, and future reach were not presented as measured Radar facts;
+- audience size, content saturation, and future reach were not presented as measured Radar observations;
 - the task was completed normally even though the user did not proactively provide an exact Radar ID.
 
 An ordinary Mode 2 user does **not** need to obtain a Radar ID in another conversation and copy it into a new one. The Radar ID remains a traceability and evidence field, not a mandatory cross-conversation interaction step. The fact that an ID is not explicitly displayed in the UI is not, by itself, a user-visible functional failure.
@@ -102,5 +102,5 @@ This UI smoke does not claim that:
 - [GitHub Release v0.3.0](https://github.com/zxhwolfe-dev/aiworkstation-topic-intelligence/releases/tag/v0.3.0)
 - [English README](https://github.com/zxhwolfe-dev/aiworkstation-topic-intelligence#readme)
 - [中文 README](https://github.com/zxhwolfe-dev/aiworkstation-topic-intelligence/blob/main/README.zh-CN.md)
-- [ChatGPT installation guide](https://github.com/zxhwolfe-dev/aiworkstation-topic-intelligence/blob/main/docs/chatgpt-install.md)
+- [Current installation guide](https://github.com/zxhwolfe-dev/aiworkstation-topic-intelligence/blob/main/docs/install.md)
 - [Codex Host Eval evidence](https://github.com/zxhwolfe-dev/aiworkstation-topic-intelligence/blob/main/release-evidence/v0.3.0/host-evidence.json)

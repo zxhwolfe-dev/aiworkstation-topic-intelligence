@@ -25,21 +25,36 @@ class M3AdoptionTests(unittest.TestCase):
         self.assertIn("next_day_return_rate", payload["product_metrics"])
         self.assertIn("scan_to_brief_rate", payload["product_metrics"])
 
-    def test_chatgpt_install_guide_does_not_claim_universal_plan_access(self) -> None:
-        content = (self.ROOT / "docs" / "chatgpt-install.md").read_text(
+    def test_install_guide_only_documents_usable_skill_paths(self) -> None:
+        content = (self.ROOT / "docs" / "install.md").read_text(
             encoding="utf-8"
         )
-        self.assertIn("Business, Enterprise, Healthcare, and Edu", content)
-        self.assertIn("Do not assume every ChatGPT account has the upload entry", content)
+        self.assertIn("## Codex", content)
+        self.assertIn("## Compatible Agent Skills hosts", content)
         self.assertIn("topic-intelligence", content)
-        self.assertIn("three requests", content)
+        self.assertIn("## First requests", content)
+        for irrelevant_status in (
+            "Plugin Directory",
+            "ChatGPT",
+            "approved",
+            "publicly visible",
+            "not currently",
+        ):
+            self.assertNotIn(irrelevant_status, content)
 
     def test_website_entry_is_user_value_first_and_keeps_evidence_boundary(self) -> None:
         content = (self.ROOT / "docs" / "website-entry-copy.zh-CN.md").read_text(
             encoding="utf-8"
         )
-        self.assertIn("把实时热点变成可执行的内容选题", content)
-        self.assertIn("使用 Topic Intelligence", content)
+        self.assertIn("安装 Topic Intelligence Skill，快速获取热点选题", content)
+        self.assertIn("获取 Skill → 安装启用 → 发起选题", content)
+        self.assertIn("安装一个 Skill，让 Agent 帮你从热点找到选题", content)
+        self.assertGreaterEqual(content.count("> 获取 Skill"), 2)
+        self.assertIn("按钮进入 Topic Intelligence Skill 的介绍和获取页", content)
+        self.assertIn("不得使用“开始研究”“立即生成”", content)
+        self.assertIn("主按钮进入最新正式 Release", content)
+        self.assertNotIn("把实时热点变成可执行的内容选题", content)
+        self.assertNotIn("使用 Topic Intelligence", content)
         self.assertIn("不把模型记忆或旧快照冒充当前证据", content)
         self.assertIn("不承诺受众规模、内容饱和度、未来传播量或“爆款”", content)
         self.assertIn("Smoke、Host Eval、raw trace", content)
@@ -48,9 +63,11 @@ class M3AdoptionTests(unittest.TestCase):
         surfaces = (
             "README.md",
             "README.zh-CN.md",
-            "docs/chatgpt-install.md",
-            "docs/releases/v0.3.0.md",
+            "docs/install.md",
+            "docs/releases/v0.3.1.md",
             "plugin-candidate/listing.md",
+            ".github/ISSUE_TEMPLATE/installation-failure.yml",
+            ".github/ISSUE_TEMPLATE/result-quality.yml",
         )
         content = "\n".join(
             (self.ROOT / path).read_text(encoding="utf-8") for path in surfaces
@@ -62,6 +79,11 @@ class M3AdoptionTests(unittest.TestCase):
             "temporarily blocked",
             "Developer Showcase",
             "Premium Insight",
+            "Plugin Directory",
+            "publicly visible",
+            "待审核",
+            "审核通过",
+            "ChatGPT",
         ):
             self.assertNotIn(internal_term, content)
 
@@ -81,7 +103,8 @@ class M3AdoptionTests(unittest.TestCase):
             self.ROOT / "docs" / "v0.2.1-non-ui-host-acceptance-2026-08-10.md"
         ).read_text(encoding="utf-8")
 
-        self.assertEqual(version, "0.3.0")
+        self.assertEqual(version, "0.3.1")
+        self.assertIn("## [0.3.1]", changelog)
         self.assertIn("## [0.3.0]", changelog)
         self.assertIn("## [0.2.2] - 2026-08-11", changelog)
         self.assertIn("## [0.2.1] - 2026-08-10", changelog)

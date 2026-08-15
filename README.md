@@ -4,22 +4,24 @@
 
 [简体中文](README.zh-CN.md)
 
-[![Download v0.3.0](https://img.shields.io/badge/download-v0.3.0-2859dc)](https://github.com/zxhwolfe-dev/aiworkstation-topic-intelligence/releases/tag/v0.3.0)
+[![Latest Release](https://img.shields.io/github/v/release/zxhwolfe-dev/aiworkstation-topic-intelligence)](https://github.com/zxhwolfe-dev/aiworkstation-topic-intelligence/releases/latest)
 
 ![AI Workstation Global Topic Radar with Topic Intelligence](docs/assets/ai-topic-intelligence-showcase.png)
 
-Topic Intelligence uses current public signals from the [AI Workstation Global Topic Radar](https://aiworkstation.cn/topic-radar/) to help creators, researchers, and editors:
+Topic Intelligence is an installable Agent Skill. It uses current public signals from the [AI Workstation Global Topic Radar](https://aiworkstation.cn/topic-radar/) to help creators, researchers, and editors:
 
 - shortlist topics worth deeper research;
 - turn a supplied current topic into a research-ready brief;
 - select one topic and continue directly into a brief for that same topic.
 
-The Radar supplies current evidence. Your ChatGPT, Codex, or compatible Agent Skills host performs the analysis.
+The Radar supplies current signal metadata and source links. Your Codex or
+compatible Agent Skills host performs the analysis; material external claims
+still require primary-source verification.
 
 ## Get started
 
-1. Download [`topic-intelligence-0.3.0.zip`](https://github.com/zxhwolfe-dev/aiworkstation-topic-intelligence/releases/tag/v0.3.0).
-2. Upload the ZIP to a supported ChatGPT workspace, or install it with the Codex workflow below.
+1. Open the [latest GitHub Release](https://github.com/zxhwolfe-dev/aiworkstation-topic-intelligence/releases/latest) for the standalone Skill archive, or clone this repository for the Codex installer.
+2. Install the Skill using the host-specific workflow below.
 3. Describe whether you want topic selection, a brief, or both.
 
 Try:
@@ -29,10 +31,6 @@ Choose one current AI topic for a two-to-three-minute explainer, then turn it in
 ```
 
 ## Installation
-
-### ChatGPT
-
-Upload the official Release ZIP in a workspace that supports Personal Skills. Availability depends on the current plan and workspace permissions. See the [ChatGPT installation guide](docs/chatgpt-install.md).
 
 ### Codex
 
@@ -44,6 +42,9 @@ python3 scripts/install_codex_skills.py doctor
 ### Other Agent Skills hosts
 
 Import the Release ZIP or `topic-intelligence` directory. The host must be able to read `SKILL.md`, run the bundled Python helper, and access the public Radar API.
+
+See the [installation guide](docs/install.md) for detailed steps and
+first-use prompts.
 
 Product pages: [English](https://useaistation.com/topic-intelligence/) · [中文](https://aiworkstation.cn/topic-intelligence/)
 
@@ -58,6 +59,7 @@ Product pages: [English](https://useaistation.com/topic-intelligence/) · [中�
 ## Evidence and privacy
 
 - Current claims must come from a current Radar response, not model memory or saved snapshots.
+- Radar observations and evidence links are research leads, not independent verification of external claims.
 - Incomplete or older source coverage must be disclosed.
 - Radar does not measure actual audience size, content saturation, or future reach.
 - The public Skill uses read-only Radar endpoints and requires no AI Workstation API key.

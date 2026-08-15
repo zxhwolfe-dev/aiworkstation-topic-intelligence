@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import contextlib
 import json
-import io
 import os
 import subprocess
 import sys
@@ -22,8 +20,9 @@ HELPER = ROOT / "scripts" / "topic_radar_client.py"
 
 
 class FakeResponse:
-    def __init__(self, payload):
+    def __init__(self, payload, *, final_url=None):
         self.payload = payload
+        self.final_url = final_url
 
     def __enter__(self):
         return self
@@ -35,6 +34,9 @@ class FakeResponse:
         if isinstance(self.payload, bytes):
             return self.payload
         return json.dumps(self.payload, ensure_ascii=False).encode("utf-8")
+
+    def geturl(self):
+        return self.final_url or "https://example.test/api/v1/ai/topic-radar/feed"
 
 
 def sample_feed(*, items=None):
@@ -84,6 +86,16 @@ class TopicRadarClientTests(unittest.TestCase):
         self.assertIn("min_score=60", request.full_url)
         self.assertIn("limit=12", request.full_url)
         self.assertEqual(timeout, 15.0)
+
+    def test_feed_defaults_to_twelve_candidates(self) -> None:
+        calls = []
+
+        def opener(request, timeout):
+            calls.append(request.full_url)
+            return FakeResponse(sample_feed())
+
+        TopicRadarClient(base_url="https://example.test", opener=opener).feed()
+        self.assertIn("limit=12", calls[0])
 
     def test_feed_requires_stable_item_id_not_topic_id_alias(self) -> None:
         good = sample_feed(items=[{"id": "topic:abc"}])
@@ -218,21 +230,40 @@ class TopicRadarClientTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 TopicRadarClient(base_url=value)
 
-    def test_environment_origin_is_explicitly_reported(self) -> None:
+    def test_environment_origin_cannot_override_official_default(self) -> None:
         previous = os.environ.get("AIWORKSTATION_TOPIC_RADAR_BASE_URL")
-        stream = io.StringIO()
         try:
             os.environ["AIWORKSTATION_TOPIC_RADAR_BASE_URL"] = "http://radar.dev.test"
-            with contextlib.redirect_stderr(stream):
-                client = TopicRadarClient()
+            client = TopicRadarClient()
         finally:
             if previous is None:
                 os.environ.pop("AIWORKSTATION_TOPIC_RADAR_BASE_URL", None)
             else:
                 os.environ["AIWORKSTATION_TOPIC_RADAR_BASE_URL"] = previous
-        self.assertFalse(client.uses_official_origin)
-        self.assertEqual(client.origin_source, "environment")
-        self.assertIn("non-official Topic Radar origin http://radar.dev.test", stream.getvalue())
+        self.assertTrue(client.uses_official_origin)
+        self.assertEqual(client.origin_source, "default")
+        self.assertEqual(client.base_url, "https://aiworkstation.cn")
+
+    def test_rejects_cross_origin_redirect(self) -> None:
+        client = TopicRadarClient(
+            base_url="https://example.test",
+            opener=lambda request, timeout: FakeResponse(
+                sample_feed(),
+                final_url="https://attacker.test/api/v1/ai/topic-radar/feed",
+            ),
+        )
+        with self.assertRaisesRegex(TopicRadarProtocolError, "different origin"):
+            client.feed()
+
+    def test_accepts_same_origin_redirect_path(self) -> None:
+        client = TopicRadarClient(
+            base_url="https://example.test",
+            opener=lambda request, timeout: FakeResponse(
+                sample_feed(),
+                final_url="https://example.test/api/v1/ai/topic-radar/feed?limit=12",
+            ),
+        )
+        self.assertEqual(client.feed()["status"], "ok")
 
     def test_rejects_oversized_response_and_invalid_freshness_types(self) -> None:
         oversized = TopicRadarClient(
@@ -250,6 +281,19 @@ class TopicRadarClientTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(TopicRadarProtocolError, "snapshot_age_seconds"):
             client.feed()
+
+    def test_rejects_invalid_or_timezone_free_timestamps(self) -> None:
+        for value in ("not-a-time", "2026-08-09T00:00:00"):
+            malformed = sample_feed()
+            malformed["generated_at"] = value
+            client = TopicRadarClient(
+                base_url="https://example.test",
+                opener=lambda request, timeout, payload=malformed: FakeResponse(payload),
+            )
+            with self.subTest(value=value), self.assertRaisesRegex(
+                TopicRadarProtocolError, "timestamp"
+            ):
+                client.feed()
 
 
 if __name__ == "__main__":

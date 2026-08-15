@@ -33,7 +33,6 @@ sequence merely because unrelated titles look similar.
 
 ## Selection output
 
-For a shortlist, report snapshot status, observed Radar facts, host interpretation,
+For a shortlist, report snapshot status, Radar observations, host interpretation,
 recommendation, next verification step, unknowns, and risks. For a sole finalist,
 include its exact Radar `id` so a following brief can preserve identity.
-

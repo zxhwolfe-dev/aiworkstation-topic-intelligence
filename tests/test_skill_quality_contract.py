@@ -57,7 +57,7 @@ class SkillQualityContractTests(unittest.TestCase):
     def test_quality_contract_preserves_radar_provenance_and_cost_boundary(self) -> None:
         content = CANONICAL.read_text(encoding="utf-8")
         for marker in (
-            "Radar facts",
+            "Radar observations",
             "Host editorial analysis",
             "GET /api/v1/ai/topic-radar/feed",
             "GET /api/v1/ai/topic-radar/sources",
@@ -79,6 +79,29 @@ class SkillQualityContractTests(unittest.TestCase):
         )
         self.assertIn("exact finalist ID", content)
 
+    def test_supplied_topic_name_only_resolves_the_same_topic(self) -> None:
+        skill = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+        brief = (SKILL / "references" / "brief-workflow.md").read_text(
+            encoding="utf-8"
+        )
+        contract = CANONICAL.read_text(encoding="utf-8")
+        for content in (skill, brief, contract):
+            normalized = " ".join(content.split())
+            with self.subTest(source=content[:40]):
+                self.assertIn("feed --q <supplied-topic-name>", normalized)
+                self.assertIn("same topic", normalized)
+                self.assertIn("semantic match", normalized)
+                self.assertIn("exact", normalized)
+        self.assertIn("at most one bounded", " ".join(skill.split()))
+        self.assertIn("never choose a different topic", " ".join(skill.split()))
+
+    def test_provenance_copy_does_not_call_radar_observations_verified_facts(self) -> None:
+        content = CANONICAL.read_text(encoding="utf-8")
+        self.assertNotIn("tell a verified fact from an editorial judgment", content)
+        self.assertIn("what Radar returned", content)
+        self.assertIn("what the host inferred", content)
+        self.assertIn("requires independent verification", content)
+
     def test_unknowns_are_explicitly_disclosed(self) -> None:
         for path in (CANONICAL, SKILL / "SKILL.md"):
             content = path.read_text(encoding="utf-8")
@@ -91,7 +114,10 @@ class SkillQualityContractTests(unittest.TestCase):
                 )
                 self.assertIn("future reach/virality", normalized)
                 self.assertIn("host editorial judgment", normalized)
-                self.assertIn("not Radar fact", normalized)
+                self.assertTrue(
+                    "not Radar fact" in normalized
+                    or "not Radar observations" in normalized
+                )
 
     def test_release_and_sync_scripts_use_unified_runtime(self) -> None:
         release = (ROOT / "scripts" / "build_release.py").read_text(encoding="utf-8")
