@@ -108,6 +108,13 @@ Separate:
 - recommendations;
 - unknowns and risks.
 
+The **Radar observations** section contains only returned fields and links, plus
+faithful summaries of what Radar observed. Rewritten angles or titles, candidate
+comparisons, judgments about verification effort or technical value, audience
+fit, and every other host inference belong only under **Host editorial
+analysis** or **recommendation**. Do not place host-authored framing in a Radar
+column or section even when the adjacent numeric fields are accurate.
+
 When conclusions involve audience, ordinary technology users, China-market fit,
 or distribution potential, explicitly disclose all of the following: Radar does
 not measure actual audience size; Radar does not measure content/topic saturation;

@@ -34,5 +34,10 @@ sequence merely because unrelated titles look similar.
 ## Selection output
 
 For a shortlist, report snapshot status, Radar observations, host interpretation,
-recommendation, next verification step, unknowns, and risks. For a sole finalist,
-include its exact Radar `id` so a following brief can preserve identity.
+recommendation, next verification step, unknowns, and risks. Under **Radar
+observations**, use the returned title or label it explicitly as the Radar title;
+put a rewritten content angle in **Host editorial analysis** or
+**recommendation**. Candidate comparisons and judgments about verification
+effort, technical value, audience fit, or editorial usefulness are host analysis,
+never Radar observations. For a sole finalist, include its exact Radar `id` so a
+following brief can preserve identity.

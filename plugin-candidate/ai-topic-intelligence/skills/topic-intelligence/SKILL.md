@@ -135,6 +135,11 @@ preferring primary sources.
 
 - Preserve one exact Radar `id` from evidence through the final brief.
 - Separate Radar observations from host editorial analysis and recommendations.
+- Keep the **Radar observations** section limited to returned fields, links, and
+  faithful summaries of what Radar observed. Put rewritten angles or titles,
+  candidate comparisons, verification-effort judgments, audience fit, and any
+  other host inference only under **Host editorial analysis** or
+  **recommendation**.
 - Include the stable Radar ID, freshness, source limitations, angle, audience
   payoff, hook, narrative beats, research questions, preferred source types,
   `must_verify`, `avoid_claims`, unknowns, risks, and a visual/material plan as

@@ -311,8 +311,9 @@ def host_prompt(case: EvalCase) -> str:
     )
     return (
         f"{case.prompt}\n\n"
-        "Current-task supplied Radar snapshot (treat as user-provided current "
-        "evidence, preserve its exact id):\n"
+        "Current-task supplied Radar snapshot (treat as user-provided evidence, "
+        "preserve its exact id, and assess its freshness from its fields and the "
+        "task time):\n"
         f"```json\n{snapshot}\n```"
     )
 

@@ -67,6 +67,23 @@ class SkillQualityContractTests(unittest.TestCase):
         ):
             self.assertIn(marker, content)
 
+    def test_radar_observation_section_excludes_host_authored_framing(self) -> None:
+        contract = CANONICAL.read_text(encoding="utf-8")
+        selection = (ROOT / "references" / "topic-intelligence-selection-workflow.md").read_text(
+            encoding="utf-8"
+        )
+        skill = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+        for content in (contract, selection, skill):
+            normalized = " ".join(content.split())
+            with self.subTest(source=content[:40]):
+                self.assertIn("rewritten", normalized.lower())
+                self.assertIn("Radar observations", normalized)
+                self.assertIn("Host editorial analysis", normalized)
+        self.assertIn("host-authored framing", contract)
+        self.assertIn("verification effort", contract)
+        self.assertIn("technical value", contract)
+        self.assertIn("returned title", selection)
+
     def test_quality_contract_blocks_reselection_after_composition(self) -> None:
         content = CANONICAL.read_text(encoding="utf-8")
         normalized = " ".join(content.split())

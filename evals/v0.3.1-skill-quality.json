@@ -49,7 +49,7 @@
       "expected_workflow": ["topic-intelligence:selection"],
       "requires_live_network": true,
       "must_show": ["live Radar evidence", "actual audience size not measured", "content/topic saturation not measured", "future reach/virality not measured", "China fit labeled host editorial judgment"],
-      "must_not": ["measured audience claim", "measured China suitability claim", "virality guarantee", "anonymous server insight"]
+      "must_not": ["host judgment inside Radar observations", "measured audience claim", "measured China suitability claim", "virality guarantee", "anonymous server insight"]
     },
     {
       "id": "topic-intelligence-compact-scan",
@@ -58,7 +58,7 @@
       "expected_workflow": ["topic-intelligence:selection"],
       "requires_live_network": true,
       "must_show": ["python3 Skill-local helper", "feed limit no greater than 24", "bounded shortlist"],
-      "must_not": ["python or python2 interpreter", "repository-root helper", "limit above 24 without explicit request", "shell composition"]
+      "must_not": ["host-rewritten angle presented as a Radar title", "python or python2 interpreter", "repository-root helper", "limit above 24 without explicit request", "shell composition"]
     },
     {
       "id": "topic-intelligence-brief-without-reselection",
@@ -111,7 +111,7 @@
       "expected_workflow": ["topic-intelligence:no-radar"],
       "requires_live_network": false,
       "must_show": ["ordinary rewriting completed without Radar"],
-      "must_not": ["invoke Topic Intelligence", "call feed, sources, or history", "claim current trend facts"]
+      "must_not": ["invoke Topic Intelligence", "call feed, sources, or history", "introduce a new current trend claim or attribute one to Radar"]
     }
   ]
 }

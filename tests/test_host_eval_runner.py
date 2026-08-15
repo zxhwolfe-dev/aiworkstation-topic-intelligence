@@ -99,6 +99,9 @@ class HostEvalRunnerTests(unittest.TestCase):
         self.assertEqual(stale.provided_topic_snapshot["generated_at"], "$CURRENT_TIME_MINUS_2H")
         self.assertNotIn("$CURRENT_TIME", host_prompt(supplied))
         self.assertNotIn("$CURRENT_TIME_MINUS_2H", host_prompt(stale))
+        self.assertIn("assess its freshness", host_prompt(supplied))
+        self.assertIn("assess its freshness", host_prompt(stale))
+        self.assertNotIn("user-provided current evidence", host_prompt(stale))
 
     def test_quality_suite_rejects_duplicate_and_unknown_installed_skills(self) -> None:
         rows = ([BRIEF, BRIEF], [BRIEF, "unknown-topic-skill"])

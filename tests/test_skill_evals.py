@@ -62,6 +62,16 @@ class SkillEvalTests(unittest.TestCase):
             "ordinary rewriting completed without Radar", non_trigger.source["must_show"]
         )
 
+        by_id = {case.case_id: case for case in cases}
+        self.assertIn(
+            "host judgment inside Radar observations",
+            by_id["topic-intelligence-provenance-and-unknowns"].source["must_not"],
+        )
+        self.assertIn(
+            "host-rewritten angle presented as a Radar title",
+            by_id["topic-intelligence-compact-scan"].source["must_not"],
+        )
+
     def test_quality_suite_rejects_contradictory_review_criteria(self) -> None:
         original = self.ROOT / "evals" / "v0.3.1-skill-quality.json"
         payload = json.loads(original.read_text(encoding="utf-8"))

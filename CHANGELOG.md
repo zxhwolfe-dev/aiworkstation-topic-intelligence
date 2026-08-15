@@ -13,6 +13,8 @@ The project follows Semantic Versioning for distributable Skill releases.
 - Tightened unified Skill triggering and clarified that Radar observations and
   evidence links are research leads, not independent verification of external
   claims.
+- Kept host-rewritten angles, candidate comparisons, and editorial judgments
+  out of sections labeled as Radar observations.
 - Made supplied-name resolution preserve the same topic or report an evidence
   gap instead of silently selecting a different topic.
 - Replaced the nonexistent snapshot-ID requirement with the actual freshness
@@ -29,8 +31,8 @@ The project follows Semantic Versioning for distributable Skill releases.
 ### Validation
 
 - Added v0.3.1 relative-time Host Eval fixtures, contradictory-criterion checks,
-  environment-poisoning and redirect tests, Plugin validation, and website copy
-  contract coverage.
+  freshness-neutral supplied-snapshot prompts, environment-poisoning and
+  redirect tests, Plugin validation, and website copy contract coverage.
 
 ## [0.3.0] - 2026-08-12
 
