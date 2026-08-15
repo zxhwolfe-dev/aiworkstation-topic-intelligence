@@ -1,0 +1,528 @@
+{
+  "cases": [
+    {
+      "collector_route_observation": "fail_unobservable",
+      "evidence": {
+        "agent_message_count": 3,
+        "agent_message_skill_mentions": [],
+        "agent_message_texts": [
+          "item_0\nagent_message\n我会用 Topic Intelligence 的实时选题流程，先读取今天的 Radar 候选并做横向比较；只返回最值得看的 3 个题材，不展开完整内容简报。",
+          "item_4\nagent_message\n技能要求把 Radar 的原始观测与我的编辑判断分开，因此最终会保留必要的实时依据、推荐顺序和待核验项，但不会扩写成选题简报。现在执行一次限定为 12 条的 AI 实时扫描。",
+          "item_6\nagent_message\n### Radar observations\n\n快照生成于 2026-08-15 21:36（北京时间），`partial=false`、`stale=false`、`refreshing=false`，约 2 分钟新鲜。\n\n| Radar 原始标题 | ID | 机会分 | 趋势/信号 |\n|---|---|---:|---|\n| [怎么看森多夫猜想（Sendov's Conjecture）已被 AI 、 Lech Mazur 、陶哲轩攻破？](https://www.zhihu.com/question/2071680380755785039) | `topic:a1de4367527e1595997a` | 69 | rising；2 个信号 |\n| [大厂员工吐槽现在开会就是互丢 AI 文档，你有同感吗？很多公司都强调内化 AI 能力，但真的有提升产出质量吗？](https://www.zhihu.com/question/2071711669378441934) | `topic:d1a37c935a9f73abc5b2` | 60 | rising；2 个信号 |\n| [Google is making private AI practical with homomorphic encryption](https://blog.google/security/how-google-is-making-private-ai-practical-with-homomorphic-encryption/) | `topic:03c8d8997ca1cb1872d7` | 40 | rising；单一来源 |\n\n### Host editorial analysis / recommendation\n\n1. **AI 开始参与攻克顶级数学猜想了吗？**  \n   最值得追。兼具重大突破、AI 与人类协作、学术争议三条叙事线，但标题中的“攻破”必须先核实。\n\n2. **企业强推 AI 后，为什么产出变成了更多文档？**  \n   共鸣度很强，可以从“效率提升”转向“组织沟通成本与伪生产力”，现实讨论空间大。\n\n3. **同态加密能否解决 AI 的隐私难题？**  \n   技术含金量最高，适合解释“数据不解密也能计算”以及私人 AI 真正落地还差什么。\n\n### unknowns / must_verify\n\n- 核验森多夫猜想的论文、证明状态及各参与者实际贡献。\n- 寻找企业 AI 使用效果的独立数据，避免把知乎讨论当成普遍事实。\n- 核验 Google 方案的性能、成本和适用边界；目前 Radar 只有单一来源。"
+        ],
+        "brief_host_reasoning_checkpoint_observed": false,
+        "command_execution_count": 8,
+        "creator_runtime_before_checkpoint": false,
+        "definition_read_skills": [
+          "topic-intelligence"
+        ],
+        "failed_runtime_attempts": [],
+        "handoff_agent_message_observed": false,
+        "handoff_checkpoint_topic_id": null,
+        "handoff_checkpoint_topic_ids": [],
+        "handoff_schema_mention_observed": false,
+        "invalid_runtime_attempts": [],
+        "mentioned_skills": [
+          "topic-intelligence"
+        ],
+        "post_handoff_agent_message_observed": false,
+        "post_runtime_agent_message_skills": [
+          "topic-intelligence"
+        ],
+        "runtime_attempt_count": 1,
+        "runtime_attempt_skills": [
+          "topic-intelligence"
+        ],
+        "runtime_operation_counts": {
+          "topic-intelligence:feed": 1
+        },
+        "runtime_operations": [
+          "topic-intelligence:feed"
+        ],
+        "runtime_use_skills": [
+          "topic-intelligence"
+        ],
+        "runtime_violation_reasons": [],
+        "successful_runtime_attempts": [
+          {
+            "command": "/bin/bash -lc 'python3 /tmp/ati-host-eval-home-2motozv5/.agents/skills/topic-intelligence/scripts/topic_radar_client.py --timeout 30 feed --q AI --limit 12'",
+            "event_position": 11,
+            "exit_code": 0,
+            "helper_path": "/tmp/ati-host-eval-home-2motozv5/.agents/skills/topic-intelligence/scripts/topic_radar_client.py",
+            "operation": "feed",
+            "request_arguments": [
+              "--timeout",
+              "30",
+              "feed",
+              "--q",
+              "AI",
+              "--limit",
+              "12"
+            ],
+            "response_topic_ids": [
+              "topic:a1de4367527e1595997a",
+              "topic:03c8d8997ca1cb1872d7",
+              "topic:bd8554d78c7fae55bcc7",
+              "topic:885483d127b5aab1a4e7",
+              "topic:d1a37c935a9f73abc5b2",
+              "topic:89c62364c8ed7bd3045c",
+              "topic:01b764a5dcc7db6e028f",
+              "topic:59ac5853496148f862b2",
+              "topic:72ef55b2bd1e6fc5c7a1",
+              "topic:9e8f5aa9532faade3506",
+              "topic:1b01f226aaf3fb2b30ec",
+              "topic:1679ad5cda428b337bbe"
+            ],
+            "skill": "topic-intelligence",
+            "status": "completed",
+            "topic_id": null,
+            "violation_reasons": []
+          }
+        ]
+      },
+      "evidence_grade": "pass_expected_workflow_evidence_observed",
+      "id": "topic-intelligence-selection-only",
+      "runtime_status": "completed",
+      "suite": "v0.3.1"
+    },
+    {
+      "collector_route_observation": "fail_unobservable",
+      "evidence": {
+        "agent_message_count": 3,
+        "agent_message_skill_mentions": [
+          "topic-intelligence"
+        ],
+        "agent_message_texts": [
+          "item_0\nagent_message\n我会使用 `topic-intelligence` 技能，把你提供的 Radar 快照直接作为选题证据，保留精确题目 ID；不会重新调用 feed。先按技能要求核对简报结构和是否必须查询 history。",
+          "item_4\nagent_message\n快照本身已给出 `trend_stage: rising`，完成内容简报不需要进一步判断走势，因此我不会查询 history。现在只计算任务时点的新鲜度，并把单一 GitHub 信号、无证据链接等限制明确列入核验清单。",
+          "item_6\nagent_message\n## Radar observations\n\n| 字段 | 当前快照 |\n|---|---|\n| Radar ID | `topic:ai-example` |\n| Radar title | Open-source compact AI agents gain tool-use reliability |\n| Summary | Current public signals discuss smaller agent systems improving reliable tool execution. |\n| Opportunity score | 78 |\n| Trend stage | `rising` |\n| Generated at | 2026-08-15 13:39:47 UTC / 21:39:47 中国标准时间 |\n| 任务评估时点 | 2026-08-15 21:40:10 中国标准时间 |\n| 快照年龄 | 约 23 秒 |\n| 状态 | `partial=false`；`stale=false` |\n| Evidence | 1 条；来源 `github`；观测于 2026-08-15 13:39:47 UTC |\n\n快照在任务时点非常新鲜，可以支持“Radar 当前将该题目标记为 rising”的表述。Radar 只记录到一个 GitHub 来源，且快照没有提供具体仓库、证据 URL、`source_status`、`refreshing` 或历史序列。\n\n本次未重新调用 feed，也未查询 history：现有 `trend_stage` 足以制作简报，但不足以判断增速、持续时间或是否出现趋势拐点。\n\n## Host editorial analysis\n\n### 推荐定位\n\n建议做成一篇“机制拆解 + 证据审查”型内容，而不是项目盘点或趋势宣言。\n\n- 主角：开源紧凑型 AI Agent\n- 核心问题：体量更小的智能体，是否正在通过工程方法而非单纯扩大模型，提高工具调用的可靠性？\n- 内容价值：帮助读者判断“可靠”究竟来自模型能力、约束机制、重试策略、验证器，还是测试口径变化。\n- 推荐载体：1200–1800 字深度稿，或 4–6 分钟知识视频。\n\n“这个题目适合普通技术用户或中国开发者”属于编辑判断，不是 Radar 结论。Radar 不测量实际受众规模、内容饱和度，也不预测未来传播量或爆款概率。\n\n### 主标题建议\n\n《Agent 不必更大，先要少出错：开源紧凑型智能体如何提升工具调用可靠性》\n\n备选标题：\n\n- 《小型 AI Agent 的工具调用，真的变可靠了吗？》\n- 《从“会调用”到“不乱调用”：紧凑型开源 Agent 的可靠性路线》\n- 《参数更少，工具调用更稳？先看证据怎么测》\n\n### 核心角度\n\n不要泛泛讲“小模型崛起”，而要追踪一条可验证的因果链：\n\n> 哪些具体项目声称可靠性提高 → 用什么任务和指标测量 → 使用了哪些模型或系统机制 → 改进是否可复现 → 在真实场景中还会怎样失败。\n\n“compact”应作为待定义术语，不能直接等同于“小参数模型”。它也可能指轻量运行时、少组件架构、低延迟系统或面向单一任务的 Agent。\n\n### 受众收益\n\n读完后，受众应能回答三个问题：\n\n1. “工具调用可靠性”具体测什么？\n2. 小型 Agent 的改进来自模型本身，还是外围工程？\n3. 选择开源 Agent 时，应该检查哪些证据而不是只看演示？\n\n### 开场 Hook\n\n> 一个 Agent 能调用十种工具并不稀奇。真正困难的是：它能否每次选择正确工具、填对参数、识别失败，并且不在重试中把错误放大？\n\n随后立即抛出验证问题：“近期出现的紧凑型开源 Agent，究竟在哪一层变得更可靠了？”\n\n### 叙事结构\n\n1. **先定义问题**  \n   区分工具选择、参数生成、执行成功、结果校验、异常恢复和端到端任务成功率。\n\n2. **找到信号源头**  \n   定位触发 Radar 信号的具体 GitHub 仓库、版本、提交或发布说明。\n\n3. **检查‘紧凑’的含义**  \n   记录模型参数量、量化方式、运行硬件、上下文长度、延迟、依赖组件及部署方式。\n\n4. **拆解可靠性机制**  \n   调查是否采用结构化输出、模式约束、函数签名校验、规划器、验证器、状态机、重试或回滚机制。\n\n5. **审查评测证据**  \n   比较基线、任务集、样本量、成功指标、失败分类，以及是否存在人工筛选和测试集污染风险。\n\n6. **复现典型任务**  \n   选择文件操作、API 调用或多步检索任务，记录首次成功率、重试次数、错误恢复和不可逆操作防护。\n\n7. **给出采用清单**  \n   将“能运行的演示”与“可部署的可靠系统”明确分开。\n\n## 研究问题\n\n- 哪些项目或版本构成这条 Radar 信号？\n- “compact”由项目方如何定义，是否有可比较的量化标准？\n- 所谓可靠性提升采用了什么基线和指标？\n- 改进发生在模型层、提示层、解码层，还是 Agent 编排层？\n- 结果是否由独立测试、公开评测脚本或可复现实验支持？\n- 对未知工具、错误参数、超时、权限失败和恶意返回值的表现如何？\n- 增加验证、重试和回滚后，延迟与成本提高多少？\n- 与较大开源模型或闭源 Agent 相比，控制变量是否一致？\n- 项目的代码、模型权重、数据和评测是否都真正开放？\n- 在本地部署、中文指令和受限硬件上是否仍保持结果？\n\n### 建议检索式\n\n优先使用英文检索以定位原始材料：\n\n- `\"compact agent\" tool use reliability GitHub`\n- `\"small agent\" function calling benchmark`\n- `\"tool calling\" constrained decoding open source agent`\n- `\"agent tool use\" reliability evaluation repository`\n- `\"function calling\" retry verifier benchmark`\n- `site:github.com agent tool calling release benchmark`\n- `site:arxiv.org tool-use agent reliability small model`\n- `site:huggingface.co tool calling compact agent`\n\n找到具体项目后，用项目名追加：\n\n- `<project name> release notes tool calling`\n- `<project name> benchmark reproduction`\n- `<project name> issues tool call failure`\n- `<project name> license model weights dataset`\n\n## Preferred source types\n\n按优先级使用：\n\n1. 官方仓库、提交记录、Release 和公开 Issue；\n2. 项目论文、技术报告、模型卡及评测代码；\n3. 原始 benchmark、数据集说明和评分脚本；\n4. 可复现的第三方测试；\n5. 维护者访谈或演讲；\n6. 媒体和社交平台内容，仅用于发现线索，不作为关键结论的唯一依据。\n\n## unknowns / must_verify\n\n发布前必须核验：\n\n- Radar 对应的具体 GitHub 仓库和证据链接；\n- 至少一个明确发布日期或版本变更；\n- “compact”的可操作定义；\n- 可靠性指标、绝对数值、基线及样本量；\n- 是否为端到端任务成功率，而非只测函数名或 JSON 格式；\n- 提升是否来自额外重试、验证器或更高推理成本；\n- 测试集是否公开，结果能否复现；\n- 中文任务、本地部署和普通硬件表现；\n- 开源范围与许可证限制；\n- 权限控制、提示注入、误调用和不可逆操作风险；\n- “rising”状态持续了多久——当前快照无法回答。\n\n建议证据门槛：核心结论至少由“官方仓库/论文 + 可复现实验或独立测试”共同支撑；否则将内容表述为“值得验证的新信号”。\n\n### avoid_claims\n\n在缺少独立证据时避免：\n\n- “小模型已经超过大型或闭源 Agent”\n- “开源 Agent 已解决工具调用可靠性”\n- “行业正在全面转向紧凑型 Agent”\n- “参数越少，调用越可靠”\n- “低成本、低延迟且准确率更高”\n- “这是行业拐点”\n- 将 `opportunity_score: 78`解释成质量、受众或传播保证\n- 将单一 GitHub 信号描述为广泛市场共识\n\n## recommendation\n\n可以进入研究阶段，但采用“条件成立型”选题：\n\n> Radar 当前捕捉到紧凑型开源 Agent 工具执行可靠性上升的公开信号；下一步不是直接证明趋势，而是确认具体项目、评测口径和可复现程度。\n\n若无法定位具体仓库或可靠性数据，建议把成稿降级为“研究框架/评测指南”，不要发布确定性的趋势结论。\n\n## 视觉与材料计划\n\n- **证据卡片**：仓库名称、版本、发布日期、许可证、模型体量。\n- **流程图**：用户意图 → 工具选择 → 参数校验 → 执行 → 结果验证 → 重试/回滚。\n- **评测表**：首次成功率、最终成功率、无效参数率、误调用率、平均重试次数、延迟和成本。\n- **失败案例**：展示错误工具、错误参数、权限失败和错误恢复各一例。\n- **对比图**：仅在控制变量一致时比较不同系统；图中标明测试集、硬件和版本。\n- **示意素材**：可以使用图标或动画表达 Agent 流程，但必须标注为示意，不可冒充真实运行结果。"
+        ],
+        "brief_host_reasoning_checkpoint_observed": false,
+        "command_execution_count": 8,
+        "creator_runtime_before_checkpoint": false,
+        "definition_read_skills": [
+          "topic-intelligence"
+        ],
+        "failed_runtime_attempts": [],
+        "handoff_agent_message_observed": false,
+        "handoff_checkpoint_topic_id": null,
+        "handoff_checkpoint_topic_ids": [],
+        "handoff_schema_mention_observed": false,
+        "invalid_runtime_attempts": [],
+        "mentioned_skills": [
+          "topic-intelligence"
+        ],
+        "post_handoff_agent_message_observed": false,
+        "post_runtime_agent_message_skills": [],
+        "runtime_attempt_count": 0,
+        "runtime_attempt_skills": [],
+        "runtime_operation_counts": {},
+        "runtime_operations": [],
+        "runtime_use_skills": [],
+        "runtime_violation_reasons": [],
+        "successful_runtime_attempts": []
+      },
+      "evidence_grade": "pass_expected_workflow_evidence_observed",
+      "id": "topic-intelligence-brief-for-supplied-topic",
+      "runtime_status": "completed",
+      "suite": "v0.3.1"
+    },
+    {
+      "collector_route_observation": "fail_unobservable",
+      "evidence": {
+        "agent_message_count": 4,
+        "agent_message_skill_mentions": [
+          "topic-intelligence"
+        ],
+        "agent_message_texts": [
+          "item_0\nagent_message\n我会使用 `topic-intelligence` 技能：先通过一次受限热点 feed 选出唯一 finalist，再严格沿用该题材生成研究就绪 Brief，不另开第二次 feed。",
+          "item_5\nagent_message\n现在执行这唯一一次 bounded feed（AI，limit 12）。成功后我会锁定其中一个确切 Radar ID，后续只基于同一条目完成 Brief。",
+          "item_7\nagent_message\n唯一 feed 已成功且快照新鲜。我已锁定 finalist `topic:a1de4367527e1595997a`；技能要求我把 Radar 观测与编辑判断分开，因此下面的成稿会把“热度信号”和“事实核验”明确区分。",
+          "item_8\nagent_message\n已完成：仅调用一次 `feed --q AI --limit 12`，锁定同一 finalist 后直接生成 Brief；未运行第二次 feed，也未重新选题。\n\n## Radar observations\n\n- **Radar ID**：`topic:a1de4367527e1595997a`\n- **Radar title**：怎么看森多夫猜想（Sendov's Conjecture）已被 AI 、 Lech Mazur 、陶哲轩攻破？\n- 快照生成：2026-08-15 21:36:49（北京时间）\n- 快照年龄：291 秒\n- 状态：`ok`；`partial=false`；`stale=false`；`refreshing=false`\n- 趋势阶段：`rising`\n- `opportunity_score`：69\n- 当前排名：3；最佳排名：2\n- 追踪时间：8.5 小时；17 个历史点\n- 24 小时分数变化：+19；6 小时 velocity：+6\n- 信号数：2；Radar 返回的 `source_count`：2\n- 热度：365 万；峰值热度：588 万\n- [Radar evidence：知乎话题](https://www.zhihu.com/question/2071680380755785039)\n\n来源限制：两条 evidence 实际指向同一个知乎 URL，因此属于两条采集信号，不能视为对“猜想已经被攻破”的两次独立事实验证。完整 `source_status` 因返回内容显示截断而未知；已保留部分显示总体覆盖 `quota_status=met`、Top 24 主来源占比 0.708。\n\n## Host editorial analysis\n\n相比同批候选中的“公司互丢 AI 文档”（分数 60、追踪 1 小时）和“同态加密让私有 AI 更实用”（分数 40、单一来源），这个题材具备更高的 Radar 分数、更长的观察窗口和更明显的上升变化。\n\n它的核心价值不是复述“AI 攻破数学猜想”，而是拆解一个更值得研究的问题：\n\n> AI、数学家与证明验证工具分别做了什么？“攻破”究竟指完整证明、关键步骤，还是辅助发现？\n\n“适合中国科技用户”是编辑判断，不是 Radar 结论。Radar 不测量实际受众规模、内容饱和度，也不预测未来传播量或爆款概率。\n\n## recommendation：研究就绪内容 Brief\n\n**编辑标题**\n\n《AI 真攻破了森多夫猜想吗？拆解陶哲轩、Lech Mazur 与机器证明的真实分工》\n\n**核心角度**\n\n把“AI 解出百年数学难题”的传播叙事，改造成一次证据追踪：从定理原文、论文版本和作者说明中，区分“提出思路、搜索结构、形式化验证、完成证明”四种贡献。\n\n**目标受众与收益**\n\n面向 AI 从业者、科技内容读者及对数学感兴趣的普通用户。读完应能理解：\n\n- 森多夫猜想到底断言什么；\n- 这次成果解决的是完整猜想还是特定范围；\n- AI 是否具有可识别、可复现的实质贡献；\n- 数学发现与数学证明自动化之间有什么区别。\n\n**开场 Hook**\n\n“一个知乎热榜问题把 AI、两位数学家和一个著名猜想放进了同一句话。但在数学里，‘找到线索’‘写出证明’和‘证明被同行接受’，是三件完全不同的事。”\n\n**叙事结构**\n\n1. 展示热榜说法，但立即标注“待核验”。\n2. 用单位圆、复数零点和导数零点的简图解释猜想。\n3. 建立时间线：旧有进展、最新论文或预印本、作者公开说明。\n4. 分解 Lech Mazur、陶哲轩与 AI/软件工具各自的可证实贡献。\n5. 检查“攻破”的范围：完整定理、条件性结果、计算验证或证明草稿。\n6. 解释成果是否经过独立审阅、形式化验证或同行评议。\n7. 收束到更大的结论：AI 正改变数学工作的哪些环节，哪些仍由人类承担。\n\n**优先研究问题**\n\n- 最新成果证明的精确定理是什么？是否覆盖森多夫猜想的全部情形？\n- “AI”具体是哪种模型、代理、搜索程序或证明助手？\n- AI 的输出是否进入最终证明？贡献能否复现？\n- 两位数学家的角色和成果时间线是什么？\n- 是否存在论文、预印本、版本记录、代码或计算附件？\n- “攻破”一词最早来自作者、媒体还是二次传播？\n- 有无无利益关联的数学家公开确认或指出缺口？\n\n**建议检索式**\n\n- `\"Sendov's conjecture\" Tao Mazur AI proof`\n- `site:arxiv.org \"Sendov's conjecture\"`\n- `site:terrytao.wordpress.com Sendov conjecture`\n- `\"Lech Mazur\" Sendov`\n- `\"Sendov conjecture\" proof verification`\n- `森多夫猜想 AI 陶哲轩 原论文`\n\n**首选来源顺序**\n\n1. 论文或预印本及其版本历史；\n2. 作者主页、博客、演讲或代码仓库；\n3. 定理证明附件、形式化证明或计算记录；\n4. 无直接利益关系的专业数学家评论；\n5. 数学学会、大学或研究机构说明；\n6. 新闻报道与知乎讨论仅用于追踪传播链。\n\n## unknowns / must_verify\n\n- 必须核实“已攻破”是否为完整、无条件证明。\n- 必须确认 AI 系统名称、使用方式、输入输出及作者署名。\n- 必须区分普通计算软件、形式化证明器与生成式 AI。\n- 必须核查论文日期、版本变化及同行评议状态。\n- 必须确认陶哲轩与 Lech Mazur 的具体贡献，不能仅依据标题排列推断。\n- 当前 Radar evidence 只有一个实际落地页面，尚无独立外部佐证。\n\n**avoid_claims**\n\n在完成上述核验前，不使用“AI 首次独立解决”“百年猜想正式被证明”“数学家只是辅助”“已经获得学界公认”等确定性表述。\n\n**视觉／材料计划**\n\n- 一张森多夫猜想的几何示意图；\n- 一张“发现—证明—验证—同行接受”的流程图；\n- 一条带出处的成果时间线；\n- 一张人类数学家、生成式 AI、搜索程序、证明助手的贡献矩阵；\n- 论文首页、定理原文和版本记录截图，但需标注日期与来源。"
+        ],
+        "brief_host_reasoning_checkpoint_observed": false,
+        "command_execution_count": 10,
+        "creator_runtime_before_checkpoint": false,
+        "definition_read_skills": [
+          "topic-intelligence"
+        ],
+        "failed_runtime_attempts": [],
+        "handoff_agent_message_observed": false,
+        "handoff_checkpoint_topic_id": null,
+        "handoff_checkpoint_topic_ids": [],
+        "handoff_schema_mention_observed": false,
+        "invalid_runtime_attempts": [],
+        "mentioned_skills": [
+          "topic-intelligence"
+        ],
+        "post_handoff_agent_message_observed": false,
+        "post_runtime_agent_message_skills": [
+          "topic-intelligence"
+        ],
+        "runtime_attempt_count": 1,
+        "runtime_attempt_skills": [
+          "topic-intelligence"
+        ],
+        "runtime_operation_counts": {
+          "topic-intelligence:feed": 1
+        },
+        "runtime_operations": [
+          "topic-intelligence:feed"
+        ],
+        "runtime_use_skills": [
+          "topic-intelligence"
+        ],
+        "runtime_violation_reasons": [],
+        "successful_runtime_attempts": [
+          {
+            "command": "/bin/bash -lc 'python3 /tmp/ati-host-eval-home-t_4r2lzs/.agents/skills/topic-intelligence/scripts/topic_radar_client.py --timeout 30 feed --q AI --limit 12'",
+            "event_position": 13,
+            "exit_code": 0,
+            "helper_path": "/tmp/ati-host-eval-home-t_4r2lzs/.agents/skills/topic-intelligence/scripts/topic_radar_client.py",
+            "operation": "feed",
+            "request_arguments": [
+              "--timeout",
+              "30",
+              "feed",
+              "--q",
+              "AI",
+              "--limit",
+              "12"
+            ],
+            "response_topic_ids": [
+              "topic:a1de4367527e1595997a",
+              "topic:03c8d8997ca1cb1872d7",
+              "topic:bd8554d78c7fae55bcc7",
+              "topic:885483d127b5aab1a4e7",
+              "topic:d1a37c935a9f73abc5b2",
+              "topic:89c62364c8ed7bd3045c",
+              "topic:01b764a5dcc7db6e028f",
+              "topic:59ac5853496148f862b2",
+              "topic:72ef55b2bd1e6fc5c7a1",
+              "topic:9e8f5aa9532faade3506",
+              "topic:1b01f226aaf3fb2b30ec",
+              "topic:1679ad5cda428b337bbe"
+            ],
+            "skill": "topic-intelligence",
+            "status": "completed",
+            "topic_id": null,
+            "violation_reasons": []
+          }
+        ]
+      },
+      "evidence_grade": "pass_expected_workflow_evidence_observed",
+      "id": "topic-intelligence-selection-followed-by-brief",
+      "runtime_status": "completed",
+      "suite": "v0.3.1"
+    },
+    {
+      "collector_route_observation": "fail_unobservable",
+      "evidence": {
+        "agent_message_count": 3,
+        "agent_message_skill_mentions": [
+          "topic-intelligence"
+        ],
+        "agent_message_texts": [
+          "item_0\nagent_message\n我会使用 `topic-intelligence` 技能读取今天的 Topic Radar，比较候选题材，并把“已验证事实、雷达信号、编辑判断”分开，明确受众、饱和度与传播潜力各自能被证据支持到什么程度。",
+          "item_4\nagent_message\n现在按“selection only”执行：只做一次有界的 AI 主题实时检索（12 个候选），随后在同一批结果里筛选，不额外扩展成内容策划案。受众与传播判断会作为编辑推断呈现，不冒充雷达实测。",
+          "item_6\nagent_message\n## Radar observations\n\n本次 Radar 快照生成于 **2026-08-15 21:36（北京时间）**，快照约 6 分钟前更新；`partial=false`、`stale=false`，但 `refreshing=true`，说明数据仍在刷新。\n\n| Radar ID | Radar title（原文） | 返回信号 |\n|---|---|---|\n| `topic:d1a37c935a9f73abc5b2` | 大厂员工吐槽现在开会就是互丢 AI 文档，你有同感吗？很多公司都强调内化 AI 能力，但真的有提升产出质量吗？ | `rising`；opportunity score 60；知乎排名 6；heat 310 万；24h 分数变化 +7；追踪 1 小时；[证据页](https://www.zhihu.com/question/2071711669378441934) |\n| `topic:a1de4367527e1595997a` | 怎么看森多夫猜想（Sendov's Conjecture）已被 AI 、 Lech Mazur 、陶哲轩攻破？ | `rising`；score 69；知乎排名 3；heat 365 万；24h +19；追踪 8.5 小时；[证据页](https://www.zhihu.com/question/2071680380755785039) |\n| `topic:03c8d8997ca1cb1872d7` | Google is making private AI practical with homomorphic encryption | `rising`；score 40；Hacker News 排名 3；单一信号；追踪 20.5 小时；[来源页](https://blog.google/security/how-google-is-making-private-ai-practical-with-homomorphic-encryption/) |\n\n第一项所谓“两条信号”均指向同一知乎问题、同一平台，不能当作两个独立市场的交叉验证。本次返回 12 条候选，但工具展示发生截断；未完整显示的候选字段按未知处理。\n\n## Host editorial analysis\n\n今天面向中国普通科技用户，最值得研究的是：\n\n> **AI 文档越多，工作反而越差？普通人如何避免用 AI 制造“伪效率”**\n\n这是编辑判断，不是 Radar 结论。\n\n| 维度 | 编辑判断 | 可用依据 | 证据边界 |\n|---|---|---|---|\n| 受众 | 较广：普通职员、管理者、学生、自由职业者及经常使用 AI 写材料的人 | 题目对应开会、写文档和产出质量等日常场景；知乎当时 heat 310 万 | Radar **不测量真实受众规模**；单个平台热度不能代表全体中国科技用户 |\n| 饱和度 | **总体未知**；只能说当前雷达观察到的跨平台足迹较窄 | 目前只观察到知乎，且仅追踪约 1 小时 | Radar **不测量内容或话题饱和度**；“只在一个平台出现”不等于竞争少，也不等于蓝海 |\n| 传播潜力 | 中高，但只是编辑假设 | 具备广泛职场痛点、争议性问题和个人经验入口；话题处于 rising，短时间变化为正 | Radar **不预测未来播放量、传播范围或爆款概率**；heat、opportunity score 和目标平台均不是效果保证 |\n\n另外两个候选没有胜出：\n\n- 森多夫猜想的趋势信号更强，但数学门槛高，且“AI 攻破猜想”的表述需要严谨核验；更适合数学或 AI 研究受众。\n- 同态加密与隐私 AI 有长期价值，但概念解释成本高，目前只有 Hacker News 单一信号，对中国普通用户的即时切身感较弱。\n- “AI 文档伪效率”不一定拥有最高 Radar 分数，却在**时效性、普通用户关联度、可讨论性和可行动性**之间最均衡。\n\n## recommendation\n\n首选题材：`topic:d1a37c935a9f73abc5b2`\n\n最值得研究的不是泛泛讨论“AI 是否提高效率”，而是具体追问：\n\n> **当所有人都能一键生成看似完整的文档时，信息产量上升为什么可能没有带来决策质量提升？**\n\n这个切口既承接今天的热议信号，也能给普通用户提供实际价值，而不必依赖新模型发布或复杂技术背景。\n\n## unknowns / must_verify\n\n正式下结论前必须补证：\n\n- “互丢 AI 文档”究竟是个别吐槽，还是可观察的普遍现象；\n- AI 对完成速度、返工率、决策质量分别有什么影响；\n- 问题来自 AI 本身，还是原有的会议文化、考核方式和责任机制；\n- 知乎之外的微博、小红书、B站和职场社区是否已有大量同质内容；\n- 不应直接宣称“AI 降低生产力”“大多数公司都如此”或“话题正在全网爆发”。\n\n因此，当前能可靠支持的是：**它是今天 Radar 捕捉到的一个新近上升、与普通科技用户生活高度相关的知乎议题**；不能据此证明其真实受众规模、低饱和度或未来必然传播。"
+        ],
+        "brief_host_reasoning_checkpoint_observed": false,
+        "command_execution_count": 8,
+        "creator_runtime_before_checkpoint": false,
+        "definition_read_skills": [
+          "topic-intelligence"
+        ],
+        "failed_runtime_attempts": [],
+        "handoff_agent_message_observed": false,
+        "handoff_checkpoint_topic_id": null,
+        "handoff_checkpoint_topic_ids": [],
+        "handoff_schema_mention_observed": false,
+        "invalid_runtime_attempts": [],
+        "mentioned_skills": [
+          "topic-intelligence"
+        ],
+        "post_handoff_agent_message_observed": false,
+        "post_runtime_agent_message_skills": [
+          "topic-intelligence"
+        ],
+        "runtime_attempt_count": 1,
+        "runtime_attempt_skills": [
+          "topic-intelligence"
+        ],
+        "runtime_operation_counts": {
+          "topic-intelligence:feed": 1
+        },
+        "runtime_operations": [
+          "topic-intelligence:feed"
+        ],
+        "runtime_use_skills": [
+          "topic-intelligence"
+        ],
+        "runtime_violation_reasons": [],
+        "successful_runtime_attempts": [
+          {
+            "command": "/bin/bash -lc 'python3 /tmp/ati-host-eval-home-cq2lh8ag/.agents/skills/topic-intelligence/scripts/topic_radar_client.py --timeout 30 feed --q AI --limit 12'",
+            "event_position": 11,
+            "exit_code": 0,
+            "helper_path": "/tmp/ati-host-eval-home-cq2lh8ag/.agents/skills/topic-intelligence/scripts/topic_radar_client.py",
+            "operation": "feed",
+            "request_arguments": [
+              "--timeout",
+              "30",
+              "feed",
+              "--q",
+              "AI",
+              "--limit",
+              "12"
+            ],
+            "response_topic_ids": [
+              "topic:a1de4367527e1595997a",
+              "topic:03c8d8997ca1cb1872d7",
+              "topic:bd8554d78c7fae55bcc7",
+              "topic:885483d127b5aab1a4e7",
+              "topic:d1a37c935a9f73abc5b2",
+              "topic:89c62364c8ed7bd3045c",
+              "topic:01b764a5dcc7db6e028f",
+              "topic:59ac5853496148f862b2",
+              "topic:72ef55b2bd1e6fc5c7a1",
+              "topic:9e8f5aa9532faade3506",
+              "topic:1b01f226aaf3fb2b30ec",
+              "topic:1679ad5cda428b337bbe"
+            ],
+            "skill": "topic-intelligence",
+            "status": "completed",
+            "topic_id": null,
+            "violation_reasons": []
+          }
+        ]
+      },
+      "evidence_grade": "pass_expected_workflow_evidence_observed",
+      "id": "topic-intelligence-provenance-and-unknowns",
+      "runtime_status": "completed",
+      "suite": "v0.3.1"
+    },
+    {
+      "collector_route_observation": "fail_unobservable",
+      "evidence": {
+        "agent_message_count": 3,
+        "agent_message_skill_mentions": [
+          "topic-intelligence"
+        ],
+        "agent_message_texts": [
+          "item_0\nagent_message\n我会用 `topic-intelligence` 做一次紧凑的实时选题扫描，严格控制候选数量，只保留最值得继续研究的 shortlist。",
+          "item_3\nagent_message\n这是 selection-only 模式：我会只取 12 个实时 Radar 候选，做一次语义清洗和比较，不追加内容 brief，也不会再跑第二次 feed。",
+          "item_5\nagent_message\n本次只扫描了 12 个 AI 候选，没有扩到 100 个。\n\n### Radar observations\n\n快照生成于 2026-08-15 13:43 UTC；`partial=false`、`stale=false`、`refreshing=false`，快照年龄 88 秒。候选池 752 条，本次仅取前 12 条；整体 primary source 占比 42.3%，部分题目仍是单一来源。\n\n| ID | Radar title（原样） | 阶段 | 机会分 | 24h变化 | 来源数 |\n|---|---|---:|---:|---:|---:|\n| `topic:a1de4367527e1595997a` | [怎么看森多夫猜想（Sendov's Conjecture）已被 AI 、 Lech Mazur 、陶哲轩攻破？](https://www.zhihu.com/question/2071680380755785039) | rising | 69 | +19 | 2 |\n| `topic:d1a37c935a9f73abc5b2` | [大厂员工吐槽现在开会就是互丢 AI 文档，你有同感吗？很多公司都强调内化 AI 能力，但真的有提升产出质量吗？](https://www.zhihu.com/question/2071711669378441934) | rising | 60 | +7 | 2 |\n| `topic:03c8d8997ca1cb1872d7` | [Google is making private AI practical with homomorphic encryption](https://blog.google/security/how-google-is-making-private-ai-practical-with-homomorphic-encryption/) | rising | 40 | +6 | 1 |\n| `topic:885483d127b5aab1a4e7` | [黄仁勋出手安抚AI算力市场：英伟达可能会“为单个投资项目提供最高25%的残值支持机制”](https://www.36kr.com/newsflashes/3940579113713025) | rising | 29 | -3 | 1 |\n\n### Host editorial analysis\n\n1. **AI 开始参与攻克顶级数学猜想了吗？**  \n   冲突性和知识密度最高，适合解释“AI 在证明中究竟做了什么、人类数学家做了什么”。但标题中的“攻破”必须严查，不能直接沿用。\n\n2. **AI 文档越来越多，为什么公司产出反而未必更好？**  \n   最接近日常工作体验，容易延伸到“文档膨胀、责任稀释、验证成本”等具体问题，适合职场和效率内容。\n\n3. **同态加密能否解决企业使用 AI 时的数据泄露问题？**  \n   技术价值明确，可用“AI 不看见原始数据也能计算吗”降低理解门槛。原始链接来自 Google，仍需核实性能、成本和适用边界。\n\n4. **英伟达为什么开始为 AI 算力投资提供残值支持？**  \n   可切入 GPU 折旧、融资风险和 AI 基建泡沫，但当前机会分较低且走势转弱，适合作为商业观察，不宜写成确定性危机论。\n\n### recommendation\n\n优先顺序：**AI 攻克数学猜想 → AI 文档内卷 → 隐私 AI/同态加密 → GPU 残值支持**。\n\n若只做一个，我选 `topic:a1de4367527e1595997a`：实时信号最强、上升幅度最大，也有清晰的科普与争议空间。\n\n### unknowns / must_verify\n\n- 森多夫猜想是否已被完整证明，AI 的实际贡献和论文状态。\n- Google 方案的性能损耗、部署条件及是否已经规模化可用。\n- 英伟达“最高 25%”机制的原始条款、适用对象和正式来源。\n- Radar 不测量真实受众规模、内容饱和度或未来传播量；以上受众与内容适配判断均为编辑判断。"
+        ],
+        "brief_host_reasoning_checkpoint_observed": false,
+        "command_execution_count": 6,
+        "creator_runtime_before_checkpoint": false,
+        "definition_read_skills": [
+          "topic-intelligence"
+        ],
+        "failed_runtime_attempts": [],
+        "handoff_agent_message_observed": false,
+        "handoff_checkpoint_topic_id": null,
+        "handoff_checkpoint_topic_ids": [],
+        "handoff_schema_mention_observed": false,
+        "invalid_runtime_attempts": [],
+        "mentioned_skills": [
+          "topic-intelligence"
+        ],
+        "post_handoff_agent_message_observed": false,
+        "post_runtime_agent_message_skills": [
+          "topic-intelligence"
+        ],
+        "runtime_attempt_count": 1,
+        "runtime_attempt_skills": [
+          "topic-intelligence"
+        ],
+        "runtime_operation_counts": {
+          "topic-intelligence:feed": 1
+        },
+        "runtime_operations": [
+          "topic-intelligence:feed"
+        ],
+        "runtime_use_skills": [
+          "topic-intelligence"
+        ],
+        "runtime_violation_reasons": [],
+        "successful_runtime_attempts": [
+          {
+            "command": "/bin/bash -lc 'python3 /tmp/ati-host-eval-home-98ig_psx/.agents/skills/topic-intelligence/scripts/topic_radar_client.py --timeout 30 feed --q AI --limit 12'",
+            "event_position": 9,
+            "exit_code": 0,
+            "helper_path": "/tmp/ati-host-eval-home-98ig_psx/.agents/skills/topic-intelligence/scripts/topic_radar_client.py",
+            "operation": "feed",
+            "request_arguments": [
+              "--timeout",
+              "30",
+              "feed",
+              "--q",
+              "AI",
+              "--limit",
+              "12"
+            ],
+            "response_topic_ids": [
+              "topic:a1de4367527e1595997a",
+              "topic:03c8d8997ca1cb1872d7",
+              "topic:bd8554d78c7fae55bcc7",
+              "topic:885483d127b5aab1a4e7",
+              "topic:d1a37c935a9f73abc5b2",
+              "topic:89c62364c8ed7bd3045c",
+              "topic:01b764a5dcc7db6e028f",
+              "topic:59ac5853496148f862b2",
+              "topic:72ef55b2bd1e6fc5c7a1",
+              "topic:9e8f5aa9532faade3506",
+              "topic:1b01f226aaf3fb2b30ec",
+              "topic:1679ad5cda428b337bbe"
+            ],
+            "skill": "topic-intelligence",
+            "status": "completed",
+            "topic_id": null,
+            "violation_reasons": []
+          }
+        ]
+      },
+      "evidence_grade": "pass_expected_workflow_evidence_observed",
+      "id": "topic-intelligence-compact-scan",
+      "runtime_status": "completed",
+      "suite": "v0.3.1"
+    },
+    {
+      "collector_route_observation": "fail_unobservable",
+      "evidence": {
+        "agent_message_count": 3,
+        "agent_message_skill_mentions": [
+          "topic-intelligence"
+        ],
+        "agent_message_texts": [
+          "item_0\nagent_message\n我会使用 `topic-intelligence` 技能，因为你提供的是一个已锁定的当前 Radar 快照；我会保留精确 ID `topic:ai-supplied`，只基于该题目制定研究计划，不重新选题。先读取技能里的证据、新鲜度和交付规范。",
+          "item_4\nagent_message\n技能规范确认：这是“已提供当前题目的研究简报”模式，因此不会调用 Radar feed，也不会用其他题目替换。接下来只核对快照相对当前任务时刻的新鲜度，并把 Radar 观察、编辑判断和待核验事项明确分开。",
+          "item_6\nagent_message\n## Radar observations\n\n- **Radar ID：** `topic:ai-supplied`（全程保留，不重新选题）\n- **Radar title：** “AI coding agents move toward longer autonomous tasks”\n- **Summary：** Radar 观察到，公开信号显示编码智能体正被用于更长、多步骤工作的评估。\n- **Opportunity score：** 81\n- **Trend stage：** `rising`\n- **快照生成时间：** 2026-08-15 13:45:39 UTC，即北京时间 21:45:39\n- **任务核对时间：** 北京时间 2026-08-15 21:46:00\n- **快照年龄：** 约 21 秒，因此满足“一小时内”的当前性要求。\n- **完整性：** `partial=false`；`stale=false`\n- **证据范围：** 仅有 1 条 GitHub 来源观察，时间与快照生成时间相同。\n- **缺失字段：** `refreshing`、`source_status`、`snapshot_age_seconds` 未提供，均视为未知。\n\n这张卡足以支持“Radar 当前将该题目标记为 rising”的表述，但不能独立证明行业整体已经转向长期自治：现有快照没有仓库链接、项目名称、评测数据或多来源交叉证据。\n\n## Host editorial analysis\n\n**建议研究角度：**\n\n> 编码智能体的竞争指标，是否正从“完成一个任务”转向“持续推进一个项目”？\n\n重点不应只是比较智能体能连续运行多久，而应调查“更长任务”迫使评估体系发生了什么变化：任务分解、状态保持、错误恢复、测试验证、权限控制、人工接管和成本计算。\n\n**目标受众：** 开发者、工程负责人、AI 产品经理，以及正在评估编码智能体的团队。这是编辑判断，不是 Radar 测量结果。Radar 不测量实际受众规模、内容饱和度或未来传播量。\n\n**受众收益：** 帮助读者区分三件容易混淆的事：\n\n1. 演示中运行得更久；\n2. 基准测试覆盖更多步骤；\n3. 在真实项目里能够可靠、经济且可审计地工作更久。\n\n**核心假设：** 长时自治能力的真正瓶颈可能不是代码生成，而是错误累积、环境反馈、验证闭环和安全边界。该假设必须通过后续研究验证。\n\n## 研究问题\n\n### 1. “更长”究竟指什么\n\n- 持续运行时间、工具调用次数、任务步骤数，还是跨会话完成项目？\n- 是单一 issue、跨文件修改，还是需求到部署的完整链路？\n- 评测是否允许人工提示、重试、状态恢复或外部脚本协助？\n- 不同评测中的“autonomous”定义是否一致？\n\n### 2. 评估方式发生了什么变化\n\n- 新评测是否从静态题目转向真实仓库、长期任务或动态环境？\n- 成功判定依据是什么：测试通过、合并接受、代码审查，还是主观评分？\n- 是否测量回归错误、隐藏测试、代码质量和后续维护成本？\n- 失败后能否定位、回滚并继续，而不是简单重新开始？\n\n### 3. 长任务中的可靠性\n\n- 成功率是否会随任务时长或步骤数下降？\n- 常见失败点是上下文遗失、错误假设、工具故障，还是测试不足？\n- 智能体是否会“看似持续工作，实则偏离目标”？\n- 运行时间更长是否带来更多不可逆操作或安全风险？\n\n### 4. 真实工程价值\n\n- 长任务实验是在精选环境中完成，还是来自日常生产仓库？\n- 人类需要投入多少时间来准备环境、监督和修复结果？\n- 总成本如何：模型调用、计算资源、等待时间、审查和返工？\n- 哪些任务适合自治，哪些必须设置人工审批点？\n\n### 5. 反证与边界\n\n- 是否存在时间更长但成功率、代码质量或经济性没有改善的案例？\n- 结果能否在不同语言、仓库规模和依赖环境中复现？\n- 发布方是否只展示成功案例？\n- “更长任务”是否只是评测设计变化，而不是模型能力的同等幅度提升？\n\n## 证据搜集计划\n\n| 研究流 | 优先材料 | 需要提取的数据 |\n|---|---|---|\n| Radar 信号溯源 | 对应 GitHub 仓库、release、issue、提交记录 | 项目名称、发布日期、任务定义、原始主张 |\n| 基准与论文 | 官方论文、benchmark specification、数据集说明 | 任务长度、成功标准、人工介入、样本量 |\n| 产品实测 | 官方技术报告、可复现实验、公开运行日志 | 完成率、时长、成本、失败与恢复次数 |\n| 工程实践 | 企业工程博客、公开案例、维护者反馈 | 环境准备、审查时间、合并率、返工情况 |\n| 安全控制 | 权限及沙箱文档、事故报告、威胁模型 | 可执行操作、审批点、回滚和审计能力 |\n| 反面证据 | 失败日志、复现报告、独立评测 | 失败模式、选择偏差、不可复现之处 |\n\n证据优先级建议为：原始仓库与评测数据 → 官方论文和技术文档 → 可复现实验 → 具名工程案例 → 新闻与二手评论。\n\n建议检索式：\n\n- `\"coding agent\" long horizon benchmark`\n- `\"coding agent\" multi-step repository task evaluation`\n- `\"autonomous software engineering\" benchmark human intervention`\n- `\"coding agent\" long-running task failure recovery`\n- `\"coding agent\" cost per resolved issue`\n- `site:github.com coding agent benchmark long task`\n- `site:arxiv.org coding agent long horizon software engineering`\n\n## must_verify\n\n成稿前必须独立核验：\n\n- GitHub 信号具体来自哪个项目、提交或发布；\n- “longer”采用的精确定义及与旧评测的可比性；\n- 是否存在可下载的任务集、运行日志和失败样本；\n- 报告结果是一次最佳运行、平均值还是多次统计；\n- 人工提示、环境搭建、重试和筛选是否计入；\n- 成功是否只等于测试通过，是否包含代码审查与回归验证；\n- 任务持续时间、成功率、成本和人工监督之间的关系；\n- 至少一个独立来源是否复现或质疑相关结果。\n\n## avoid_claims\n\n在证据补齐前避免声称：\n\n- 编码智能体已经能够无人监督地完成完整软件项目；\n- “运行更久”必然代表推理能力更强；\n- opportunity score 81 能预测市场表现或内容传播；\n- 单一 GitHub 信号代表整个行业趋势；\n- 基准成功率能够直接转化为生产效率或岗位替代；\n- `rising` 等同于已经广泛采用。\n\n## 推荐叙事结构\n\n1. **开场：** 一个编码智能体连续工作数小时，究竟是在自主开发，还是在更长时间里累积错误？\n2. **信号：** Radar 当前把“更长、多步骤编码任务”标记为 rising。\n3. **定义：** 拆解运行时长、步骤数量、跨会话工作与项目级自治的差别。\n4. **证据：** 比较代表性评测如何设计长任务以及如何判断成功。\n5. **压力测试：** 分析错误累积、验证闭环、恢复能力和人工介入。\n6. **现实账本：** 加入成本、审查时间、安全权限和返工。\n7. **结论：** 判断行业是在获得真正的长程可靠性，还是仅仅扩大了实验时长。\n\n## 视觉与材料计划\n\n- 一张“单步补全 → issue 解决 → 多步骤仓库任务 → 项目级自治”的能力阶梯图；\n- 一张评测对照表：任务长度、成功标准、人工介入、失败恢复、成本；\n- 一张长任务控制循环图：计划 → 执行 → 测试 → 检查 → 恢复/升级人工；\n- 一个经授权或自行复现的运行时间线，标出偏航、测试失败和人工接管点；\n- 避免使用只有机器人敲代码的装饰性图片代替事实材料。\n\n**完成标准：** 至少找到一个可追溯的 GitHub 原始信号、两个具有明确任务定义的评测或实验、一个独立复现或批评来源，并形成包含成功率、人工介入和成本的证据矩阵。达不到该标准时，成稿应定位为“趋势观察与研究框架”，而非确认行业已实现长期自治。"
+        ],
+        "brief_host_reasoning_checkpoint_observed": false,
+        "command_execution_count": 8,
+        "creator_runtime_before_checkpoint": false,
+        "definition_read_skills": [
+          "topic-intelligence"
+        ],
+        "failed_runtime_attempts": [],
+        "handoff_agent_message_observed": false,
+        "handoff_checkpoint_topic_id": null,
+        "handoff_checkpoint_topic_ids": [],
+        "handoff_schema_mention_observed": false,
+        "invalid_runtime_attempts": [],
+        "mentioned_skills": [
+          "topic-intelligence"
+        ],
+        "post_handoff_agent_message_observed": false,
+        "post_runtime_agent_message_skills": [],
+        "runtime_attempt_count": 0,
+        "runtime_attempt_skills": [],
+        "runtime_operation_counts": {},
+        "runtime_operations": [],
+        "runtime_use_skills": [],
+        "runtime_violation_reasons": [],
+        "successful_runtime_attempts": []
+      },
+      "evidence_grade": "pass_expected_workflow_evidence_observed",
+      "id": "topic-intelligence-brief-without-reselection",
+      "runtime_status": "completed",
+      "suite": "v0.3.1"
+    },
+    {
+      "collector_route_observation": "fail_unobservable",
+      "evidence": {
+        "agent_message_count": 2,
+        "agent_message_skill_mentions": [
+          "topic-intelligence"
+        ],
+        "agent_message_texts": [
+          "item_0\nagent_message\n我会使用 `topic-intelligence` 技能，仅评估你给出的 Radar 快照，不重新拉取 feed 或替换题目；重点检查时间新鲜度、字段能支持到哪一层结论，以及研究中必须保留的证据边界。",
+          "item_4\nagent_message\n不能。该快照只能证明 Radar 在保存时观察到“rising”，不能支持“今天此刻正在加速”。\n\n### Radar observations\n\n- 精确 ID：`topic:ai-stale`\n- Radar title：`AI agent evaluation discussions`\n- 生成时间：2026-08-15 11:47:07 UTC，即北京时间 19:47:07\n- 当前任务中已保存约两小时，超过“当前/今天”判断的一小时新鲜度边界\n- `trend_stage: rising`、`opportunity_score: 74`\n- `partial: false`、`stale: false`\n- 证据仅有一条，来源为 GitHub，观察时间与生成时间相同\n- 未提供 `snapshot_age_seconds`、`refreshing`、`source_status`、证据链接及历史序列\n\n`stale:false`只表示生成快照时 Radar 没将它标记为陈旧，不代表两小时后仍足以支持实时判断。`partial:false`也只表示返回结果不是部分响应，不代表外部证据完整。\n\n### Host editorial analysis\n\n即使快照仍在一小时内，单个 `rising` 状态也不等于“正在加速”：\n\n- “上升”表示某个时点被归为上升阶段。\n- “加速”要求证明上升速度正在变快，至少需要同一 ID 的多个时间点或明确的速度指标。\n- 单一 GitHub 来源不能外推为整个 AI agent evaluation 领域都在加速。\n\n因此，当前最多可以写：\n\n> 北京时间 8 月 15 日 19:47 保存的 Radar 快照将该议题标记为 `rising`；其此后是否继续上升或正在加速，尚待更新数据和时间序列验证。\n\n不能写：\n\n> AI agent evaluation discussions 今天正在加速。\n\n### recommendation：不越界的研究框架\n\n围绕同一 ID `topic:ai-stale` 研究，不换题：\n\n1. **时间序列验证**\n   - 获取同一 ID 的当前卡片或历史记录。\n   - 比较不同时间点的讨论量、增量、增长率；只有增长率继续提高，才讨论“加速”。\n   - 若只有阶段标签变化，使用“由 X 转为 rising”，不要改写成“加速”。\n\n2. **GitHub 原始证据核查**\n   - 确认活动来自仓库发布、Issue、PR、Discussion，还是少量重复事件。\n   - 记录事件时间、独立参与者、独立仓库和相对历史基线。\n   - 排除机器人、镜像、重复提交和单一热门仓库造成的集中波动。\n\n3. **议题实质研究**\n   - 哪些评估方法受到讨论：任务成功率、轨迹质量、工具调用、可靠性、安全性或成本？\n   - 是新方法、新基准、新版本发布，还是旧争议重新出现？\n   - 优先查阅项目官方文档、代码仓库、基准说明和原始论文。\n\n4. **证据分层**\n   - Radar 字段：只能说明 Radar 当时返回了什么。\n   - GitHub 原始材料：用于确认具体事件。\n   - 跨来源材料：用于判断是否超出 GitHub 社区。\n   - 编辑推断：必须明确标为假设，不能混入事实陈述。\n\n### unknowns / must_verify\n\n- 两小时后的最新趋势阶段及新鲜度\n- 同一 ID 是否存在连续历史数据\n- `rising` 的具体计算口径和基线\n- GitHub 证据链接、数量、去重情况与覆盖范围\n- 是否有独立来源印证\n- 74 分是否发生变化；该分数不能解释为增长速度\n- Radar 不测量实际受众规模、内容饱和度或未来传播量\n\n在这些项目验证前，最稳妥的研究命题是：“为什么 AI agent evaluation 在该快照中被标为上升议题”，而不是“它今天正在加速”。"
+        ],
+        "brief_host_reasoning_checkpoint_observed": false,
+        "command_execution_count": 6,
+        "creator_runtime_before_checkpoint": false,
+        "definition_read_skills": [
+          "topic-intelligence"
+        ],
+        "failed_runtime_attempts": [],
+        "handoff_agent_message_observed": false,
+        "handoff_checkpoint_topic_id": null,
+        "handoff_checkpoint_topic_ids": [],
+        "handoff_schema_mention_observed": false,
+        "invalid_runtime_attempts": [],
+        "mentioned_skills": [
+          "topic-intelligence"
+        ],
+        "post_handoff_agent_message_observed": false,
+        "post_runtime_agent_message_skills": [],
+        "runtime_attempt_count": 0,
+        "runtime_attempt_skills": [],
+        "runtime_operation_counts": {},
+        "runtime_operations": [],
+        "runtime_use_skills": [],
+        "runtime_violation_reasons": [],
+        "successful_runtime_attempts": []
+      },
+      "evidence_grade": "pass_expected_workflow_evidence_observed",
+      "id": "topic-intelligence-stale-supplied-topic",
+      "runtime_status": "completed",
+      "suite": "v0.3.1"
+    },
+    {
+      "collector_route_observation": "fail_unobservable",
+      "evidence": {
+        "agent_message_count": 1,
+        "agent_message_skill_mentions": [],
+        "agent_message_texts": [
+          "item_0\nagent_message\n随着人工智能快速发展，越来越多团队开始在日常工作中使用智能体工具。"
+        ],
+        "brief_host_reasoning_checkpoint_observed": false,
+        "command_execution_count": 0,
+        "creator_runtime_before_checkpoint": false,
+        "definition_read_skills": [],
+        "failed_runtime_attempts": [],
+        "handoff_agent_message_observed": false,
+        "handoff_checkpoint_topic_id": null,
+        "handoff_checkpoint_topic_ids": [],
+        "handoff_schema_mention_observed": false,
+        "invalid_runtime_attempts": [],
+        "mentioned_skills": [],
+        "post_handoff_agent_message_observed": false,
+        "post_runtime_agent_message_skills": [],
+        "runtime_attempt_count": 0,
+        "runtime_attempt_skills": [],
+        "runtime_operation_counts": {},
+        "runtime_operations": [],
+        "runtime_use_skills": [],
+        "runtime_violation_reasons": [],
+        "successful_runtime_attempts": []
+      },
+      "evidence_grade": "pass_expected_workflow_evidence_observed",
+      "id": "topic-intelligence-non-trigger",
+      "runtime_status": "completed",
+      "suite": "v0.3.1"
+    }
+  ],
+  "commit": "9880f6c661c1648c8a3106adef4b1f0f4cf2db64",
+  "dry_run": false,
+  "grading_note": "passive Skill names/file reads are discovery evidence, not invocation; every attempted Skill-local helper call must be a standalone, compliant python3 feed/sources/history invocation that completes successfully with validated Radar JSON; duplicate successful requests, noncompliant calls, or unsuccessful attempts fail the case, and handoff use requires the schema in an agent message",
+  "host": "codex",
+  "schema": "ati.host-evidence.v1",
+  "skill_version": "0.3.1",
+  "source_generated_at": "2026-08-15T13:48:19.166975+00:00",
+  "source_schema": "ati.host-eval.v1",
+  "strict_observation": true,
+  "suites": [
+    "v0.3.1"
+  ],
+  "summary": {
+    "evidence_grades": {
+      "pass_expected_workflow_evidence_observed": 8
+    },
+    "total": 8
+  }
+}

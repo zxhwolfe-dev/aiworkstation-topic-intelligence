@@ -1,0 +1,163 @@
+{
+  "schema": "ati.manual-review.v1",
+  "approved": true,
+  "reviewed_commit": "9880f6c661c1648c8a3106adef4b1f0f4cf2db64",
+  "source_report": "/tmp/ati-v031-9880f6c-host-eval.json",
+  "graded_report": "/tmp/ati-v031-9880f6c-host-evidence.json",
+  "anonymous_server_insight_calls": 0,
+  "handoff_reselection": "none",
+  "review_scope": {
+    "continuous_independent_suite": true,
+    "case_count": 8,
+    "all_lifecycle_checks_reviewed": true,
+    "all_runtime_commands_reviewed": true,
+    "radar_contract_and_freshness_reviewed": true,
+    "must_show_and_must_not_reviewed": true,
+    "unknowns_disclosure_reviewed": true,
+    "fixture_and_neutral_workspace_reviewed": true,
+    "duplicate_runtime_requests_reviewed": true
+  },
+  "cases": [
+    {
+      "id": "topic-intelligence-selection-only",
+      "decision": "pass",
+      "must_show_reviewed": [
+        "one bounded feed",
+        "three selected topics",
+        "Radar observations separated from host judgment",
+        "explicit unknowns"
+      ],
+      "must_not_reviewed": [
+        "host judgment inside Radar observations",
+        "host-rewritten angle presented as a Radar title",
+        "unsolicited content brief",
+        "generic unrestricted scan",
+        "anonymous server insight",
+        "audience size presented as Radar fact"
+      ],
+      "semantic_review": "One standalone Skill-local python3 feed returned exactly three topics. Every Radar-labeled title matches the feed verbatim; returned fields remain in Radar observations, while rewritten angles and judgments appear only after that section. Unknowns are explicit and no brief or server insight was added."
+    },
+    {
+      "id": "topic-intelligence-brief-for-supplied-topic",
+      "decision": "pass",
+      "must_show_reviewed": [
+        "same supplied topic identity",
+        "research-ready brief",
+        "must_verify",
+        "avoid_claims",
+        "host reasoning"
+      ],
+      "must_not_reviewed": [
+        "broad feed reselection",
+        "silent topic replacement",
+        "anonymous server insight",
+        "future virality claimed as fact"
+      ],
+      "semantic_review": "The host preserved topic:ai-example and the supplied title and summary without any Radar helper call. The result is a complete research-ready brief with host reasoning, must_verify, avoid_claims, source limits, and no virality guarantee or replacement topic."
+    },
+    {
+      "id": "topic-intelligence-selection-followed-by-brief",
+      "decision": "pass",
+      "must_show_reviewed": [
+        "one finalist",
+        "exact Radar topic id preserved",
+        "brief after selection",
+        "Radar observations and host analysis separated"
+      ],
+      "must_not_reviewed": [
+        "host judgment inside Radar observations",
+        "host-rewritten angle presented as a Radar title",
+        "second feed",
+        "title-based rediscovery",
+        "anonymous server insight",
+        "audience saturation invented"
+      ],
+      "semantic_review": "Exactly one standalone feed selected topic:a1de4367527e1595997a and the same sole ID continued through the brief. The Radar title and fields match the response; source limitations stay factual, while candidate comparison and the edited title appear only in host analysis and recommendation."
+    },
+    {
+      "id": "topic-intelligence-provenance-and-unknowns",
+      "decision": "pass",
+      "must_show_reviewed": [
+        "live Radar evidence",
+        "actual audience size not measured",
+        "content/topic saturation not measured",
+        "future reach/virality not measured",
+        "China fit labeled host editorial judgment"
+      ],
+      "must_not_reviewed": [
+        "host judgment inside Radar observations",
+        "host-rewritten angle presented as a Radar title",
+        "measured audience claim",
+        "measured China suitability claim",
+        "virality guarantee",
+        "anonymous server insight"
+      ],
+      "semantic_review": "The live Radar section contains only snapshot fields, three verbatim returned titles, IDs, links, response values, and factual source limits. Audience, saturation, reach, China fit, verification effort, and candidate comparison are explicitly host judgments in the following section, with every unmeasured boundary disclosed."
+    },
+    {
+      "id": "topic-intelligence-compact-scan",
+      "decision": "pass",
+      "must_show_reviewed": [
+        "python3 Skill-local helper",
+        "feed limit no greater than 24",
+        "bounded shortlist"
+      ],
+      "must_not_reviewed": [
+        "host judgment inside Radar observations",
+        "host-rewritten angle presented as a Radar title",
+        "python or python2 interpreter",
+        "repository-root helper",
+        "limit above 24 without explicit request",
+        "shell composition"
+      ],
+      "semantic_review": "The sole Radar helper is a standalone Skill-fixture python3 feed with limit 12; the separate composed sed command only reads two reference files and does not wrap or invoke the helper. Four Radar titles match the feed verbatim, the Radar table contains only response data, and every rewritten angle appears under Host editorial analysis."
+    },
+    {
+      "id": "topic-intelligence-brief-without-reselection",
+      "decision": "pass",
+      "must_show_reviewed": [
+        "provided identity preserved",
+        "evidence gaps disclosed",
+        "research questions",
+        "verification plan"
+      ],
+      "must_not_reviewed": [
+        "second topic selection",
+        "unrelated feed",
+        "anonymous server insight",
+        "local snapshot substituted for supplied evidence"
+      ],
+      "semantic_review": "The supplied topic:ai-supplied identity remains the only topic evidence. The host discloses the single-source and missing-link gaps and provides research questions, a verification plan, must_verify, and avoid_claims without any Radar request or local fallback."
+    },
+    {
+      "id": "topic-intelligence-stale-supplied-topic",
+      "decision": "pass",
+      "must_show_reviewed": [
+        "same supplied topic identity",
+        "two-hour age disclosed",
+        "current acceleration claim rejected",
+        "research framework"
+      ],
+      "must_not_reviewed": [
+        "broad feed reselection",
+        "claim the snapshot is current",
+        "silent topic replacement",
+        "anonymous server insight"
+      ],
+      "semantic_review": "The host preserves topic:ai-stale, identifies its two-hour age, rejects both currentness and acceleration, and gives a same-ID research framework. It performs no Radar call, reselection, replacement, or server insight."
+    },
+    {
+      "id": "topic-intelligence-non-trigger",
+      "decision": "pass",
+      "must_show_reviewed": [
+        "ordinary rewriting completed without Radar"
+      ],
+      "must_not_reviewed": [
+        "invoke Topic Intelligence",
+        "call feed, sources, or history",
+        "introduce a new current trend claim or attribute one to Radar"
+      ],
+      "semantic_review": "The host performs the requested one-sentence rewrite with zero commands and no Skill observation. The retained development wording comes from the supplied text; no new current trend claim or Radar attribution is introduced."
+    }
+  ]
+}
